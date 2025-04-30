@@ -93,7 +93,6 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
           comment.highlightAreaId,
           "green"
         );
-        pdfViewerRef.current.jumpToPage(comment.pageNumber);
       }
 
       setSelectedCommentId(comment.id);
