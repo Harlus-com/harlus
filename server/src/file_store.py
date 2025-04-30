@@ -90,6 +90,12 @@ class FileStore:
                 return file
         raise ValueError(f"File with path {path} not found")
 
+    def get_all_files(self) -> list[File]:
+        files = []
+        for workspace in self.get_workspaces().values():
+            files.extend(self.get_files(workspace.id).values())
+        return files
+
     def get_files(self, workspace_id: str) -> dict[str, File]:
         workspace = self.get_workspaces()[workspace_id]
         with open(

@@ -295,20 +295,3 @@ def queue_all_files(self):
         files = file_store.get_files(workspace.id)
         for file in files.values():
             sync_queue.queue_file_sync(file.id)
-
-
-from fastapi.routing import APIRoute
-
-
-def log_registered_routes(app):
-    print("Registered HTTP routes:")
-    for route in app.routes:
-        if isinstance(route, APIRoute):
-            print(f"  - {route.path} [{', '.join(route.methods)}]")
-    print("Registered WebSocket routes:")
-    for route in app.router.routes:
-        if getattr(route, "path", "").startswith("/workspace/stream/status"):
-            print(f"  - {route.path} (WebSocket)")
-
-
-log_registered_routes(app)

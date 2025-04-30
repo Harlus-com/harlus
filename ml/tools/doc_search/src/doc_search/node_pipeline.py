@@ -89,4 +89,8 @@ class NodePipeline:
         fine_nodes = split_text_nodes(nodes, sentence_window_parser)
         nodes.extend(fine_nodes)
 
-        return json.dumps(json_, indent=2), json.dumps(nodes_to_json_obj(nodes), indent=2), nodes
+        return (
+            json.dumps(json_, indent=2),
+            json.dumps(nodes_to_json_obj(nodes), indent=2),
+            nodes,
+        )

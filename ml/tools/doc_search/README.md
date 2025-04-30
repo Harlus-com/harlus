@@ -86,7 +86,9 @@ So probably the best bet is to just manually switch the interpreter, even when e
 
 ### Package
 
-To creat a new distribution:
+To create a new distribution:
+
+(First time only)
 
 ```
 pip install build
@@ -97,3 +99,5 @@ python -m build
 ```
 
 This uses setup.py to create a "wheel" in in `/dist` with the latest version. This wheel includes the source code and required deps (it does not pakcage the deps).
+
+If you want to use this latest distribution in `server` copy it into `server/wheel`. If it's a new version, add it as a new version, or if it overwrites a current version, replace that version.

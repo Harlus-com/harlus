@@ -1,5 +1,3 @@
-from .loader import DocToolLoader
+from .loader import DocToolLoader, ToolWrapper
 
-__all__ = ["DocToolLoader"]
-
-
+__all__ = ["DocToolLoader", "ToolWrapper"]

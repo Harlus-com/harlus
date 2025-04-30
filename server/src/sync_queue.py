@@ -83,9 +83,16 @@ class SyncQueue:
     async def _sync_file(self, file: File):
         """Sync a single file"""
         try:
-            tool_wrapper = await DocToolLoader().load(file.absolute_path, file.name)
-            tool = tool_wrapper.get()
-            self.tool_library.add_tool(file.absolute_path, tool)
+            doc_tool_loader = DocToolLoader()
+            # TODO: Consider a force sync option
+            if not self.tool_library.has_tool(
+                file.absolute_path, doc_tool_loader.get_tool_name()
+            ):
+                tool_wrapper = await doc_tool_loader.load(file.absolute_path, file.name)
+                self.tool_library.add_tool(file.absolute_path, tool_wrapper)
+            else:
+                # Sleep to simulate a load. This creates for better UI experience
+                await asyncio.sleep(1)
             await self._set_sync_status(file, SyncStatus.SYNC_COMPLETE)
         except Exception as e:
             # Log the error and reset the status
