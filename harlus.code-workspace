@@ -1,0 +1,10 @@
+{
+  "folders": [
+    { "path": "." },
+    { "path": "server" },
+    { "path": "ml/tools/doc_search" }
+  ],
+  "settings": {
+    "window.title": "Harlus"
+  }
+}

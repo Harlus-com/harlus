@@ -20,6 +20,8 @@ Mac
 source .venv/bin/activate
 ```
 
+Pro Top: Add `alias activate="source .venv/bin/activate"` to your shell startup file (e.g `~/.bashrc`, `~/.zprofile` etc.) so that you can run `activate` in any directory with a .venv folder to activate the env.
+
 Windows
 
 ```
@@ -28,35 +30,24 @@ Windows
 
 Activating the environment ensures that the python dependency manager installs all the dependencies in the active environment.
 
-### Install UV
-
-Note: If uv is already installed, you dont' need to do this
-
-```
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-### Initialize Project with UV
-
-```
-uv venv
-```
-
 ### Install requirements.txt
 
 ```
-uv pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 ## How to install new packages
 
 ```
-uv pip install <package-name>
+pip install <package-name>
 ```
 
 ```
-uv pip freeze > requirements.txt
+pip freeze > requirements.txt
 ```
+
+TODO: We need a way to prune unused dependenices from requirements.txt
+TODO: We need a way to drop dependenices not specifified (but that were previously specified or otherwise eneded up in site-packages) from site packages.
 
 ## Setting up VS Code with Python
 

@@ -44,13 +44,45 @@ Activating the environment ensures that the python dependency manager installs a
 
 If you are swithching between working on different tools with their own .venvs, in order to ensure isolation, you should run `deactivate` on the current `.venv` and then activate when you cd into the new dir.
 
-**Important** VS-Code has it's own way of automatically injecting the python env based on configurable settings. TODO: Figure this out, and explain how developers can set up different envs for different tools -- for now, just rely on manual activation in the terminal shell.
+**Important** VS-Code has it's own way of automatically injecting the python env based on configurable settings. If you unsure about your env, use `which python` to check which python is being used. You should see something like `path/to/harlus/server.venv/bin/python`.
 
 To activate the python environment in a notebook in VS code, you can use _Cmd+Shift+P_ _Python: Select Interpreter_ and copy in the path of
 
 ```
-<your_harlus_folder>/ml/tools/doc_search/.venv/bin/python3.13
+path/to/harlus/ml/tools/doc_search/.venv/bin/python3.13
 ```
+
+You can also try creating a `.vscode/settings.json` file in this directory with the following content:
+
+```
+{
+  "python.defaultInterpreterPath": ".venv/bin/python3.13"
+}
+
+```
+
+In theory, this should tell vscode to use the correct python interpreter for code editing (not running jupyter notebooks -- you'll have to choose the env there).
+
+Unfortunately, after further research, this will only work if you tell vscode that that folder is a workspace, e.g.:
+
+```
+{
+  "folders": [
+    { "path": "." },
+    { "path": "server" },
+    { "path": "ml/tools/doc_search" }
+  ],
+  "settings": {
+    "window.title": "Harlus"
+  }
+}
+```
+
+In harlus.code-workspace.
+
+This includes the monorepo (".") and also the specific other workspaces. Then the switching works, but we see "server" and "doc_search" at top level next to "harlus".
+
+So probably the best bet is to just manually switch the interpreter, even when editing files.
 
 ### Package
 
