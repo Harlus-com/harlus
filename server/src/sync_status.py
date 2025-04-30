@@ -1,0 +1,9 @@
+from enum import Enum
+
+
+class SyncStatus(Enum):
+    SYNC_COMPLETE = "SYNC_COMPLETE"
+    SYNC_IN_PROGRESS = "SYNC_IN_PROGRESS"
+    SYNC_PENDING = "SYNC_PENDING"
+    SYNC_ERROR = "SYNC_ERROR"
+    UNKNOWN = "UNKNOWN"

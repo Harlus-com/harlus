@@ -1,0 +1,48 @@
+appId: com.harlus.app
+productName: Harlus
+copyright: Copyright © 2025
+
+directories:
+  output: dist-electron
+  buildResources: build
+
+files:
+  - "!**/*" # Everything in root dir would otherwise get included. This is all we need
+  - dist/**/*
+  - dist-electron/**/*
+  - package.json
+
+beforeBuild: ./scripts/beforebuild.js
+
+# Executable cannot go in the asar archive
+# (Hopefully this will be platform independent TBD on windows)
+extraResources:
+  - from: dist-electron/server/fastapi-server
+    to: server/fastapi-server
+
+mac:
+  category: public.app-category.finance
+  target:
+    - dmg
+
+win:
+  target:
+    - nsis
+
+linux:
+  target:
+    - AppImage
+  category: Office
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications

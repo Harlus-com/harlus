@@ -1,0 +1,122 @@
+
+# note: all paths are relative to project root unless otherwise specified. Project root path is defined in .env file.
+
+# project folder structure
+backend_path: 
+  - "source"
+  - "backend"
+  
+
+# logging
+backend_log_path:
+  - "source"
+  - "backend"
+  - ".log"
+
+
+# workspace caching
+workspace_path:
+  - "workspace"
+  - "wood"
+agent_cache_in_workspace:
+  - ".cache"
+  - "agents"
+fetch_cache_in_workspace:
+  - ".cache"
+  - "fetches"
+llamaparse_cache_in_workspace:
+  - ".cache"
+  - "llamaparse"
+internal_report_path_in_workspace:
+  - ".rawdata"
+  - "private"
+  - "internal_reports"
+earnings_call_path_in_workspace: &earnings_call_path_in_workspace
+  - ".rawdata"
+  - "public"
+  - "earnings_call"
+sec_filings_path_in_workspace: &sec_filings_path_in_workspace
+  - ".rawdata"
+  - "public"
+  - "sec"
+llamaindex_cache_in_workspace:
+  - ".cache"
+  - "llamaindex"
+  - "cache"
+llamaindex_summary_in_workspace:
+  - ".cache"
+  - "llamaindex"
+  - "summary"
+llamaindex_metadata_in_workspace:
+  - ".cache"
+  - "llamaindex"
+  - "metadata"
+
+
+# source metadata
+source_type_metadata:
+  sec_filings:
+    source_name: "sec_filings"
+    file_type: "pdf"
+    path_in_workspace: *sec_filings_path_in_workspace 
+    content_description: "US company official filings with the securities and exchange commission."
+  earnings_call:
+    source_name: "earnings_call"
+    file_type: "txt"
+    path_in_workspace: *earnings_call_path_in_workspace
+    content_description: "Earnings call transcripts."
+
+
+
+# chunking parameters
+chunk_size_default: 250 # nb. tokens
+chunk_overlap_default: 20 # nb. tokens
+chunk_characeter_split_default: "."
+
+# throttling parameters
+webdriver_throttle: 8 # nb. pulls per second
+webdriver_timeout: 10 # nb. of seconds
+obb_refetch_interval: 5 # nb minutes new data for same obb ticker is not refreshed
+
+# SEC filing parameters
+sec_relevant_filings:
+  - 10-K
+  - 10-Q
+
+# PDF page settings
+pdf_page_settings:
+  landscape: false
+  printBackground: true
+  paperWidth: 8.5
+  paperHeight: 11
+  marginTop: 0.4
+  marginBottom: 0.4
+  marginLeft: 0.4
+  marginRight: 0.4
+
+
+# excel formatting
+excel_formatting:
+  header_font: "Arial"
+  header_font_size: 12
+  header_font_color: "000000"
+  header_border: true
+  header_background_color: "F0F0F0"
+  alternate_row_background: true
+  alternate_row_color: "F2F2F2"
+  gridlines: false
+  auto_size_columns: true
+  set_header_format: true
+  row_offset: 2
+  column_offset: 2
+  indent_after_colon: true
+  bold_double_rows: true
+  bold_rows_with_total: true
+  number_format: "# ##0"
+  format_parsed_numbers: true
+  parsed_numbers_color: "000000"
+  parsed_numbers_background_color: "FFFFFF0"
+  parsed_negative_numbers_color: "FF0000"
+
+
+

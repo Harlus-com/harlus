@@ -1,0 +1,9 @@
+.venv
+.vscode
+__pycache__
+build
+dist
+fastapi-server.spec
+.env
+workspace
+.log
