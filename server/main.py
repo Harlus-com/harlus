@@ -11,6 +11,11 @@ asyncio.set_event_loop(loop)
 nest_asyncio.apply(loop=asyncio.get_event_loop())
 
 
+import dotenv
+import json
+
+from contrast_tool import ContrastTool
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -20,6 +25,7 @@ def main():
     )
     args = parser.parse_args()
     is_frozen = getattr(sys, "frozen", False)
+
     uvicorn.run(
         app if is_frozen else "src.app:app",
         host="0.0.0.0",

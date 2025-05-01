@@ -17,7 +17,7 @@ from llama_index.core.tools import QueryEngineTool
 from llama_index.llms.openai import OpenAI
 
 from .utils import *
-from .doc_search.mixed_retriever import MixKeywordVectorRetriever
+from .doc_search_copy.mixed_retriever import MixKeywordVectorRetriever
 
 from .prompts import get_prompt
 
@@ -46,6 +46,7 @@ class VerificationResponse(BaseModel):
     reasoning: str
 
 
+# TODO pipeline
 class ClaimChecker:
 
     def __init__(
@@ -69,9 +70,6 @@ class ClaimChecker:
             temperature=config["verification model"]["temperature"], 
             max_tokens=config["verification model"]["max_tokens"]
         )
-
-        # set up API endpoint
-        # self.router = add_router(config["api"], handler=self.analyse)
 
 
     def claim_to_questions(self, claim: str, num_questions: int = 3) -> List[str]:
@@ -112,6 +110,21 @@ class ClaimChecker:
         return parsed_verification
 
 
+    # TODO replace this with file query engine
+    def build_retriever(self, file_path: str) -> BaseRetriever:
+
+        documents = load_document(file_path, 'source')
+
+        vector_index = VectorStoreIndex.from_documents(documents)
+        keyword_index = KeywordTableIndex.from_documents(documents)
+
+        vector_retriever = VectorIndexRetriever(index=vector_index, similarity_top_k=3)
+        keyword_retriever = KeywordTableSimpleRetriever(index=keyword_index)
+        mixed_retriever = MixKeywordVectorRetriever(vector_retriever, keyword_retriever)
+        
+        return mixed_retriever
+    
+
     def analyse_from_path(self, claims: list[str], file_path: str) -> Dict:
         
         documents = load_document(file_path, 'source')
@@ -147,23 +160,30 @@ class ClaimChecker:
             return {"error": str(e)}
         
 
-    def analyse(self, claims: list[str], doc_wrapper: QueryEngineTool) -> Dict:
+
+
+    # def analyse(self, claims: list[str], doc_wrapper: QueryEngineTool) -> Dict:
         
-        # documents = load_document(req.file_path, 'source')
+    #     # documents = load_document(req.file_path, 'source')
 
-        # vector_index = VectorStoreIndex.from_documents(documents)
-        # keyword_index = KeywordTableIndex.from_documents(documents)
+    #     # vector_index = VectorStoreIndex.from_documents(documents)
+    #     # keyword_index = KeywordTableIndex.from_documents(documents)
 
-        # vector_retriever = VectorIndexRetriever(index=vector_index, similarity_top_k=3)
-        # keyword_retriever = KeywordTableSimpleRetriever(index=keyword_index)
-        # mixed_retriever = MixKeywordVectorRetriever(vector_retriever, keyword_retriever)
+    #     # vector_retriever = VectorIndexRetriever(index=vector_index, similarity_top_k=3)
+    #     # keyword_retriever = KeywordTableSimpleRetriever(index=keyword_index)
+    #     # mixed_retriever = MixKeywordVectorRetriever(vector_retriever, keyword_retriever)
 
-        retriever = doc_wrapper.doc_tool.query_engine._query_engines['mix_qengine'].retriever
+    #     retriever = doc_wrapper.doc_tool.query_engine._query_engines['mix_qengine'].retriever
+
+    #     self.analyse_from_retriever(retriever)
+
+
+    def analyse_from_retriever(self, claims: list[str], retriever: BaseRetriever):
 
         try:
             output = {}
 
-            # can run asynchronously
+            # TODO can run asynchronously
             for i, claim in enumerate(claims):
 
                 # TODO remove questions, just query engine directly
