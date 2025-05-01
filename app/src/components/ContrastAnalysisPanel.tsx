@@ -46,7 +46,7 @@ const ContrastAnalysisPanel: React.FC<ContrastAnalysisProps> = ({
         selectedFile1.id,
         selectedFile2.id
       );
-      setAnalysisResult(result);
+      console.log(result);
     } catch (error) {
       console.error("Error running analysis:", error);
     } finally {

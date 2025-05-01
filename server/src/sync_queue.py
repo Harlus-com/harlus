@@ -106,7 +106,9 @@ class SyncQueue:
             if len(missing_tools) > 0:
                 for tool_name in missing_tools:
                     loader = loaders_by_name[tool_name]
+                    print(f"Loading tool {tool_name} for file {file.name}")
                     tool_wrapper = await loader.load(file.absolute_path, file.name)
+                    print(f"Tool {tool_name} loaded for file {file.name}")
                     self.tool_library.add_tool(file.absolute_path, tool_wrapper)
             else:
                 # Sleep to simulate a load. This creates for better UI experience

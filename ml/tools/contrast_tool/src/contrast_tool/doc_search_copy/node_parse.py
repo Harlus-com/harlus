@@ -4,18 +4,18 @@ from llama_index.core.schema import (
     RelatedNodeInfo,
 )
 from llama_index.core.schema import (
-    NodeRelationship, 
+    NodeRelationship,
     RelatedNodeInfo,
     IndexNode,
     Node,
-    Document
+    Document,
 )
 from tqdm import tqdm
 import asyncio
 from typing import List, Dict
 from llama_index.core.node_parser import (
     MarkdownElementNodeParser,
-    SentenceWindowNodeParser
+    SentenceWindowNodeParser,
 )
 from llama_index.core.extractors import BaseExtractor
 
@@ -33,10 +33,10 @@ def create_nodes_from_llamaparse_json(json_in: List[List[Dict]]) -> List[Node]:
     3. Regroups items to have the same itemgroup_id if they are part of the same group (e.g. heading and the items underneath it)
     4. Sets current headings as metadata to each item
     5. Creates nodes from each item
-    
+
     Args:
         json_in (List[List[Dict]]): Input JSON from LlamaParse
-        
+
     Returns:
         List[Node]: List of nodes created from JSON
     """
@@ -49,11 +49,16 @@ def create_nodes_from_llamaparse_json(json_in: List[List[Dict]]) -> List[Node]:
         page_md = page["md"]
         page_nb = page["page"]
         for item in page["items"]:
-            item = {**item, "page_nb":page_nb, "page_md" : page_md, "page_txt": page_txt, "item_id": item_id}
+            item = {
+                **item,
+                "page_nb": page_nb,
+                "page_md": page_md,
+                "page_txt": page_txt,
+                "item_id": item_id,
+            }
             json_out.append(item)
             item_id += 1
     json_in = json_out
-
 
     # 2. add bounding box information as metadata to each item
     json_out = []
@@ -61,7 +66,6 @@ def create_nodes_from_llamaparse_json(json_in: List[List[Dict]]) -> List[Node]:
         item = {**item, "bounding_boxes": [item["bBox"]]}
         json_out.append(item)
     json_in = json_out
-
 
     # 3. add itemgroup_id to each item
     json_out = []
@@ -72,13 +76,12 @@ def create_nodes_from_llamaparse_json(json_in: List[List[Dict]]) -> List[Node]:
             custom_type = item["type"] + "_" + str(item["lvl"])
         else:
             custom_type = item["type"]
-        if not custom_type == last_type: 
-            itemgroup_id += 1 
-        item = {**item, "itemgroup_id" : itemgroup_id, "custom_type": custom_type}
-        last_type  = custom_type
+        if not custom_type == last_type:
+            itemgroup_id += 1
+        item = {**item, "itemgroup_id": itemgroup_id, "custom_type": custom_type}
+        last_type = custom_type
         json_out.append(item)
     json_in = json_out
-
 
     # 4. add itemgroup_id to each item
     last_itemgroup_id = 0
@@ -86,7 +89,9 @@ def create_nodes_from_llamaparse_json(json_in: List[List[Dict]]) -> List[Node]:
     json_out = []
     for item in json_in:
         itemgroup_id = item["itemgroup_id"]
-        if itemgroup_id == last_itemgroup_id and (item["type"] == "heading" or item["type"] == "text"):
+        if itemgroup_id == last_itemgroup_id and (
+            item["type"] == "heading" or item["type"] == "text"
+        ):
             new_item["value"] += "\n\n" + item["value"]
             new_item["md"] += "\n\n" + item["md"]
             new_item["bounding_boxes"] += item["bounding_boxes"]
@@ -98,10 +103,9 @@ def create_nodes_from_llamaparse_json(json_in: List[List[Dict]]) -> List[Node]:
     json_out = json_out[1:]
     json_in = json_out
 
-
     # 5. set current headings as metadata to each item
     json_out = []
-    current_headings = {"heading_1": "", "heading_2" : "", "heading_3": ""}
+    current_headings = {"heading_1": "", "heading_2": "", "heading_3": ""}
     for item in json_in:
         if item["type"] == "heading":
             current_headings[item["custom_type"]] = item["md"]
@@ -117,26 +121,24 @@ def create_nodes_from_llamaparse_json(json_in: List[List[Dict]]) -> List[Node]:
                 "page_nb": item["page_nb"],
                 "current_headings": item["current_headings"],
                 "type": item["type"],
-                "bounding_boxes": item["bounding_boxes"]
+                "bounding_boxes": item["bounding_boxes"],
             }
             block_node = TextNode(text=item["md"], metadata=node_metadata)
             nodes_out.append(block_node)
     return nodes_out
 
 
-
-
 def add_node_relationships(nodes_in: List[Node]) -> List[Node]:
     """
     Add previous/next relationships between consecutive nodes in a list.
-    
+
     Creates bidirectional relationships between adjacent nodes where:
     - Each node points to the next node in the sequence
     - Each node points to the previous node in the sequence
-    
+
     Args:
         nodes_in (List[Node]): Input list of nodes to add relationships between
-        
+
     Returns:
         List[Node]: Nodes with previous/next relationships added
     """
@@ -145,29 +147,39 @@ def add_node_relationships(nodes_in: List[Node]) -> List[Node]:
     nodes_out = []
     for i in range(len(nodes_in)):
 
-        previous_block_node = nodes_in[i-1] if i > 0 else None
+        previous_block_node = nodes_in[i - 1] if i > 0 else None
         current_block_node = nodes_in[i]
-        next_block_node = nodes_in[i+1] if i < len(nodes_in) - 1 else None
+        next_block_node = nodes_in[i + 1] if i < len(nodes_in) - 1 else None
 
         if previous_block_node is not None:
-            previous_block_node.relationships[NodeRelationship.NEXT] = RelatedNodeInfo(node_id=current_block_node.node_id)
-            current_block_node.relationships[NodeRelationship.PREVIOUS] = RelatedNodeInfo(node_id=previous_block_node.node_id)
+            previous_block_node.relationships[NodeRelationship.NEXT] = RelatedNodeInfo(
+                node_id=current_block_node.node_id
+            )
+            current_block_node.relationships[NodeRelationship.PREVIOUS] = (
+                RelatedNodeInfo(node_id=previous_block_node.node_id)
+            )
 
         if next_block_node is not None:
-            current_block_node.relationships[NodeRelationship.NEXT] = RelatedNodeInfo(node_id=next_block_node.node_id)
-            next_block_node.relationships[NodeRelationship.PREVIOUS] = RelatedNodeInfo(node_id=current_block_node.node_id)
+            current_block_node.relationships[NodeRelationship.NEXT] = RelatedNodeInfo(
+                node_id=next_block_node.node_id
+            )
+            next_block_node.relationships[NodeRelationship.PREVIOUS] = RelatedNodeInfo(
+                node_id=current_block_node.node_id
+            )
 
         nodes_out.extend([current_block_node])
-    
+
     return nodes_out
 
 
-async def split_table_nodes(nodes_in: List[Node], markdown_parser: MarkdownElementNodeParser) -> List[Node]:
+async def split_table_nodes(
+    nodes_in: List[Node], markdown_parser: MarkdownElementNodeParser
+) -> List[Node]:
     """
     Split table nodes from LlamaParse JSON.
-    
+
     Args:
-        nodes_in (List[Node]): Input nodes from LlamaParse JSON 
+        nodes_in (List[Node]): Input nodes from LlamaParse JSON
         markdown_parser (MarkdownParser): Parser for handling markdown/table content conversion
     Returns:
         List[Node]: Processed nodes including:
@@ -179,31 +191,39 @@ async def split_table_nodes(nodes_in: List[Node], markdown_parser: MarkdownEleme
 
     async def process_node(current_node, markdown_parser):
         if current_node.metadata["type"] == "table":
-            table_base_nodes = await asyncio.to_thread(markdown_parser.get_nodes_from_node, current_node)
-            base_nodes, objects = await asyncio.to_thread(markdown_parser.get_nodes_and_objects, table_base_nodes)
+            table_base_nodes = await asyncio.to_thread(
+                markdown_parser.get_nodes_from_node, current_node
+            )
+            base_nodes, objects = await asyncio.to_thread(
+                markdown_parser.get_nodes_and_objects, table_base_nodes
+            )
             return base_nodes + objects
         else:
             return [current_node]
 
     semaphore = asyncio.Semaphore(NUM_WORKERS)
-    
+
     async def process_with_semaphore(node):
         async with semaphore:
             return await process_node(node, markdown_parser)
 
     tasks = [process_with_semaphore(node) for node in nodes_in]
     nodes_out = []
-    for task in tqdm(asyncio.as_completed(tasks), total=len(tasks), desc="  > splitting tables: "):
+    for task in tqdm(
+        asyncio.as_completed(tasks), total=len(tasks), desc="  > splitting tables: "
+    ):
         result = await task
         nodes_out.extend(result)
 
     return nodes_out
 
 
-def split_text_nodes(nodes_in: List[Node], sentence_window_parser: SentenceWindowNodeParser) -> List[Node]:
+def split_text_nodes(
+    nodes_in: List[Node], sentence_window_parser: SentenceWindowNodeParser
+) -> List[Node]:
     """
     Split text nodes from LlamaParse JSON.
-    
+
     Args:
         nodes_in (List[Node]): Input nodes from LlamaParse JSON
         sentence_window_parser (SentenceWindowParser): Parser for splitting text into smaller window-based nodes
@@ -221,13 +241,17 @@ def split_text_nodes(nodes_in: List[Node], sentence_window_parser: SentenceWindo
             fine_nodes = sentence_window_parser.get_nodes_from_documents([current_node])
             nodes_out.extend(fine_nodes)
         else:
-            nodes_out.append(current_node)
+            pass
+            # nodes_out.append(current_node)
 
     return nodes_out
 
-async def add_metadata_to_nodes(nodes_in: List[Node], extractor_list: List[BaseExtractor]) -> List[Node]:
+
+async def add_metadata_to_nodes(
+    nodes_in: List[Node], extractor_list: List[BaseExtractor]
+) -> List[Node]:
     """
-    Adds metadata in two ways: 
+    Adds metadata in two ways:
     1. Add metadata from each extractor in the extractor list to the base nodes
     2. Create index nodes containing the extracted metadata values
 
@@ -255,7 +279,7 @@ async def add_metadata_to_nodes(nodes_in: List[Node], extractor_list: List[BaseE
     # iterate over extracted metadata
     for extractor_metadata in extractor_metadata_list:
         for node, new_metadata in zip(nodes_in, extractor_metadata):
-            
+
             # extend node metadata with extractor metadata
             node.metadata = {**node.metadata, **new_metadata}
             nodes_out.append(node)
@@ -264,26 +288,19 @@ async def add_metadata_to_nodes(nodes_in: List[Node], extractor_list: List[BaseE
                 extactor_metadata_map[node.node_id] = new_metadata
             else:
                 extactor_metadata_map[node.node_id].update(new_metadata)
-    
+
     # extend nodes with index nodes for each value in extracted metadata
-    for node_id, metadata in extactor_metadata_map.items(): # for each node
-        for val in metadata.values(): # create index node for all metadata values
+    for node_id, metadata in extactor_metadata_map.items():  # for each node
+        for val in metadata.values():  # create index node for all metadata values
             if isinstance(val, str):
-                nodes_out.append(IndexNode(text=val, index_id=node_id, metadata={**node.metadata, **{'type': 'index'}}))
+                nodes_out.append(
+                    IndexNode(
+                        text=val,
+                        index_id=node_id,
+                        metadata={**node.metadata, **{"type": "index"}},
+                    )
+                )
             else:
                 print(f"  > skipping index node for {node_id} - {val}")
 
     return nodes_out
-
-
-
-
-
-
-
-
-
-
-
-
-

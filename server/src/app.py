@@ -283,13 +283,12 @@ def get_file_status(file_id: str) -> SyncStatus:
 
 @app.get("/contrast/analyze")
 def get_contrast_analyze(
-    workspace_id: str = Query(..., alias="workspaceId"),
     old_file_id: str = Query(..., alias="oldFileId"),
     new_file_id: str = Query(..., alias="newFileId"),
 ):
     """Analyze the contrast between two files"""
-    old_file = file_store.get_file(old_file_id, workspace_id)
-    new_file = file_store.get_file(new_file_id, workspace_id)
+    old_file = file_store.get_file(old_file_id)
+    new_file = file_store.get_file(new_file_id)
     claim_query_tool = tool_library.get_tool(old_file.absolute_path, "claim_query_tool")
     claim_retriever_tool = tool_library.get_tool(
         old_file.absolute_path, "claim_retriever_tool"
