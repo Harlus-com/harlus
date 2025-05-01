@@ -1,9 +1,13 @@
-import { FileSearch } from "lucide-react";
+import {
+  ScanSearch,
+  RefreshCw,
+  Columns2,
+  MessagesSquare,
+  Files,
+} from "lucide-react";
 import FileExplorer from "@/components/FileExplorer";
-import { Maximize } from "lucide-react";
-import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, MessageCircle, LayoutGrid } from "lucide-react";
+import { LayoutDashboard, MessageSquareQuote } from "lucide-react";
 import {
   PanelGroup,
   Panel,
@@ -64,90 +68,140 @@ export default function Workspace() {
   return (
     <div className="h-screen">
       <header className="border-b border-border p-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-semibold">APPL</h1>
-          <Button variant="outline" size="sm" onClick={() => {}}>
-            <LayoutDashboard className="mr-2" size={16} />
-            Switch Workspace
-          </Button>
-
-          {/* Knowledge Graph Status Indicator */}
-          <div className="flex items-center gap-2 ml-4">
-            <span className="text-sm font-medium">Knowledge Graph:</span>
-            <span className="text-sm text-green-600">Up to Date</span>
-          </div>
-        </div>
+        <h1 className="text-xl font-semibold mr-4">APPL</h1>
+        <div className="flex-1" />
         <div className="flex items-center space-x-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <LayoutGrid size={16} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem
-                onClick={() => setFileGroupCount(FileGroupCount.ONE)}
-              >
-                1 File Group
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setFileGroupCount(FileGroupCount.TWO)}
-              >
-                2 File Groups
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setFileGroupCount(FileGroupCount.THREE)}
-              >
-                3 File Groups
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setFileGroupCount(FileGroupCount.FOUR)}
-              >
-                4 File Groups
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center space-x-2 border-r border-border pr-6">
+            <Button
+              onClick={() => {}}
+              variant="outline"
+              size="sm"
+              className="group relative"
+            >
+              <RefreshCw size={16} />
+              <div className="absolute top-full left-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                Force Sync
+              </div>
+            </Button>
 
-          <Button
-            onClick={() => {
-              if (visiblePanels.includes(TopLevelPanelId.COMMENTS)) {
-                setVisiblePanels(
-                  visiblePanels.filter(
-                    (panel) => panel !== TopLevelPanelId.COMMENTS
-                  )
-                );
-              } else {
-                setVisiblePanels([...visiblePanels, TopLevelPanelId.COMMENTS]);
-              }
-            }}
-            variant="outline"
-            size="sm"
-          >
-            <MessageCircle size={16} className="mr-1" />
-            <Maximize size={14} />
-          </Button>
-          <Button
-            onClick={() => {
-              if (visiblePanels.includes(TopLevelPanelId.CHAT)) {
-                setVisiblePanels(
-                  visiblePanels.filter(
-                    (panel) => panel !== TopLevelPanelId.CHAT
-                  )
-                );
-              } else {
-                setVisiblePanels([...visiblePanels, TopLevelPanelId.CHAT]);
-              }
-            }}
-            variant="outline"
-            size="sm"
-          >
-            <MessageSquare size={16} className="mr-1" />
-            <Maximize size={14} />
-          </Button>
-          <Button onClick={() => {}} variant="outline" size="sm">
-            <FileSearch size={16} className="mr-1" />
-            <Maximize size={14} />
-          </Button>
+            <Button
+              onClick={() => {}}
+              variant="outline"
+              size="sm"
+              className="group relative"
+            >
+              <ScanSearch size={16} />
+              <div className="absolute top-full left-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                Contrast Analysis
+              </div>
+            </Button>
+          </div>
+
+          <div className="flex items-center space-x-2 pl-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="group relative">
+                  <Columns2 size={16} />
+                  <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    File Layout
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem
+                  onClick={() => setFileGroupCount(FileGroupCount.ONE)}
+                >
+                  1 File Group
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setFileGroupCount(FileGroupCount.TWO)}
+                >
+                  2 File Groups
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setFileGroupCount(FileGroupCount.THREE)}
+                >
+                  3 File Groups
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setFileGroupCount(FileGroupCount.FOUR)}
+                >
+                  4 File Groups
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              onClick={() => {
+                if (visiblePanels.includes(TopLevelPanelId.COMMENTS)) {
+                  setVisiblePanels(
+                    visiblePanels.filter(
+                      (panel) => panel !== TopLevelPanelId.COMMENTS
+                    )
+                  );
+                } else {
+                  setVisiblePanels([
+                    ...visiblePanels,
+                    TopLevelPanelId.COMMENTS,
+                  ]);
+                }
+              }}
+              variant="outline"
+              size="sm"
+              className="group relative"
+            >
+              <Files size={16} />
+              <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                Toggle File Explorer
+              </div>
+            </Button>
+
+            <Button
+              onClick={() => {
+                if (visiblePanels.includes(TopLevelPanelId.COMMENTS)) {
+                  setVisiblePanels(
+                    visiblePanels.filter(
+                      (panel) => panel !== TopLevelPanelId.COMMENTS
+                    )
+                  );
+                } else {
+                  setVisiblePanels([
+                    ...visiblePanels,
+                    TopLevelPanelId.COMMENTS,
+                  ]);
+                }
+              }}
+              variant="outline"
+              size="sm"
+              className="group relative"
+            >
+              <MessageSquareQuote size={16} />
+              <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                Toggle Comments
+              </div>
+            </Button>
+
+            <Button
+              onClick={() => {
+                if (visiblePanels.includes(TopLevelPanelId.CHAT)) {
+                  setVisiblePanels(
+                    visiblePanels.filter(
+                      (panel) => panel !== TopLevelPanelId.CHAT
+                    )
+                  );
+                } else {
+                  setVisiblePanels([...visiblePanels, TopLevelPanelId.CHAT]);
+                }
+              }}
+              variant="outline"
+              size="sm"
+              className="group relative"
+            >
+              <MessagesSquare size={16} />
+              <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                Toggle Chat
+              </div>
+            </Button>
+          </div>
         </div>
       </header>
       <PanelGroup id="workspace" direction="horizontal" className="h-full">
@@ -167,7 +221,6 @@ export default function Workspace() {
         >
           {visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER) ? (
             <FileExplorer
-              workspaceName="APPL"
               files={workspaceFiles}
               onFileSelect={() => {}}
               selectedFile={workspaceFiles[0]}
