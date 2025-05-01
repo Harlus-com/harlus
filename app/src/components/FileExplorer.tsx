@@ -18,14 +18,16 @@ import {
 import { fileService } from "@/api/fileService";
 import FileStatusIndicator from "./FileStatusIndicator";
 
-interface SidebarProps {
+interface FileExplorerProps {
+  workspaceName: string;
   files: WorkspaceFile[];
   onFileSelect: (file: WorkspaceFile) => void;
   selectedFile: WorkspaceFile | null;
   onFilesChange?: (files: WorkspaceFile[]) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({
+const FileExplorer: React.FC<FileExplorerProps> = ({
+  workspaceName,
   files,
   onFileSelect,
   selectedFile,
@@ -56,7 +58,9 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <div className="h-full bg-sidebar border-r border-border flex flex-col">
-      <div className="p-4 font-medium text-lg border-b border-border">APPL</div>
+      <div className="p-4 font-medium text-lg border-b border-border">
+        {workspaceName}
+      </div>
 
       <div className="flex-1 overflow-auto p-2 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300">
         <div className="mb-2">
@@ -138,4 +142,4 @@ const Sidebar: React.FC<SidebarProps> = ({
   );
 };
 
-export default Sidebar;
+export default FileExplorer;

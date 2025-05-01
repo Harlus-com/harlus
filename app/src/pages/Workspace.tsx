@@ -1,10 +1,16 @@
 import { FileSearch } from "lucide-react";
+import FileExplorer from "@/components/FileExplorer";
 import { Maximize } from "lucide-react";
 import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, MessageCircle, LayoutGrid } from "lucide-react";
-import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
-import { useState } from "react";
+import {
+  PanelGroup,
+  Panel,
+  PanelResizeHandle,
+  ImperativePanelHandle,
+} from "react-resizable-panels";
+import { useRef, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,6 +59,8 @@ export default function Workspace() {
     TopLevelPanelId.CHAT,
   ]);
 
+  const fileExplorerPanelRef = useRef<ImperativePanelHandle>(null);
+
   return (
     <div className="h-screen">
       <header className="border-b border-border p-4 flex items-center justify-between">
@@ -99,6 +107,7 @@ export default function Workspace() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
           <Button
             onClick={() => {
               if (visiblePanels.includes(TopLevelPanelId.COMMENTS)) {
@@ -143,16 +152,43 @@ export default function Workspace() {
       </header>
       <PanelGroup id="workspace" direction="horizontal" className="h-full">
         <Panel
+          collapsible={true}
+          collapsedSize={1}
+          ref={fileExplorerPanelRef}
           id={FILE_EXPLORER.id}
           order={1}
           defaultSize={FILE_EXPLORER.defaultSize}
           minSize={FILE_EXPLORER.minSize}
-          className="bg-blue-50 p-4 border-r border-blue-200 h-full"
+          className={`bg-blue-50 border-r border-blue-200 h-full ${
+            visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER)
+              ? "w-auto"
+              : "w-8"
+          }`}
         >
-          <h2 className="text-lg font-semibold text-blue-800 mb-2">
-            File Explorer
-          </h2>
-          <p className="text-blue-600">Content for the left panel</p>
+          {visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER) ? (
+            <FileExplorer
+              workspaceName="APPL"
+              files={workspaceFiles}
+              onFileSelect={() => {}}
+              selectedFile={workspaceFiles[0]}
+              onFilesChange={() => {}}
+            />
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full p-2"
+              onClick={() => {
+                setVisiblePanels([
+                  ...visiblePanels,
+                  TopLevelPanelId.FILE_EXPLORER,
+                ]);
+                fileExplorerPanelRef.current?.expand();
+              }}
+            >
+              <LayoutDashboard size={16} className="rotate-90" />
+            </Button>
+          )}
         </Panel>
         <PanelResizeHandle className="w-2 bg-gray-300 hover:bg-blue-400 transition-colors" />
         <Panel
@@ -271,3 +307,14 @@ function containsAnyOf(array: TopLevelPanelId[], panels: TopLevelPanelId[]) {
 function containsAllOf(array: TopLevelPanelId[], panels: TopLevelPanelId[]) {
   return panels.every((panel) => array.includes(panel));
 }
+
+const workspaceFiles = [...Array(10).keys()].map((id) => {
+  const idStr = (id + 1).toString();
+  return {
+    id: idStr,
+    name: `File ${idStr}`,
+    absolutePath: "",
+    workspaceId: "",
+    appDir: null,
+  };
+});
