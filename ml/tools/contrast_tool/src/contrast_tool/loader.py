@@ -2,8 +2,6 @@ from llama_index.core.tools import QueryEngineTool
 from llama_index.core.base.base_query_engine import BaseQueryEngine
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.schema import Node
-from .doc_search_copy.node_pipeline import NodePipeline
-from .doc_search_copy.doc_tool_pipeline import DocumentPipeline
 from .claim_getter import ClaimGetter
 from .claim_checker import ClaimChecker
 from .utils import load_config
@@ -42,7 +40,9 @@ class ClaimQueryToolLoader:
     def get_tool_name(self) -> str:
         return "claim_query_tool"
 
-    async def load(self, file_path: str, unused_file_name: Optional[str] = None) -> ToolWrapper:
+    async def load(
+        self, file_path: str, unused_file_name: Optional[str] = None
+    ) -> ToolWrapper:
         """
         Loads the doctool, using the given file path
         """
@@ -63,7 +63,9 @@ class ClaimRetrieverToolLoader:
     def get_tool_name(self) -> str:
         return "claim_retriever_tool"
 
-    async def load(self, file_path: str, unused_file_name: Optional[str] = None) -> ToolWrapper:
+    async def load(
+        self, file_path: str, unused_file_name: Optional[str] = None
+    ) -> ToolWrapper:
         """
         Loads the doctool, using the given file path
         """
@@ -85,10 +87,12 @@ class ClaimCheckToolLaoder:
     def get_tool_name(self) -> str:
         return "claim_check_tool"
 
-    async def load(self, file_path: str, unused_file_name: Optional[str] = None) -> ToolWrapper:
+    async def load(
+        self, file_path: str, unused_file_name: Optional[str] = None
+    ) -> ToolWrapper:
 
         # TODO confirm file path exists
-        
+
         retriever = ClaimChecker(config["claim checker"]).build_retriever(file_path)
         return ToolWrapper(
             retriever,

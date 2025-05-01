@@ -17,7 +17,7 @@ from llama_index.core.tools import QueryEngineTool
 from llama_index.llms.openai import OpenAI
 
 from .utils import *
-from .doc_search_copy.mixed_retriever import MixKeywordVectorRetriever
+from .mixed_retriever import MixKeywordVectorRetriever
 
 from .prompts import get_prompt
 
@@ -41,6 +41,7 @@ from pathlib import Path
 class ExtractQuestions(BaseModel):
     questions: List[str]
 
+
 class VerificationResponse(BaseModel):
     verdict: Literal["True", "False", "Insufficient evidence"]
     reasoning: str
@@ -57,31 +58,35 @@ class ClaimChecker:
         self.question_model_name = config["question model"]["model_name"]
         self.question_parser = PydanticOutputParser(output_cls=ExtractQuestions)
         self.question_llm = OpenAI(
-            model=self.question_model_name, 
-            temperature=config["question model"]["temperature"], 
-            max_tokens=config["question model"]["max_tokens"]
+            model=self.question_model_name,
+            temperature=config["question model"]["temperature"],
+            max_tokens=config["question model"]["max_tokens"],
         )
-        
+
         # llm that compares relevant data to claims
         self.verification_model_name = config["verification model"]["model_name"]
         self.verification_parser = PydanticOutputParser(output_cls=VerificationResponse)
         self.verification_llm = OpenAI(
-            model=self.verification_model_name, 
-            temperature=config["verification model"]["temperature"], 
-            max_tokens=config["verification model"]["max_tokens"]
+            model=self.verification_model_name,
+            temperature=config["verification model"]["temperature"],
+            max_tokens=config["verification model"]["max_tokens"],
         )
-
 
     def claim_to_questions(self, claim: str, num_questions: int = 3) -> List[str]:
 
         prompt = get_prompt("get questions to challenge claim")
         questions_to_verify = self.question_llm.complete(
-            prompt.format(claim=claim, num_questions=num_questions, output_format=self.question_parser.get_format_string())
+            prompt.format(
+                claim=claim,
+                num_questions=num_questions,
+                output_format=self.question_parser.get_format_string(),
+            )
         )
-        parsed_questions = self.question_parser.parse(questions_to_verify.text).questions
-        
-        return parsed_questions
+        parsed_questions = self.question_parser.parse(
+            questions_to_verify.text
+        ).questions
 
+        return parsed_questions
 
     def questions_to_data(self, questions: List[str], retriever: BaseRetriever) -> str:
 
@@ -94,26 +99,31 @@ class ClaimChecker:
                     nodes_seen.append(hit.node.node_id)
                     evidence_blocks.append(hit.node.get_content())
 
-        evidence = "\n\n".join(f"Evidence {i+1}:\n{"-" * 40}\n{blok}" for i, blok in enumerate(evidence_blocks))
+        evidence = "\n\n".join(
+            f"Evidence {i+1}:\n{"-" * 40}\n{blok}"
+            for i, blok in enumerate(evidence_blocks)
+        )
 
         return evidence
-    
 
     def compare_claim_to_data(self, claim: str, data: str) -> str:
 
         prompt = get_prompt("verify claim with data")
         verification = self.verification_llm.complete(
-            prompt.format(claim=claim, data=data, output_format=self.verification_parser.get_format_string())
+            prompt.format(
+                claim=claim,
+                data=data,
+                output_format=self.verification_parser.get_format_string(),
+            )
         )
         parsed_verification = self.verification_parser.parse(verification.text)
 
         return parsed_verification
 
-
     # TODO replace this with file query engine
     def build_retriever(self, file_path: str) -> BaseRetriever:
 
-        documents = load_document(file_path, 'source')
+        documents = load_document(file_path, "source")
 
         vector_index = VectorStoreIndex.from_documents(documents)
         keyword_index = KeywordTableIndex.from_documents(documents)
@@ -121,13 +131,12 @@ class ClaimChecker:
         vector_retriever = VectorIndexRetriever(index=vector_index, similarity_top_k=3)
         keyword_retriever = KeywordTableSimpleRetriever(index=keyword_index)
         mixed_retriever = MixKeywordVectorRetriever(vector_retriever, keyword_retriever)
-        
+
         return mixed_retriever
-    
 
     def analyse_from_path(self, claims: list[str], file_path: str) -> Dict:
-        
-        documents = load_document(file_path, 'source')
+
+        documents = load_document(file_path, "source")
 
         vector_index = VectorStoreIndex.from_documents(documents)
         keyword_index = KeywordTableIndex.from_documents(documents)
@@ -155,15 +164,12 @@ class ClaimChecker:
                 }
 
             return output
-        
+
         except Exception as e:
             return {"error": str(e)}
-        
-
-
 
     # def analyse(self, claims: list[str], doc_wrapper: QueryEngineTool) -> Dict:
-        
+
     #     # documents = load_document(req.file_path, 'source')
 
     #     # vector_index = VectorStoreIndex.from_documents(documents)
@@ -176,7 +182,6 @@ class ClaimChecker:
     #     retriever = doc_wrapper.doc_tool.query_engine._query_engines['mix_qengine'].retriever
 
     #     self.analyse_from_retriever(retriever)
-
 
     def analyse_from_retriever(self, claims: list[str], retriever: BaseRetriever):
 
@@ -194,7 +199,6 @@ class ClaimChecker:
 
                 # get sources
 
-
                 output[claim] = {
                     "questions": questions,
                     "verdict": verification.verdict,
@@ -202,7 +206,6 @@ class ClaimChecker:
                 }
 
             return output
-        
+
         except Exception as e:
             return {"error": str(e)}
-
