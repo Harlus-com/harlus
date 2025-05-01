@@ -23,6 +23,7 @@ from src.file_store import FileStore, Workspace, File
 from src.sync_queue import SyncQueue
 from src.stream_manager import StreamManager
 from src.sync_status import SyncStatus
+from contrast_tool import ContrastTool
 
 app = FastAPI()
 app.add_middleware(
@@ -250,16 +251,8 @@ SYSTEM_PROMPT = """
 async def stream_chat(
     workspace_id: str = Query(..., alias="workspaceId"), query: str = Query(...)
 ):
-    metadata_list = [
-        {
-            "file_type": "pdf",  # TODO: Stop hardcoding this
-            "file_name": file.name,
-            "file_path": file.absolute_path,
-        }
-        for file in file_store.get_files(workspace_id).values()
-    ]
     agent = ReActAgent(
-        tools=tool_library.get_tools(),
+        tools=tool_library.get_tool_for_all_files("doc_search"),
         llm=OpenAI(model="gpt-4o-mini"),
         name="test_agent",
         description="test_description",
@@ -288,10 +281,22 @@ def get_file_status(file_id: str) -> SyncStatus:
     return sync_queue.get_sync_status(file_id)
 
 
-def queue_all_files(self):
-    """Queue all files in all workspaces for syncing"""
-    workspaces = file_store.get_workspaces()
-    for workspace in workspaces.values():
-        files = file_store.get_files(workspace.id)
-        for file in files.values():
-            sync_queue.queue_file_sync(file.id)
+@app.get("/contrast/analyze")
+def get_contrast_analyze(
+    old_file_id: str = Query(..., alias="oldFileId"),
+    new_file_id: str = Query(..., alias="newFileId"),
+):
+    """Analyze the contrast between two files"""
+    old_file = file_store.get_file(old_file_id)
+    new_file = file_store.get_file(new_file_id)
+    claim_query_tool = tool_library.get_tool(old_file.absolute_path, "claim_query_tool")
+    claim_retriever_tool = tool_library.get_tool(
+        old_file.absolute_path, "claim_retriever_tool"
+    )
+    claim_check_tool = tool_library.get_tool(new_file.absolute_path, "claim_check_tool")
+    return ContrastTool().compare_documents(
+        old_file.absolute_path,
+        claim_query_tool.get(),
+        claim_retriever_tool.get(),
+        claim_check_tool.get(),
+    )

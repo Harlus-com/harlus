@@ -33,8 +33,20 @@ class ToolLibrary:
         for file_name, tools in self.file_name_to_tools.items():
             print(f"Loaded tools for {file_name}: {[t.get_tool_name() for t in tools]}")
 
-    def get_tools(self):
-        return [t for t in self.tools]
+    def get_tool_for_all_files(self, tool_name: str):
+        return [t for t in self.tools if t.get_tool_name() == tool_name]
+
+    def get_tool(self, file_path: str, tool_name: str):
+        matching_tools = [
+            t
+            for t in self.file_name_to_tools[file_path]
+            if t.get_tool_name() == tool_name
+        ]
+        if len(matching_tools) == 0:
+            raise ValueError(f"Tool {tool_name} not found for file {file_path}")
+        if len(matching_tools) > 1:
+            raise ValueError(f"Multiple tools found for {tool_name} in {file_path}")
+        return matching_tools[0]
 
     def has_tool(self, file_path: str, tool_name: str):
         print(f"Checking if tool {tool_name} exists for {file_path}")
