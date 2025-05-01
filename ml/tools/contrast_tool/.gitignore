@@ -1,0 +1,13 @@
+
+build
+dist
+*.egg-info
+
+cache
+data
+
+.env
+.venv
+
+*.ipynb
+__pycache__

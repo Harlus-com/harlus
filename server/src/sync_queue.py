@@ -8,6 +8,20 @@ from src.stream_manager import StreamManager
 from src.file_store import File, FileStore
 from src.sync_status import SyncStatus
 from doc_search import DocToolLoader
+from contrast_tool import (
+    ClaimQueryToolLoader,
+    ClaimRetrieverToolLoader,
+    ClaimCheckToolLaoder,
+)
+
+loaders = [
+    DocToolLoader(),
+    ClaimQueryToolLoader(),
+    ClaimRetrieverToolLoader(),
+    ClaimCheckToolLaoder(),
+]
+
+loaders_by_name = {loader.get_tool_name(): loader for loader in loaders}
 
 
 MAX_CONCURRENT = 10
@@ -83,13 +97,19 @@ class SyncQueue:
     async def _sync_file(self, file: File):
         """Sync a single file"""
         try:
-            doc_tool_loader = DocToolLoader()
             # TODO: Consider a force sync option
-            if not self.tool_library.has_tool(
-                file.absolute_path, doc_tool_loader.get_tool_name()
-            ):
-                tool_wrapper = await doc_tool_loader.load(file.absolute_path, file.name)
-                self.tool_library.add_tool(file.absolute_path, tool_wrapper)
+            missing_tools = [
+                tool_name
+                for tool_name in loaders_by_name
+                if not self.tool_library.has_tool(file.absolute_path, tool_name)
+            ]
+            if len(missing_tools) > 0:
+                for tool_name in missing_tools:
+                    loader = loaders_by_name[tool_name]
+                    print(f"Loading tool {tool_name} for file {file.name}")
+                    tool_wrapper = await loader.load(file.absolute_path, file.name)
+                    print(f"Tool {tool_name} loaded for file {file.name}")
+                    self.tool_library.add_tool(file.absolute_path, tool_wrapper)
             else:
                 # Sleep to simulate a load. This creates for better UI experience
                 await asyncio.sleep(1)

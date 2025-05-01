@@ -7,3 +7,4 @@ fastapi-server.spec
 .env
 workspace
 .log
+*.ipynb
