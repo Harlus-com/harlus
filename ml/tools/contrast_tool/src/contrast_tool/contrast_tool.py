@@ -12,18 +12,19 @@ from .utils import load_config
 
 DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.yaml")
 
+
 class ContrastTool:
     def __init__(self):
 
         config = load_config(DEFAULT_CONFIG_PATH)
 
-        self.getter = ClaimGetter(config["claim getter"], )
+        self.getter = ClaimGetter(
+            config["claim getter"],
+        )
         self.checker = ClaimChecker(config["claim checker"])
-
 
     def get_name(self):
         return "contrast_tool"
-    
 
     def compare_documents_from_path(self, old_file: str, new_file: str):
 
@@ -46,21 +47,20 @@ class ContrastTool:
                 "page_num": claim.page_num,
                 "bbox": claim.bounding_box,
                 "verdict": verdict[claim.text]["verdict"],
-                "explanation": verdict[claim.text]["explanation"]
+                "explanation": verdict[claim.text]["explanation"],
             }
 
         return output
-    
 
     def compare_documents(
-            self, 
-            old_doc_qengine: BaseQueryEngine, 
-            old_doc_retriever: BaseRetriever,
-            old_file_path: str, 
-            new_doc_retriever: BaseRetriever
-        ):
+        self,
+        old_file_path: str,
+        old_doc_qengine: BaseQueryEngine,
+        old_doc_retriever: BaseRetriever,
+        new_doc_retriever: BaseRetriever,
+    ):
         # print(f"\nExtracting claims from old document: {old_doc.get_tool_name()}")
-        
+
         claims = self.getter.extract(old_doc_qengine, old_doc_retriever, old_file_path)
         claims_text = [claim.text for claim in claims]
 
@@ -80,7 +80,7 @@ class ContrastTool:
                 "page_num": claim.page_num,
                 "bbox": claim.bounding_box,
                 "verdict": verdict[claim.text]["verdict"],
-                "explanation": verdict[claim.text]["explanation"]
+                "explanation": verdict[claim.text]["explanation"],
             }
 
         return output

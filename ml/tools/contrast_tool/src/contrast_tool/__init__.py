@@ -1,11 +1,15 @@
-# from .claim_getter import ClaimGetter
-# from .claim_checker import ClaimChecker
-# from .contrast_tool import ContrastTool
-from .loader import ToolWrapper, ClaimQueryToolLoader, ClaimRetrieverToolLoader, ClaimCheckToolLaoder
+from .loader import (
+    ToolWrapper,
+    ClaimQueryToolLoader,
+    ClaimRetrieverToolLoader,
+    ClaimCheckToolLaoder,
+)
+from .contrast_tool import ContrastTool
 
 __all__ = [
     "ToolWrapper",
-    "ClaimQueryToolLoader", 
-    "ClaimRetrieverToolLoader", 
-    "ClaimCheckToolLaoder"
+    "ClaimQueryToolLoader",
+    "ClaimRetrieverToolLoader",
+    "ClaimCheckToolLaoder",
+    "ContrastTool",
 ]

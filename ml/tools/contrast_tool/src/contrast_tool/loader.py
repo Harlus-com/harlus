@@ -15,9 +15,12 @@ config = load_config(DEFAULT_CONFIG_PATH)
 
 
 class ToolWrapper:
-    
+
     def __init__(
-        self, doc_tool: Union[BaseQueryEngine, BaseRetriever], name: str, debug_info: dict[str, str]
+        self,
+        doc_tool: Union[BaseQueryEngine, BaseRetriever],
+        name: str,
+        debug_info: dict[str, str],
     ):
         self.doc_tool = doc_tool
         self.name = name
@@ -39,7 +42,7 @@ class ClaimQueryToolLoader:
     def get_tool_name(self) -> str:
         return "claim_query_tool"
 
-    async def load(self, file_path: str) -> ToolWrapper:
+    async def load(self, file_path: str, unused_file_name: str) -> ToolWrapper:
         """
         Loads the doctool, using the given file path
         """
@@ -48,9 +51,9 @@ class ClaimQueryToolLoader:
         return ToolWrapper(
             query_engine,
             self.get_tool_name(),
-            {} # TODO: Populate this with debug info: parsed_text.json and json_nodes.json 
+            {},  # TODO: Populate this with debug info: parsed_text.json and json_nodes.json
         )
-    
+
 
 class ClaimRetrieverToolLoader:
     # In the future, this will take the LLM dependency as a parameter
@@ -58,28 +61,30 @@ class ClaimRetrieverToolLoader:
     def get_tool_name(self) -> str:
         return "claim_retriever_tool"
 
-    async def load(self, file_path: str) -> ToolWrapper:
+    async def load(self, file_path: str, unused_file_name: str) -> ToolWrapper:
         """
         Loads the doctool, using the given file path
         """
 
-        retriever = ClaimGetter(config["claim getter"]).build_sentence_retriever(file_path)
+        retriever = ClaimGetter(config["claim getter"]).build_sentence_retriever(
+            file_path
+        )
         return ToolWrapper(
             retriever,
             self.get_tool_name(),
-            {} # TODO: Populate this with debug info: parsed_text.json and json_nodes.json 
+            {},  # TODO: Populate this with debug info: parsed_text.json and json_nodes.json
         )
-    
+
 
 class ClaimCheckToolLaoder:
 
     def get_tool_name(self) -> str:
         return "claim_check_tool"
-    
-    async def load(self, file_path: str) -> ToolWrapper:
+
+    async def load(self, file_path: str, unused_file_name: str) -> ToolWrapper:
         retriever = ClaimChecker(config["claim checker"]).build_retriever(file_path)
         return ToolWrapper(
             retriever,
             self.get_tool_name(),
-            {} # TODO: Populate this with debug info: parsed_text.json and json_nodes.json 
+            {},  # TODO: Populate this with debug info: parsed_text.json and json_nodes.json
         )

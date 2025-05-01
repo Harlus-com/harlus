@@ -4,8 +4,10 @@ import uvicorn
 from src.app import app
 
 import asyncio
+
 asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
 import nest_asyncio
+
 loop = asyncio.new_event_loop()
 asyncio.set_event_loop(loop)
 nest_asyncio.apply(loop=asyncio.get_event_loop())
@@ -14,7 +16,7 @@ nest_asyncio.apply(loop=asyncio.get_event_loop())
 import dotenv
 import json
 
-from contrast_tool import ContrastTool
+dotenv.load_dotenv()
 
 
 def main():
@@ -31,7 +33,7 @@ def main():
         host="0.0.0.0",
         port=args.port,
         reload=args.reload,
-        loop="asyncio"
+        loop="asyncio",
     )
 
 
