@@ -74,4 +74,13 @@ class ContrastTool:
         print("\nVerdict:")
         print(json.dumps(verdict, indent=4))
 
-        return verdict
+        output = {}
+        for claim in claims:
+            output[claim.text] = {
+                "page_num": claim.page_num,
+                "bbox": claim.bounding_box,
+                "verdict": verdict[claim.text]["verdict"],
+                "explanation": verdict[claim.text]["explanation"]
+            }
+
+        return output
