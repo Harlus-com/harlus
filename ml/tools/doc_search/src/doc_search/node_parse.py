@@ -241,8 +241,7 @@ def split_text_nodes(
             fine_nodes = sentence_window_parser.get_nodes_from_documents([current_node])
             nodes_out.extend(fine_nodes)
         else:
-            pass
-            # nodes_out.append(current_node)
+            nodes_out.append(current_node)
 
     return nodes_out
 
