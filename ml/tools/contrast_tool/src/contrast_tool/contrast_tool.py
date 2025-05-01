@@ -26,6 +26,13 @@ class ContrastTool:
     def get_name(self):
         return "contrast_tool"
 
+    def get_sources(claims: list[str], doc_retriever: BaseRetriever):
+
+        # TODO
+
+        pass 
+
+
     def compare_documents_from_path(self, old_file: str, new_file: str):
 
         print(f"\nExtracting claims from old document: {old_file}")
@@ -71,8 +78,8 @@ class ContrastTool:
         # print(f"\nAnalyzing claims against new document: {new_doc.get_tool_name()}")
         verdict = self.checker.analyse_from_retriever(claims_text, new_doc_retriever)
 
-        print("\nVerdict:")
-        print(json.dumps(verdict, indent=4))
+        # print("\nVerdict:")
+        # print(json.dumps(verdict, indent=4))
 
         output = {}
         for claim in claims:

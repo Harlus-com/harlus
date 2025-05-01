@@ -192,8 +192,10 @@ class ClaimChecker:
                 data = self.questions_to_data(questions, retriever)
                 verification = self.compare_claim_to_data(claim, data)
 
-                output[f"claim_{i}"] = {
-                    "claim": claim,
+                # get sources
+
+
+                output[claim] = {
                     "questions": questions,
                     "verdict": verification.verdict,
                     "explanation": verification.reasoning,
