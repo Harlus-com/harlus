@@ -331,7 +331,7 @@ const Index = () => {
                 maxWidth: `${maxSidebar}px`,
               }}
             >
-              <ChatPanel isOpen={isChatOpen} onFileSelect={handleFileSelect} />
+              <ChatPanel onSourceClicked={handleFileSelect} />
             </div>
           </>
         )}

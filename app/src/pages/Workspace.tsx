@@ -13,6 +13,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { workspaceService } from "@/api/workspaceService";
 import { fileService } from "@/api/fileService";
 import { WorkspaceFile } from "@/api/types";
+import ChatPanel from "@/components/ChatPanel";
 // The default sizes scale relative to each other.
 // They work best when the sum of all the default sizes is 100.
 // If one of the panels is not visible, they will be "resacled" to add up to 100.
@@ -182,12 +183,12 @@ export default function Workspace() {
             order={4}
             defaultSize={CHAT.defaultSize}
             minSize={CHAT.minSize}
-            className="bg-orange-50 p-4 border-l border-orange-200"
           >
-            <h2 className="text-lg font-semibold text-orange-800 mb-2">
-              Chat Panel
-            </h2>
-            <p className="text-orange-600">Content for the right panel</p>
+            <ChatPanel
+              onSourceClicked={(file) =>
+                handleFileSelect(file, FileGroupCount.ONE)
+              }
+            />
           </Panel>
         )}
       </PanelGroup>
