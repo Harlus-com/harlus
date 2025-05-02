@@ -105,39 +105,60 @@ export default function FileView({ openFiles, setOpenFiles }: FileViewProps) {
     });
   };
 
-  const makePanel = (idx: FileGroupCount) =>
-    openFiles[idx] ? (
-      <FileGroupPanel
-        key={idx}
-        openFileGroup={openFiles[idx]!}
-        groupIndex={idx}
-        onSelectFile={handleSelectFile}
-        onCloseFile={handleCloseFile}
-      />
-    ) : null;
-
   return (
     <PanelGroup id="file-groups" direction="horizontal">
-      {makePanel(FileGroupCount.ONE)}
+      {openFiles[FileGroupCount.ONE] && (
+        <FileGroupPanel
+          key={FileGroupCount.ONE}
+          openFileGroup={openFiles[FileGroupCount.ONE]!}
+          groupIndex={FileGroupCount.ONE}
+          onSelectFile={handleSelectFile}
+          onCloseFile={handleCloseFile}
+        />
+      )}
 
       {fileGroupCount > FileGroupCount.ONE && (
         <>
           <PanelDivider />
-          {makePanel(FileGroupCount.TWO)}
+          {openFiles[FileGroupCount.TWO] && (
+            <FileGroupPanel
+              key={FileGroupCount.TWO}
+              openFileGroup={openFiles[FileGroupCount.TWO]!}
+              groupIndex={FileGroupCount.TWO}
+              onSelectFile={handleSelectFile}
+              onCloseFile={handleCloseFile}
+            />
+          )}
         </>
       )}
 
       {fileGroupCount > FileGroupCount.TWO && (
         <>
           <PanelDivider />
-          {makePanel(FileGroupCount.THREE)}
+          {openFiles[FileGroupCount.THREE] && (
+            <FileGroupPanel
+              key={FileGroupCount.THREE}
+              openFileGroup={openFiles[FileGroupCount.THREE]!}
+              groupIndex={FileGroupCount.THREE}
+              onSelectFile={handleSelectFile}
+              onCloseFile={handleCloseFile}
+            />
+          )}
         </>
       )}
 
       {fileGroupCount > FileGroupCount.THREE && (
         <>
           <PanelDivider />
-          {makePanel(FileGroupCount.FOUR)}
+          {openFiles[FileGroupCount.FOUR] && (
+            <FileGroupPanel
+              key={FileGroupCount.FOUR}
+              openFileGroup={openFiles[FileGroupCount.FOUR]!}
+              groupIndex={FileGroupCount.FOUR}
+              onSelectFile={handleSelectFile}
+              onCloseFile={handleCloseFile}
+            />
+          )}
         </>
       )}
     </PanelGroup>
@@ -162,64 +183,60 @@ function FileGroupPanel({
 
   return (
     <Panel id={`file-group-${groupIndex}`} order={1}>
-      {selectedFile ? (
-        <div>
-          {/* ——— Tab Bar ——— */}
-          <div className="bg-white p-4 border-b border-border">
-            <div className="flex space-x-1 border-b border-gray-200">
-              {Object.values(files).map((file) => {
-                const isActive = selectedFile?.id === file.id;
-                return (
-                  <div
-                    key={file.id}
-                    className={`flex items-center -mb-px border-b-2 ${
+      {selectedFile != null && (
+        <div className="bg-white p-4 border-b border-border">
+          <div className="flex space-x-1 border-b border-gray-200">
+            {Object.values(files).map((file) => {
+              const isActive = selectedFile?.id === file.id;
+              return (
+                <div
+                  key={file.id}
+                  className={`flex items-center -mb-px border-b-2 ${
+                    isActive
+                      ? "border-blue-500"
+                      : "border-transparent hover:border-gray-300"
+                  }`}
+                >
+                  <button
+                    onClick={() => onSelectFile(groupIndex, file)}
+                    className={`px-3 py-1 text-sm font-medium focus:outline-none ${
                       isActive
-                        ? "border-blue-500"
-                        : "border-transparent hover:border-gray-300"
+                        ? "text-blue-600"
+                        : "text-gray-500 hover:text-gray-700"
                     }`}
                   >
-                    <button
-                      onClick={() => onSelectFile(groupIndex, file)}
-                      className={`px-3 py-1 text-sm font-medium focus:outline-none ${
-                        isActive
-                          ? "text-blue-600"
-                          : "text-gray-500 hover:text-gray-700"
-                      }`}
-                    >
-                      {file.name}
-                    </button>
-                    <button
-                      onClick={() => onCloseFile(groupIndex, file.id)}
-                      className="ml-1 text-gray-400 hover:text-gray-600 text-xs focus:outline-none"
-                      aria-label={`Close ${file.name}`}
-                    >
-                      ×
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+                    {file.name}
+                  </button>
+                  <button
+                    onClick={() => onCloseFile(groupIndex, file.id)}
+                    className="ml-1 text-gray-400 hover:text-gray-600 text-xs focus:outline-none"
+                    aria-label={`Close ${file.name}`}
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })}
           </div>
-
-          {/* ——— File Viewer Pane ——— */}
-          <PanelGroup
-            id={`file-group-${groupIndex}-files`}
-            direction="horizontal"
-          >
-            <div className="flex-1 bg-white h-full">
+        </div>
+      )}
+      <PanelGroup id={`file-group-${groupIndex}-files`} direction="horizontal">
+        {selectedFile != null ? (
+          <div className="flex-1 bg-white">
+            <div className="h-full">
               <PdfViewer
                 file={selectedFile}
                 key={selectedFile.id}
                 ref={viewerRef}
               />
             </div>
-          </PanelGroup>
-        </div>
-      ) : (
-        <div className="flex-1 bg-white h-full flex items-center justify-center">
-          Empty File Group
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="flex-1 bg-white h-full flex items-center justify-center">
+            Empty File Group
+          </div>
+        )}
+      </PanelGroup>
     </Panel>
   );
 }

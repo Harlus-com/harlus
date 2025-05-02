@@ -48,8 +48,6 @@ export default function Workspace() {
   const [visiblePanels, setVisiblePanels] = useState<TopLevelPanelId[]>([
     TopLevelPanelId.FILE_EXPLORER,
     TopLevelPanelId.FILE_VIEWER,
-    TopLevelPanelId.COMMENTS,
-    TopLevelPanelId.CHAT,
   ]);
   const [openFiles, setOpenFiles] = useState<
     Record<FileGroupCount, OpenFileGroup | null>
