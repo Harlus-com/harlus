@@ -33,3 +33,12 @@ export interface ChatMessage {
     bboxes: any[];
   }>;
 }
+
+export interface ReactPdfAnnotation {
+  id: string; // typically the text
+  page: number; // zero-based
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}

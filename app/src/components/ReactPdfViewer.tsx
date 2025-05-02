@@ -35,7 +35,10 @@ interface PdfViewerProps {
 // Define the ref interface
 export interface PdfViewerRef {
   jumpToPage: (pageIndex: number) => void;
-  setHighlightColor: (areaId: string, color: string) => void;
+  setHighlightColor: (
+    reactPdfAnnotation: ReactPdfAnnotation,
+    color: string
+  ) => void;
 }
 
 const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
@@ -66,10 +69,22 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
       console.log("jumping to page", pageIndex);
       pageNavigationPluginInstance.jumpToPage(pageIndex);
     },
-    setHighlightColor: (areaId: string, color: string) => {
-      setHighlightAreas((prev) =>
-        prev.map((area) => (area.id === areaId ? { ...area, color } : area))
-      );
+    setHighlightColor: (
+      reactPdfAnnotation: ReactPdfAnnotation,
+      color: string
+    ) => {
+      setHighlightAreas((prev) => [
+        ...prev,
+        {
+          id: reactPdfAnnotation.id,
+          pageIndex: reactPdfAnnotation.page,
+          left: reactPdfAnnotation.left,
+          top: reactPdfAnnotation.top,
+          width: reactPdfAnnotation.width,
+          height: reactPdfAnnotation.height,
+          color: color,
+        },
+      ]);
     },
   }));
 
