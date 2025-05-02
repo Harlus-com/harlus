@@ -40,7 +40,7 @@ export default function Workspace() {
 
       const workspaceFiles = await fileService.getFiles(workspaceId);
       setFiles(workspaceFiles);
-      handleFileSelect(workspaceFiles[0]);
+      handleFileSelect(workspaceFiles[0], FileGroupCount.ONE);
     };
 
     loadWorkspace();
@@ -99,18 +99,39 @@ export default function Workspace() {
     console.log("openContrastAnalysis");
   };
 
-  const refreshSyncStatus = () => {
-    console.log("refreshSyncStatus");
+  const refreshFiles = async () => {
+    if (!workspaceId) return;
+
+    try {
+      const workspaceFiles = await fileService.getFiles(workspaceId);
+      setFiles(workspaceFiles);
+    } catch (error) {
+      console.error("Failed to refresh workspace:", error);
+    }
   };
 
-  const handleFileSelect = (file: WorkspaceFile) => {
-    console.log("handleFileSelect", file);
-    setOpenFiles((prev) => ({
-      ...prev,
-      [FileGroupCount.ONE]: {
+  const handleFileSelect = (
+    file: WorkspaceFile,
+    groupNumber: FileGroupCount
+  ) => {
+    console.log("handleFileSelect", file, groupNumber);
+    const current = openFiles[groupNumber];
+    const updates = {};
+    if (current == null) {
+      updates[groupNumber] = {
         files: [file],
         selectedFile: file,
-      },
+      };
+    } else {
+      updates[groupNumber] = {
+        files: [...current.files, file],
+        selectedFile: file,
+      };
+    }
+
+    setOpenFiles((prev) => ({
+      ...prev,
+      ...updates,
     }));
   };
 
@@ -120,7 +141,7 @@ export default function Workspace() {
         onFileGroupCountChange={handleOnFileGroupCountChange}
         togglePanelVisibility={togglePanelVisibility}
         openContrastAnalysis={openContrastAnalysis}
-        refreshSyncStatus={refreshSyncStatus}
+        refreshFiles={refreshFiles}
       />
       <PanelGroup id="workspace" direction="horizontal" className="h-full">
         <Panel

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { File, Trash2, MoreVertical } from "lucide-react";
+import { File, Trash2, MoreVertical, Columns2, RefreshCw } from "lucide-react";
 import { WorkspaceFile } from "@/api/types";
 import { cn } from "@/lib/utils";
 import {
@@ -7,6 +7,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { fileService } from "@/api/fileService";
 import FileStatusIndicator from "./FileStatusIndicator";
@@ -15,7 +18,7 @@ import { OpenFileGroup } from "./FileView";
 
 interface FileExplorerProps {
   files: WorkspaceFile[];
-  onFileSelect: (file: WorkspaceFile) => void;
+  onFileSelect: (file: WorkspaceFile, groupNumber: FileGroupCount) => void;
   openFiles: Record<FileGroupCount, OpenFileGroup | null>;
   onFilesChange?: (files: WorkspaceFile[]) => void;
 }
@@ -31,11 +34,22 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       selectedFileIds.push(fileGroup.selectedFile!.id);
     }
   }
-  const handleDeleteFile = async (file: WorkspaceFile, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent file selection when deleting
 
+  const handleDeleteFile = async (file: WorkspaceFile, e: React.MouseEvent) => {
+    e.stopPropagation();
     await fileService.deleteFile(file);
-    // TODO: Notify UI
+  };
+
+  const handleOpenInGroup = (
+    file: WorkspaceFile,
+    groupNumber: FileGroupCount
+  ) => {
+    onFileSelect(file, groupNumber);
+  };
+
+  const handleForceSync = async (file: WorkspaceFile, e: React.MouseEvent) => {
+    e.stopPropagation();
+    // TODO: Implement force sync functionality
   };
 
   return (
@@ -59,7 +73,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 >
                   <div
                     className="flex items-center flex-1 min-w-0 cursor-pointer"
-                    onClick={() => onFileSelect(file)}
+                    onClick={() => onFileSelect(file, FileGroupCount.ONE)}
                   >
                     <File
                       size={16}
@@ -78,6 +92,33 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <Columns2 size={14} className="mr-2" />
+                          Open in file group
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          {[1, 2, 3, 4].map((groupNumber) => (
+                            <DropdownMenuItem
+                              key={groupNumber}
+                              onClick={() =>
+                                handleOpenInGroup(
+                                  file,
+                                  groupNumber as FileGroupCount
+                                )
+                              }
+                            >
+                              {groupNumber}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                      <DropdownMenuItem
+                        onClick={(e) => handleForceSync(file, e)}
+                      >
+                        <RefreshCw size={14} className="mr-2" />
+                        Force Sync
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-red-500 focus:text-red-500"
                         onClick={(e) => handleDeleteFile(file, e)}

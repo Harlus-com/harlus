@@ -20,14 +20,14 @@ export type WorkSpaceHeaderProps = {
   onFileGroupCountChange: (fileGroupCount: FileGroupCount) => void;
   togglePanelVisibility: (panelId: TopLevelPanelId) => void;
   openContrastAnalysis: () => void;
-  refreshSyncStatus: () => void;
+  refreshFiles: () => void;
 };
 
 export default function WorkspaceHeader({
   onFileGroupCountChange,
   togglePanelVisibility,
   openContrastAnalysis,
-  refreshSyncStatus,
+  refreshFiles,
 }: WorkSpaceHeaderProps) {
   return (
     <header className="border-b border-border p-4 flex items-center justify-between">
@@ -36,7 +36,7 @@ export default function WorkspaceHeader({
       <div className="flex items-center space-x-2">
         <div className="flex items-center space-x-2 border-r border-border pr-6">
           <Button
-            onClick={refreshSyncStatus}
+            onClick={refreshFiles}
             variant="outline"
             size="sm"
             className="group relative"
