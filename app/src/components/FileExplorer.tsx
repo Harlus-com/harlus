@@ -20,13 +20,14 @@ interface FileExplorerProps {
   files: WorkspaceFile[];
   onFileSelect: (file: WorkspaceFile, groupNumber: FileGroupCount) => void;
   openFiles: Record<FileGroupCount, OpenFileGroup | null>;
-  onFilesChange?: (files: WorkspaceFile[]) => void;
+  onFilesChange: (files: WorkspaceFile[]) => void;
 }
 
 const FileExplorer: React.FC<FileExplorerProps> = ({
   files,
   onFileSelect,
   openFiles,
+  onFilesChange,
 }) => {
   const selectedFileIds: string[] = [];
   for (const fileGroup of Object.values(openFiles)) {
@@ -38,6 +39,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const handleDeleteFile = async (file: WorkspaceFile, e: React.MouseEvent) => {
     e.stopPropagation();
     await fileService.deleteFile(file);
+    onFilesChange(files.filter((f) => f.id !== file.id));
   };
 
   const handleOpenInGroup = (
