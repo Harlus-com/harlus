@@ -281,12 +281,19 @@ def get_file_status(file_id: str) -> SyncStatus:
     return sync_queue.get_sync_status(file_id)
 
 
+contrast_result = None
+
+
 @app.get("/contrast/analyze")
 def get_contrast_analyze(
     old_file_id: str = Query(..., alias="oldFileId"),
     new_file_id: str = Query(..., alias="newFileId"),
 ):
     """Analyze the contrast between two files"""
+    global contrast_result
+    if contrast_result is not None:
+        return contrast_result
+
     old_file = file_store.get_file(old_file_id)
     new_file = file_store.get_file(new_file_id)
     claim_query_tool = tool_library.get_tool(old_file.absolute_path, "claim_query_tool")
@@ -294,9 +301,10 @@ def get_contrast_analyze(
         old_file.absolute_path, "claim_retriever_tool"
     )
     claim_check_tool = tool_library.get_tool(new_file.absolute_path, "claim_check_tool")
-    return ContrastTool().compare_documents(
+    contrast_result = ContrastTool().compare_documents(
         old_file.absolute_path,
         claim_query_tool.get(),
         claim_retriever_tool.get(),
         claim_check_tool.get(),
     )
+    return contrast_result

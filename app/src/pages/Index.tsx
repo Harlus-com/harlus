@@ -3,7 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
 import PdfViewer, { PdfViewerRef } from "@/components/ReactPdfViewer";
 import ChatPanel from "@/components/ChatPanel";
-import ContrastAnalysisPanel from "@/components/ContrastAnalysisPanel";
+import ContrastAnalysisPanel, {
+  AnalysisResult,
+  Annotation,
+} from "@/components/ContrastAnalysisPanel";
 import WorkspaceEventListener from "@/components/WorkspaceEventListener";
 import CommentsThread from "@/components/CommentsThread";
 import { Button } from "@/components/ui/button";
@@ -338,10 +341,21 @@ const Index = () => {
           files={files}
           isOpen={isAnalysisOpen}
           onClose={() => setIsAnalysisOpen(false)}
+          onContrastAnalysisResult={handleContrastAnalysisResult}
         />
       </div>
     </div>
   );
+
+  function handleContrastAnalysisResult(result: AnalysisResult) {
+    console.log("handleContrastAnalysisResult", result);
+    const file = files.find((file) => file.id === result.fileId1);
+    file.annotations = {
+      show: true,
+      data: result.annotations,
+    };
+    handleFileSelect(file);
+  }
 
   function startDrag(
     e: React.MouseEvent,
