@@ -45,12 +45,12 @@ class DocumentPipeline:
         self.query_engine = None
         self.metadata = {}
         self.metadata_queries = {
-            "date": "What is the date of the document? This should be the date the document was filed, for example if the document is a 10-K, the date should be the date of the 10-K. Format it as YYYY-MM-DD. ",
-            "ticker": "What is the ticker of the stock discussed in this document (if any)?",
-            "keywords": "What are the keywords in this document?",
-            "source_name": "What is the source of this document? This should be one of the following: sec_filings, earning_call, investor_relations_release, other_third_party, internal",
-            "title": "What is the title of this document?",
-            "company_name": "What is the name of the company discussed in this document?",
+            "date": "Find the date of the document. This should be the date the document was filed, for example if the document is a 10-K, the date should be the date of the 10-K. Format it as YYYY-MM-DD. ",
+            "ticker": "Find the ticker of the stock discussed in this document (if any).",
+            "keywords": "Give 5-10 keywords that describe the document.",
+            "source_name": "Find the source of this document. This should be one of the following: sec_filings, earning_call, investor_relations_release, other_third_party, internal",
+            "title": "Provide a title for this document.",
+            "company_name": "Find the name of the company which is the subject of this document.",
         }
 
     async def execute(self) -> QueryEngineTool:
@@ -89,7 +89,7 @@ class DocumentPipeline:
                 "vector": mix_retriever,
             },
             node_dict={node.node_id: node for node in self.nodes},
-            verbose=True,
+            verbose=False,
         )
 
         node_postprocessors = [
@@ -103,6 +103,7 @@ class DocumentPipeline:
             response_synthesizer=get_response_synthesizer(
                 response_mode="tree_summarize",
                 llm=LLM,
+                verbose=False
             ),
             node_postprocessors=node_postprocessors,
         )
@@ -111,27 +112,27 @@ class DocumentPipeline:
         summary_query_engine = summary_index.as_query_engine(llm=LLM)
 
         print(" - extracting metadata from query engines...")
-        tasks = [
-            summary_query_engine.aquery("Extract a 3-5 line summary of the document."),
-            *[
-                mix_query_engine.aquery(query)
-                for query in self.metadata_queries.values()
-            ],
-        ]
+        # Create a mapping of queries to their corresponding metadata names
+        query_to_metadata = {
+            "Extract a 3-5 line summary of the document.": "summary",
+            **{query: name for name, query in self.metadata_queries.items()}
+        }
 
-        responses = []
-        for task in tqdm(
-            asyncio.as_completed(tasks), total=len(tasks), desc="Extracting metadata"
+        # Create tasks with their corresponding metadata names
+        tasks = {
+            query: query_engine.aquery(query)
+            for query, query_engine in [
+                ("Extract a 3-5 line summary of the document.", summary_query_engine),
+                *[(query, mix_query_engine) for query in self.metadata_queries.values()]
+            ]
+        }
+
+        # Process responses and map them to metadata
+        for query, task in tqdm(
+            tasks.items(), total=len(tasks), desc="Extracting metadata"
         ):
             response = await task
-            responses.append(response)
-
-        self.metadata["summary"] = responses[0]
-
-        for (metadata_name, _), response in zip(
-            self.metadata_queries.items(), responses[1:]
-        ):
-            self.metadata[metadata_name] = response
+            self.metadata[query_to_metadata[query]] = response
 
         print(" - building mix retriever query engine tool...")
         metadata_description = "\n".join(
@@ -140,71 +141,70 @@ class DocumentPipeline:
         mix_query_engine_tool = QueryEngineTool(
             query_engine=mix_query_engine,
             metadata=ToolMetadata(
-                name=f"{self.file_name}",
+                name=f"{self.file_name}_mix",
                 description=f"""Use this tool to answer specific questions about the document.
 
                 This document has the following metadata:
                 {metadata_description}
 
-                And the following summary:
-                {self.metadata['summary']}
                 """,
             ),
         )
 
-        print(" - building summary query engine tool...")
-        summary_query_engine_tool = QueryEngineTool(
-            query_engine=summary_query_engine,
-            metadata=ToolMetadata(
-                name=f"{self.file_name}",
-                description=f"""Use this tool only when you need to summarize the document.
+        # print(" - building summary query engine tool...")
+        # summary_query_engine_tool = QueryEngineTool(
+        #     query_engine=summary_query_engine,
+        #     metadata=ToolMetadata(
+        #         name=f"{self.file_name}_summary",
+        #         description=f"""ONLY use this tool when you need to summarize the document. NORMALLY YOU DO NOT NEED TO SUMMARIZE THE DOCUMENT.
 
-                This document has the following metadata:
-                {metadata_description}
+        #         This document has the following metadata:
+        #         {metadata_description}
 
-                And the following summary:
-                {self.metadata['summary']}
-                """,
-            ),
-        )
+        #         And the following summary:
+        #         {self.metadata['summary']}
+        #         """,
+        #     ),
+        # )
 
-        print(" - building question generator ...")
-        question_gen = LLMQuestionGenerator.from_defaults(
-            llm=FASTLLM,
-            prompt_template_str="""
-                Follow the example, but instead of giving a question, always prefix the question 
-                with: 'By first identifying the most relevant sources, '. Always postfix the question with:
-                'Include numbers with units in your response, structure your response.' 
-                """
-            + DEFAULT_SUB_QUESTION_PROMPT_TMPL,
-        )
+        # print(" - building question generator ...")
+        # question_gen = LLMQuestionGenerator.from_defaults(
+        #     llm=FASTLLM,
+        #     prompt_template_str="""
+        #         Follow the example, but instead of giving a question, always prefix the question 
+        #         with: 'By first identifying the most relevant sources, '. Always postfix the question with:
+        #         'Include numbers with units in your response, structure your response.' 
+        #         """
+        #     + DEFAULT_SUB_QUESTION_PROMPT_TMPL,
+        # )
 
-        print(" - building sub question query engine ...")
-        sq_query_engine = SubQuestionQueryEngine.from_defaults(
-            query_engine_tools=[
-                summary_query_engine_tool,
-                mix_query_engine_tool,
-            ],
-            question_gen=question_gen,
-            use_async=True,
-            llm=LLM
-        )
+        # print(" - building sub question query engine ...")
+        # sq_query_engine = SubQuestionQueryEngine.from_defaults(
+        #     query_engine_tools=[
+        #         #summary_query_engine_tool,
+        #         mix_query_engine_tool,
+        #     ],
+        #     question_gen=question_gen,
+        #     use_async=True,
+        #     llm=LLM,
+        #     verbose=False
+        # )
 
-        print(" - building sub question query engine tool ...")
+        # print(" - building sub question query engine tool ...")
 
-        doctool = QueryEngineTool(
-            query_engine=sq_query_engine,
-            metadata=ToolMetadata(
-                name=f"{self.file_name}",
-                description=f"""Use this tool to anser questions about the document with metadata:
+        # doctool = QueryEngineTool(
+        #     query_engine=sq_query_engine,
+        #     metadata=ToolMetadata(
+        #         name=f"{self.file_name}",
+        #         description=f"""Use this tool to anser questions about the document with metadata:
 
-                {metadata_description}
+        #         {metadata_description}
 
-                And the following summary:
-                {self.metadata['summary']}
-                """,
-            ),
-        )
-        self.doctool = doctool
+        #         And the following summary:
+        #         {self.metadata['summary']}
+        #         """,
+        #     ),
+        # )
+        # self.doctool = doctool
 
-        return self.doctool
+        return mix_query_engine_tool 
