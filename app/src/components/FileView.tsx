@@ -39,62 +39,37 @@ export default function FileView({ openFiles, setOpenFiles }: FileViewProps) {
     });
   };
 
-  return (
-    <PanelGroup id="file-groups" direction="horizontal">
-      {openFiles[FileGroupCount.ONE] && (
+  const makeFileGroup = (
+    groupIndex: FileGroupCount,
+    options: { panelDivider: boolean } = { panelDivider: true }
+  ) => {
+    if (!openFiles[groupIndex]) return null;
+
+    return (
+      <>
+        {options.panelDivider && <PanelDivider />}
         <FileGroupPanel
-          key={FileGroupCount.ONE}
-          openFileGroup={openFiles[FileGroupCount.ONE]!}
-          groupIndex={FileGroupCount.ONE}
+          key={groupIndex}
+          openFileGroup={openFiles[groupIndex]!}
+          groupIndex={groupIndex}
           onSelectFile={handleSelectFile}
           onCloseFile={handleCloseFile}
         />
-      )}
+      </>
+    );
+  };
 
-      {fileGroupCount > FileGroupCount.ONE && (
-        <>
-          <PanelDivider />
-          {openFiles[FileGroupCount.TWO] && (
-            <FileGroupPanel
-              key={FileGroupCount.TWO}
-              openFileGroup={openFiles[FileGroupCount.TWO]!}
-              groupIndex={FileGroupCount.TWO}
-              onSelectFile={handleSelectFile}
-              onCloseFile={handleCloseFile}
-            />
-          )}
-        </>
-      )}
+  return (
+    <PanelGroup id="file-groups" direction="horizontal">
+      {makeFileGroup(FileGroupCount.ONE, { panelDivider: false })}
 
-      {fileGroupCount > FileGroupCount.TWO && (
-        <>
-          <PanelDivider />
-          {openFiles[FileGroupCount.THREE] && (
-            <FileGroupPanel
-              key={FileGroupCount.THREE}
-              openFileGroup={openFiles[FileGroupCount.THREE]!}
-              groupIndex={FileGroupCount.THREE}
-              onSelectFile={handleSelectFile}
-              onCloseFile={handleCloseFile}
-            />
-          )}
-        </>
-      )}
+      {fileGroupCount > FileGroupCount.ONE && makeFileGroup(FileGroupCount.TWO)}
 
-      {fileGroupCount > FileGroupCount.THREE && (
-        <>
-          <PanelDivider />
-          {openFiles[FileGroupCount.FOUR] && (
-            <FileGroupPanel
-              key={FileGroupCount.FOUR}
-              openFileGroup={openFiles[FileGroupCount.FOUR]!}
-              groupIndex={FileGroupCount.FOUR}
-              onSelectFile={handleSelectFile}
-              onCloseFile={handleCloseFile}
-            />
-          )}
-        </>
-      )}
+      {fileGroupCount > FileGroupCount.TWO &&
+        makeFileGroup(FileGroupCount.THREE)}
+
+      {fileGroupCount > FileGroupCount.THREE &&
+        makeFileGroup(FileGroupCount.FOUR)}
     </PanelGroup>
   );
 }
