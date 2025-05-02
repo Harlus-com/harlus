@@ -12,6 +12,7 @@ class ToolLibrary:
     def __init__(self, file_store: FileStore):
         self.file_path_to_tools: dict[str, list[ToolWrapper]] = defaultdict(list)
         self.file_store = file_store
+        self.tools = []
 
     def delete_file_tools(self, file: File):
         if file.absolute_path in self.file_path_to_tools:

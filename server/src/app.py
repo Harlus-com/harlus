@@ -25,12 +25,14 @@ from src.sync_queue import SyncQueue
 from src.stream_manager import StreamManager
 from src.sync_status import SyncStatus
 from contrast_tool import ContrastTool
+from harlus_chat import GraphPipeline
+
 
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -253,22 +255,18 @@ SYSTEM_PROMPT = """
 async def stream_chat(
     workspace_id: str = Query(..., alias="workspaceId"), query: str = Query(...)
 ):
-    agent = ReActAgent(
-        tools=tool_library.get_tool_for_all_files("doc_search"),
-        llm=OpenAI(model="gpt-4o-mini"),
-        name="test_agent",
-        description="test_description",
-    )
-    handler = agent.run(query + " " + SYSTEM_PROMPT)
+    gp = GraphPipeline([tool.to_langchain_tool() for tool in tool_library.get_tool_for_all_files("doc_search")])
+    gp.build_graph()
     response = StreamingResponse(
-        stream_generator_v2(handler, file_store.get_file_path_to_id(workspace_id)),
+        gp.event_stream_generator(query),
         media_type="text/event-stream",
     )
     response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Credentials"] = "false"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "*"
     return response
+
 
 
 @app.get("/file/model/status/{file_id}")

@@ -32,9 +32,12 @@ Activating the environment ensures that the python dependency manager installs a
 
 ### Install requirements.txt
 
+
 ```
-pip install -r requirements.txt
+pip install -r requirements.txt --find-links wheels
 ```
+**note** the `find-links wheels` flag tells `pip` to look in the local wheels directory for pacakges in `requirements.txt` which it does not find on its standard `PyPi` index.
+
 
 ## How to install new packages
 

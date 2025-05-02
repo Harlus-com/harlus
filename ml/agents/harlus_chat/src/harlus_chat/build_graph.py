@@ -236,17 +236,6 @@ class GraphPipeline:
                 yield message_chunk.content
 
 
-    async def event_stream_generator(self, user_message: str):
-        async for chunk in self.stream_core(user_message, mode="events"):
-            print("chunk: ", chunk)
-            response = '\n'.join([
-                f'data: {orjson.dumps(chunk).decode('utf-8')}',
-                f'event: {"message"}',
-                '\n\n'
-            ])
-            
-            yield response
-    
     def get_retrieved_nodes(self):
         retrieved_nodes = self.graph.get_state(self.config).values.get("retrieved_nodes")
         source_annotations = []
@@ -263,5 +252,36 @@ class GraphPipeline:
                 "bboxes": bboxes
             })
         return source_annotations
+    
+
+    async def event_stream_generator(self, user_message: str, mode: str = "messages"):
+        input_state = {
+            "messages": [("user", user_message)], 
+            "retrieved_nodes": [], 
+            "full_answer": ""
+        }
+        async for message_chunk, metadata in self.graph.astream(
+            input_state,
+            stream_mode=mode,
+            config = self.config
+        ):
+            if isinstance(message_chunk, AIMessageChunk):
+                response = '\n'.join([
+                    f'data: {json.dumps({"text": message_chunk.content})}',
+                    f'event: {"message"}',
+                    '\n\n'
+                ])
+            
+                yield response
+        
+        data = self.get_retrieved_nodes()
+        response = '\n'.join([
+                    f'data: {json.dumps(data)}',
+                    f'event: {"source_annotations"}',
+                    '\n\n'
+        ])
+        yield response
+    
+    
     
     

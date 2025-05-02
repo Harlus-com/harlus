@@ -339,7 +339,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
 
       // listen to normal messages (assistant response)
       eventSource.addEventListener("message", (event) => {
-        const newContent = JSON.parse(event.data);
+        const newContent = JSON.parse(event.data).text;
         setMessagePairs((prev) => {
           const newPairs = [...prev];
           const currentPair = newPairs.find((pair) => pair.id === pairId);
