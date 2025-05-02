@@ -18,9 +18,9 @@ const App = () => (
       <HashRouter>
         <Routes>
           <Route path="/" element={<WorkspaceSelect />} />
-          <Route path="/workspace2/:workspaceId" element={<Workspace />} />
+          <Route path="/workspace/:workspaceId" element={<Workspace />} />
           <Route path="/workspace/new" element={<WorkspaceNew />} />
-          <Route path="/workspace/:workspaceId" element={<Index />} />
+          <Route path="/workspaceOld/:workspaceId" element={<Index />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </HashRouter>

@@ -12,7 +12,7 @@ import {
 import { useParams, useNavigate } from "react-router-dom";
 import { workspaceService } from "@/api/workspaceService";
 import { fileService } from "@/api/fileService";
-import { WorkspaceFile } from "@/api/types";
+import { WorkspaceFile, Workspace as WorkspaceType } from "@/api/types";
 import ChatPanel from "@/components/ChatPanel";
 // The default sizes scale relative to each other.
 // They work best when the sum of all the default sizes is 100.
@@ -25,6 +25,7 @@ const CHAT = new TopLevelPanel(TopLevelPanelId.CHAT, 20);
 export default function Workspace() {
   const { workspaceId } = useParams();
   const navigate = useNavigate();
+  const [workspace, setWorkspace] = useState<WorkspaceType | null>(null);
   const [files, setFiles] = useState<WorkspaceFile[]>([]);
   useEffect(() => {
     const loadWorkspace = async () => {
@@ -41,7 +42,7 @@ export default function Workspace() {
 
       const workspaceFiles = await fileService.getFiles(workspaceId);
       setFiles(workspaceFiles);
-      handleFileSelect(workspaceFiles[0], FileGroupCount.ONE);
+      setWorkspace(workspace);
     };
 
     loadWorkspace();
@@ -123,14 +124,15 @@ export default function Workspace() {
   };
 
   return (
-    <div className="h-screen">
+    <div className="flex flex-col h-screen">
       <WorkspaceHeader
+        workspace={workspace}
         onFileGroupCountChange={handleOnFileGroupCountChange}
         togglePanelVisibility={togglePanelVisibility}
         openContrastAnalysis={openContrastAnalysis}
         refreshFiles={refreshFiles}
       />
-      <PanelGroup id="workspace" direction="horizontal" className="h-full">
+      <PanelGroup id="workspace" direction="horizontal" className="flex-1">
         {visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER) && (
           <Panel
             id={FILE_EXPLORER.id}
