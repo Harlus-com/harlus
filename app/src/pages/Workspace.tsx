@@ -1,49 +1,18 @@
-import {
-  ScanSearch,
-  RefreshCw,
-  Columns2,
-  MessagesSquare,
-  Files,
-} from "lucide-react";
 import FileExplorer from "@/components/FileExplorer";
-import { Button } from "@/components/ui/button";
-import { LayoutDashboard, MessageSquareQuote } from "lucide-react";
 import {
   PanelGroup,
   Panel,
   ImperativePanelHandle,
 } from "react-resizable-panels";
 import { useRef, useState } from "react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import PanelDivider from "@/components/PanelDivider";
 import WorkspaceHeader from "@/components/WorkspaceHeader";
-
-enum FileGroupCount {
-  ONE = 1,
-  TWO = 2,
-  THREE = 3,
-  FOUR = 4,
-}
-
-enum TopLevelPanelId {
-  FILE_EXPLORER = "file-explorer",
-  FILE_VIEWER = "file-viewer",
-  COMMENTS = "comments",
-  CHAT = "chat",
-}
-
-class TopLevelPanel {
-  constructor(
-    readonly id: TopLevelPanelId,
-    readonly defaultSize: number,
-    readonly minSize: number = 5
-  ) {}
-}
+import FileView, { OpenFileGroup } from "@/components/FileView";
+import {
+  TopLevelPanel,
+  FileGroupCount,
+  TopLevelPanelId,
+} from "@/components/panels";
 
 // The default sizes scale relative to each other.
 // They work best when the sum of all the default sizes is 100.
@@ -54,17 +23,56 @@ const COMMENTS = new TopLevelPanel(TopLevelPanelId.COMMENTS, 15);
 const CHAT = new TopLevelPanel(TopLevelPanelId.CHAT, 20);
 
 export default function Workspace() {
-  const [fileGroupCount, setFileGroupCount] = useState<FileGroupCount>(
-    FileGroupCount.TWO
-  );
   const [visiblePanels, setVisiblePanels] = useState<TopLevelPanelId[]>([
     TopLevelPanelId.FILE_EXPLORER,
     TopLevelPanelId.FILE_VIEWER,
     TopLevelPanelId.COMMENTS,
     TopLevelPanelId.CHAT,
   ]);
+  const [openFiles, setOpenFiles] = useState<
+    Record<FileGroupCount, OpenFileGroup>
+  >({
+    [FileGroupCount.ONE]: {
+      files: [],
+      selectedFile: null,
+    },
+    [FileGroupCount.TWO]: null,
+    [FileGroupCount.THREE]: null,
+    [FileGroupCount.FOUR]: null,
+  });
+  const handleOnFileGroupCountChange = (count: FileGroupCount) => {
+    console.log("handleOnFileGroupCountChange", count);
+    const updates: Record<FileGroupCount, OpenFileGroup | null> = {
+      [FileGroupCount.ONE]: null,
+      [FileGroupCount.TWO]: null,
+      [FileGroupCount.THREE]: null,
+      [FileGroupCount.FOUR]: null,
+    };
 
-  const fileExplorerPanelRef = useRef<ImperativePanelHandle>(null);
+    for (let group = 1; group <= FileGroupCount.FOUR; group++) {
+      if (group > count) {
+        console.log("group > count", group);
+        updates[group] = null;
+      } else {
+        console.log("group <= count", group);
+        if (openFiles[group] == null) {
+          console.log("openFiles[group] == null", group);
+          updates[group] = {
+            files: [],
+            selectedFile: null,
+          };
+        } else {
+          console.log("openFiles[group] != null", group);
+          updates[group] = openFiles[group];
+        }
+      }
+    }
+    console.log("updates", updates);
+    setOpenFiles((prev) => ({
+      ...prev,
+      ...updates,
+    }));
+  };
 
   const togglePanelVisibility = (panelId: TopLevelPanelId) => {
     setVisiblePanels((prev) =>
@@ -85,16 +93,13 @@ export default function Workspace() {
   return (
     <div className="h-screen">
       <WorkspaceHeader
-        onFileGroupCountChange={setFileGroupCount}
+        onFileGroupCountChange={handleOnFileGroupCountChange}
         togglePanelVisibility={togglePanelVisibility}
         openContrastAnalysis={openContrastAnalysis}
         refreshSyncStatus={refreshSyncStatus}
       />
       <PanelGroup id="workspace" direction="horizontal" className="h-full">
         <Panel
-          collapsible={true}
-          collapsedSize={1}
-          ref={fileExplorerPanelRef}
           id={FILE_EXPLORER.id}
           order={1}
           defaultSize={FILE_EXPLORER.defaultSize}
@@ -105,28 +110,13 @@ export default function Workspace() {
               : "w-8"
           }`}
         >
-          {visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER) ? (
+          {visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER) && (
             <FileExplorer
               files={workspaceFiles}
               onFileSelect={() => {}}
               selectedFile={workspaceFiles[0]}
               onFilesChange={() => {}}
             />
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full p-2"
-              onClick={() => {
-                setVisiblePanels([
-                  ...visiblePanels,
-                  TopLevelPanelId.FILE_EXPLORER,
-                ]);
-                fileExplorerPanelRef.current?.expand();
-              }}
-            >
-              <LayoutDashboard size={16} className="rotate-90" />
-            </Button>
           )}
         </Panel>
         <PanelDivider />
@@ -136,63 +126,7 @@ export default function Workspace() {
           defaultSize={FILE_VIEWER.defaultSize}
           minSize={FILE_VIEWER.minSize}
         >
-          <PanelGroup id="file-groups" direction="horizontal">
-            <Panel id="file-group-1" order={1}>
-              <div className="bg-white p-4 border-b border-border">
-                <h2 className="text-lg font-semibold text-foreground mb-2">
-                  File Tabs
-                </h2>
-              </div>
-              <PanelGroup id="file-group-1-files" direction="horizontal">
-                Empty File Group
-              </PanelGroup>
-            </Panel>
-            {fileGroupCount > FileGroupCount.ONE && (
-              <>
-                <PanelDivider />
-                <Panel id="file-group-2" order={2}>
-                  <div className="bg-white p-4 border-b border-border">
-                    <h2 className="text-lg font-semibold text-foreground mb-2">
-                      File Tabs
-                    </h2>
-                  </div>
-                  <PanelGroup id="file-group-2-files" direction="horizontal">
-                    Empty File Group
-                  </PanelGroup>
-                </Panel>
-              </>
-            )}
-            {fileGroupCount > FileGroupCount.TWO && (
-              <>
-                <PanelDivider />
-                <Panel id="file-group-3" order={3}>
-                  <div className="bg-white p-4 border-b border-border">
-                    <h2 className="text-lg font-semibold text-foreground mb-2">
-                      File Tabs
-                    </h2>
-                  </div>
-                  <PanelGroup id="file-group-3-files" direction="horizontal">
-                    Empty File Group
-                  </PanelGroup>
-                </Panel>
-              </>
-            )}
-            {fileGroupCount > FileGroupCount.THREE && (
-              <>
-                <PanelDivider />
-                <Panel id="file-group-4" order={4}>
-                  <div className="bg-white p-4 border-b border-border">
-                    <h2 className="text-lg font-semibold text-foreground mb-2">
-                      File Tabs
-                    </h2>
-                  </div>
-                  <PanelGroup id="file-group-4-files" direction="horizontal">
-                    Empty File Group
-                  </PanelGroup>
-                </Panel>
-              </>
-            )}
-          </PanelGroup>
+          <FileView openFiles={openFiles} />
         </Panel>
         {containsAnyOf(visiblePanels, [
           TopLevelPanelId.COMMENTS,
