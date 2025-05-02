@@ -7,7 +7,6 @@ import Index from "./pages/Index";
 import WorkspaceSelect from "./pages/WorkspaceSelect";
 import WorkspaceNew from "./pages/WorkspaceNew";
 import NotFound from "./pages/NotFound";
-import AppLayout from "./pages/AppLayout";
 import Workspace from "./pages/Workspace";
 const queryClient = new QueryClient();
 
@@ -19,7 +18,7 @@ const App = () => (
       <HashRouter>
         <Routes>
           <Route path="/" element={<WorkspaceSelect />} />
-          <Route path="/workspace2" element={<Workspace />} />
+          <Route path="/workspace2/:workspaceId" element={<Workspace />} />
           <Route path="/workspace/new" element={<WorkspaceNew />} />
           <Route path="/workspace/:workspaceId" element={<Index />} />
           <Route path="*" element={<NotFound />} />

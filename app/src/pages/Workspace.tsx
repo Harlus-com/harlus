@@ -1,10 +1,6 @@
 import FileExplorer from "@/components/FileExplorer";
-import {
-  PanelGroup,
-  Panel,
-  ImperativePanelHandle,
-} from "react-resizable-panels";
-import { useRef, useState } from "react";
+import { PanelGroup, Panel } from "react-resizable-panels";
+import { useEffect, useState } from "react";
 import PanelDivider from "@/components/PanelDivider";
 import WorkspaceHeader from "@/components/WorkspaceHeader";
 import FileView, { OpenFileGroup } from "@/components/FileView";
@@ -13,7 +9,10 @@ import {
   FileGroupCount,
   TopLevelPanelId,
 } from "@/components/panels";
-
+import { useParams, useNavigate } from "react-router-dom";
+import { workspaceService } from "@/api/workspaceService";
+import { fileService } from "@/api/fileService";
+import { WorkspaceFile } from "@/api/types";
 // The default sizes scale relative to each other.
 // They work best when the sum of all the default sizes is 100.
 // If one of the panels is not visible, they will be "resacled" to add up to 100.
@@ -23,6 +22,29 @@ const COMMENTS = new TopLevelPanel(TopLevelPanelId.COMMENTS, 15);
 const CHAT = new TopLevelPanel(TopLevelPanelId.CHAT, 20);
 
 export default function Workspace() {
+  const { workspaceId } = useParams();
+  const navigate = useNavigate();
+  const [files, setFiles] = useState<WorkspaceFile[]>([]);
+  useEffect(() => {
+    const loadWorkspace = async () => {
+      if (!workspaceId) {
+        navigate("/");
+        return;
+      }
+
+      const workspace = await workspaceService.getWorkspace(workspaceId);
+      if (!workspace) {
+        navigate("/");
+        return;
+      }
+
+      const workspaceFiles = await fileService.getFiles(workspaceId);
+      setFiles(workspaceFiles);
+      handleFileSelect(workspaceFiles[0]);
+    };
+
+    loadWorkspace();
+  }, [workspaceId, navigate]);
   const [visiblePanels, setVisiblePanels] = useState<TopLevelPanelId[]>([
     TopLevelPanelId.FILE_EXPLORER,
     TopLevelPanelId.FILE_VIEWER,
@@ -48,30 +70,21 @@ export default function Workspace() {
       [FileGroupCount.THREE]: null,
       [FileGroupCount.FOUR]: null,
     };
-
     for (let group = 1; group <= FileGroupCount.FOUR; group++) {
       if (group > count) {
-        console.log("group > count", group);
         updates[group] = null;
       } else {
-        console.log("group <= count", group);
         if (openFiles[group] == null) {
-          console.log("openFiles[group] == null", group);
           updates[group] = {
             files: [],
             selectedFile: null,
           };
         } else {
-          console.log("openFiles[group] != null", group);
           updates[group] = openFiles[group];
         }
       }
     }
-    console.log("updates", updates);
-    setOpenFiles((prev) => ({
-      ...prev,
-      ...updates,
-    }));
+    setOpenFiles(() => updates);
   };
 
   const togglePanelVisibility = (panelId: TopLevelPanelId) => {
@@ -88,6 +101,17 @@ export default function Workspace() {
 
   const refreshSyncStatus = () => {
     console.log("refreshSyncStatus");
+  };
+
+  const handleFileSelect = (file: WorkspaceFile) => {
+    console.log("handleFileSelect", file);
+    setOpenFiles((prev) => ({
+      ...prev,
+      [FileGroupCount.ONE]: {
+        files: [file],
+        selectedFile: file,
+      },
+    }));
   };
 
   return (
@@ -112,10 +136,9 @@ export default function Workspace() {
         >
           {visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER) && (
             <FileExplorer
-              files={workspaceFiles}
-              onFileSelect={() => {}}
-              selectedFile={workspaceFiles[0]}
-              onFilesChange={() => {}}
+              files={files}
+              onFileSelect={handleFileSelect}
+              openFiles={openFiles}
             />
           )}
         </Panel>
@@ -176,14 +199,3 @@ function containsAnyOf(array: TopLevelPanelId[], panels: TopLevelPanelId[]) {
 function containsAllOf(array: TopLevelPanelId[], panels: TopLevelPanelId[]) {
   return panels.every((panel) => array.includes(panel));
 }
-
-const workspaceFiles = [...Array(10).keys()].map((id) => {
-  const idStr = (id + 1).toString();
-  return {
-    id: idStr,
-    name: `File ${idStr}`,
-    absolutePath: "",
-    workspaceId: "",
-    appDir: null,
-  };
-});

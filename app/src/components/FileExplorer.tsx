@@ -1,13 +1,5 @@
 import React, { useState } from "react";
-import {
-  File,
-  Trash2,
-  Volleyball,
-  MoreVertical,
-  CheckCircle2,
-  AlertCircle,
-  RefreshCw,
-} from "lucide-react";
+import { File, Trash2, MoreVertical } from "lucide-react";
 import { WorkspaceFile } from "@/api/types";
 import { cn } from "@/lib/utils";
 import {
@@ -18,47 +10,32 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { fileService } from "@/api/fileService";
 import FileStatusIndicator from "./FileStatusIndicator";
+import { FileGroupCount } from "./panels";
+import { OpenFileGroup } from "./FileView";
 
 interface FileExplorerProps {
   files: WorkspaceFile[];
   onFileSelect: (file: WorkspaceFile) => void;
-  selectedFile: WorkspaceFile | null;
+  openFiles: Record<FileGroupCount, OpenFileGroup | null>;
   onFilesChange?: (files: WorkspaceFile[]) => void;
 }
 
 const FileExplorer: React.FC<FileExplorerProps> = ({
   files,
   onFileSelect,
-  selectedFile,
-  onFilesChange,
+  openFiles,
 }) => {
-  const [knowledgeGraphStatus, setKnowledgeGraphStatus] = useState<{
-    status: "up-to-date" | "syncing" | "error";
-    message: string;
-  }>({
-    status: "up-to-date",
-    message: "Knowledge Graph is up to date",
-  });
-
+  const selectedFileIds: string[] = [];
+  for (const fileGroup of Object.values(openFiles)) {
+    if (fileGroup && fileGroup.selectedFile !== null) {
+      selectedFileIds.push(fileGroup.selectedFile!.id);
+    }
+  }
   const handleDeleteFile = async (file: WorkspaceFile, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent file selection when deleting
 
-    try {
-      await fileService.deleteFile(file);
-
-      // Update the files list
-      const updatedFiles = files.filter((f) => f.id !== file.id);
-      if (onFilesChange) {
-        onFilesChange(updatedFiles);
-      }
-
-      // If the deleted file was selected, clear the selection
-      if (selectedFile?.id === file.id) {
-        onFileSelect(null);
-      }
-    } catch (error) {
-      console.error("Error deleting file:", error);
-    }
+    await fileService.deleteFile(file);
+    // TODO: Notify UI
   };
 
   return (
@@ -77,7 +54,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   className={cn(
                     "flex items-center p-2 rounded-md",
                     "hover:bg-muted",
-                    selectedFile?.id === file.id && "bg-muted font-medium"
+                    selectedFileIds.includes(file.id) && "bg-muted font-medium"
                   )}
                 >
                   <div
