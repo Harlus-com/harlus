@@ -3,7 +3,8 @@ import { PanelGroup, Panel } from "react-resizable-panels";
 import { useEffect, useState } from "react";
 import PanelDivider from "@/components/PanelDivider";
 import WorkspaceHeader from "@/components/WorkspaceHeader";
-import FileView, { OpenFileGroup } from "@/components/FileView";
+import FileView from "@/components/FileView";
+import { OpenFileGroup } from "@/components/OpenFileGroup";
 import {
   TopLevelPanel,
   FileGroupCount,

@@ -108,5 +108,3 @@ or to go back to using the local wheel
 ```bash
 python scripts/package.py {tool_name} --unlink
 ```
-
-With this setup changes in the tool directory automatically linked in. The one downside is the vs code interpreter won't recognize this, so there is no code completion or highlighting (but the code executes just fine at runtime)

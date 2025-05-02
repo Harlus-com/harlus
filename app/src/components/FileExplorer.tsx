@@ -14,7 +14,7 @@ import {
 import { fileService } from "@/api/fileService";
 import FileStatusIndicator from "./FileStatusIndicator";
 import { FileGroupCount } from "./panels";
-import { OpenFileGroup } from "./FileView";
+import { OpenFileGroup } from "./OpenFileGroup";
 
 interface FileExplorerProps {
   files: WorkspaceFile[];
