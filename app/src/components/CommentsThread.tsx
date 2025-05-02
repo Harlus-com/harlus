@@ -11,6 +11,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PdfViewerRef } from "./ReactPdfViewer";
+import { ReactPdfAnnotation } from "./ContrastAnalysisPanel";
 
 // Define the Comment type
 interface Comment {
@@ -18,38 +19,43 @@ interface Comment {
   text: string;
   author: string;
   timestamp: Date;
-  pageNumber?: number;
-  highlightAreaId?: string;
+  reactPdfAnnotation?: ReactPdfAnnotation;
 }
 
 // Define the props for the CommentsThread component
 interface CommentsThreadProps {
-  documentId?: string;
-  pageNumber?: number;
-  pdfViewerRef?: React.RefObject<PdfViewerRef>;
+  pdfViewerRef: React.RefObject<PdfViewerRef>;
 }
 
-const CommentsThread: React.FC<CommentsThreadProps> = ({
-  documentId,
-  pageNumber,
-  pdfViewerRef,
-}) => {
+const CommentsThread: React.FC<CommentsThreadProps> = ({ pdfViewerRef }) => {
   const [comments, setComments] = useState<Comment[]>([
     {
       id: "1",
       text: "This is an important section about equity analysis.",
       author: "User",
       timestamp: new Date(),
-      pageNumber: 0,
-      highlightAreaId: "area1",
+      reactPdfAnnotation: {
+        id: "area1",
+        page: 0,
+        height: 1.55401,
+        width: 28.7437,
+        left: 16.3638,
+        top: 16.6616,
+      },
     },
     {
       id: "2",
       text: "We should highlight the methodology used here.",
       author: "User",
       timestamp: new Date(),
-      pageNumber: 3,
-      highlightAreaId: "area4",
+      reactPdfAnnotation: {
+        id: "area4",
+        page: 3,
+        height: 1.55401,
+        width: 28.7437,
+        left: 16.3638,
+        top: 16.6616,
+      },
     },
   ]);
   const [newComment, setNewComment] = useState("");
@@ -57,40 +63,29 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
     null
   );
 
-  const handleAddComment = () => {
-    if (newComment.trim()) {
-      const comment: Comment = {
-        id: Date.now().toString(),
-        text: newComment,
-        author: "User",
-        timestamp: new Date(),
-        pageNumber: pageNumber,
-        highlightAreaId: pageNumber === 0 ? "area1" : "area4",
-      };
-      setComments([...comments, comment]);
-      setNewComment("");
-    }
-  };
+  const handleAddComment = () => {};
 
   const handleCommentClick = (comment: Comment) => {
-    if (comment.pageNumber !== undefined && pdfViewerRef?.current) {
+    console.log("handleCommentClick", comment);
+    if (!!pdfViewerRef?.current) {
       if (selectedCommentId) {
-        const previousComment = comments.find(
+        const previousActiveComment = comments.find(
           (c) => c.id === selectedCommentId
         );
-        if (previousComment?.highlightAreaId) {
+        if (previousActiveComment?.reactPdfAnnotation) {
           pdfViewerRef.current.setHighlightColor(
-            previousComment.highlightAreaId,
+            previousActiveComment.reactPdfAnnotation,
             "yellow"
           );
         }
       }
 
-      pdfViewerRef.current.jumpToPage(comment.pageNumber);
+      pdfViewerRef.current.jumpToPage(comment.reactPdfAnnotation.page);
 
-      if (comment.highlightAreaId) {
+      if (comment.reactPdfAnnotation) {
+        console.log("setting highlight color", comment.reactPdfAnnotation);
         pdfViewerRef.current.setHighlightColor(
-          comment.highlightAreaId,
+          comment.reactPdfAnnotation,
           "green"
         );
       }
@@ -98,16 +93,10 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
       setSelectedCommentId(comment.id);
     }
   };
+  const pageNumber = 1;
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b">
-        <h2 className="text-lg font-semibold">Comments</h2>
-        {pageNumber && (
-          <p className="text-sm text-muted-foreground">Page {pageNumber}</p>
-        )}
-      </div>
-
       <ScrollArea className="flex-1 p-4">
         {comments.length === 0 ? (
           <div className="flex items-center justify-center h-32 text-muted-foreground">
@@ -136,8 +125,8 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
                       </CardTitle>
                       <p className="text-xs text-muted-foreground">
                         {comment.timestamp.toLocaleString()}
-                        {comment.pageNumber !== undefined &&
-                          ` • Page ${comment.pageNumber + 1}`}
+                        {comment.reactPdfAnnotation &&
+                          ` • Page ${comment.reactPdfAnnotation.page + 1}`}
                       </p>
                     </div>
                   </div>

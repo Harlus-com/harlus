@@ -7,6 +7,7 @@ import PdfViewer, { PdfViewerRef } from "@/components/ReactPdfViewer";
 import { OpenFileGroup } from "./OpenFileGroup";
 import { MessageSquareQuote } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import CommentsThread from "./CommentsThread";
 export interface FileViewProps {
   openFiles: Record<FileGroupCount, OpenFileGroup | null>;
   setOpenFiles: React.Dispatch<
@@ -93,7 +94,11 @@ function FileGroupPanel({
   const [showComments, setShowComments] = useState(true);
 
   return (
-    <Panel id={`file-group-${groupIndex}`} order={1}>
+    <Panel
+      id={`file-group-${groupIndex}`}
+      order={1}
+      className="flex flex-col h-full min-h-0"
+    >
       {selectedFile != null && (
         <div className="bg-white border-b border-border">
           <div className="flex items-center justify-between border-b border-gray-200">
@@ -145,21 +150,20 @@ function FileGroupPanel({
         </div>
       )}
       {/* TODO: Autosave per file */}
-      <PanelGroup
-        id={`file-group-${groupIndex}-viewer`}
-        direction="horizontal"
-        autoSaveId={`file-group-${groupIndex}-viewer`}
-      >
-        <Panel id={`file-group-${groupIndex}-file`} order={1} defaultSize={80}>
+      <PanelGroup id={`file-group-${groupIndex}-viewer`} direction="horizontal">
+        <Panel
+          id={`file-group-${groupIndex}-file`}
+          order={1}
+          defaultSize={80}
+          className="flex flex-col h-full min-h-0 overflow-auto"
+        >
           {selectedFile != null ? (
-            <div className="flex-1 bg-white">
-              <div className="h-full">
-                <PdfViewer
-                  file={selectedFile}
-                  key={selectedFile.id}
-                  ref={viewerRef}
-                />
-              </div>
+            <div className="flex-1 min-h-0">
+              <PdfViewer
+                file={selectedFile}
+                key={selectedFile.id}
+                ref={viewerRef}
+              />
             </div>
           ) : (
             <div className="flex-1 bg-white h-full flex items-center justify-center">
@@ -175,7 +179,7 @@ function FileGroupPanel({
               order={2}
               defaultSize={20}
             >
-              Comments Panel
+              <CommentsThread pdfViewerRef={viewerRef} />
             </Panel>
           </>
         )}
