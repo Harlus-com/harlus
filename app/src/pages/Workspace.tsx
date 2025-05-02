@@ -52,18 +52,14 @@ export default function Workspace() {
     TopLevelPanelId.CHAT,
   ]);
   const [openFiles, setOpenFiles] = useState<
-    Record<FileGroupCount, OpenFileGroup>
+    Record<FileGroupCount, OpenFileGroup | null>
   >({
-    [FileGroupCount.ONE]: {
-      files: [],
-      selectedFile: null,
-    },
+    [FileGroupCount.ONE]: OpenFileGroup.empty(),
     [FileGroupCount.TWO]: null,
     [FileGroupCount.THREE]: null,
     [FileGroupCount.FOUR]: null,
   });
   const handleOnFileGroupCountChange = (count: FileGroupCount) => {
-    console.log("handleOnFileGroupCountChange", count);
     const updates: Record<FileGroupCount, OpenFileGroup | null> = {
       [FileGroupCount.ONE]: null,
       [FileGroupCount.TWO]: null,
@@ -75,10 +71,7 @@ export default function Workspace() {
         updates[group] = null;
       } else {
         if (openFiles[group] == null) {
-          updates[group] = {
-            files: [],
-            selectedFile: null,
-          };
+          updates[group] = OpenFileGroup.empty();
         } else {
           updates[group] = openFiles[group];
         }
@@ -118,17 +111,12 @@ export default function Workspace() {
     const current = openFiles[groupNumber];
     const updates = {};
     if (current == null) {
-      updates[groupNumber] = {
-        files: [file],
-        selectedFile: file,
-      };
+      updates[groupNumber] = OpenFileGroup.empty().addFile(file, {
+        select: true,
+      });
     } else {
-      updates[groupNumber] = {
-        files: [...current.files, file],
-        selectedFile: file,
-      };
+      updates[groupNumber] = current.addFile(file, { select: true });
     }
-
     setOpenFiles((prev) => ({
       ...prev,
       ...updates,
@@ -170,7 +158,7 @@ export default function Workspace() {
           defaultSize={FILE_VIEWER.defaultSize}
           minSize={FILE_VIEWER.minSize}
         >
-          <FileView openFiles={openFiles} />
+          <FileView openFiles={openFiles} setOpenFiles={setOpenFiles} />
         </Panel>
         {containsAnyOf(visiblePanels, [
           TopLevelPanelId.COMMENTS,

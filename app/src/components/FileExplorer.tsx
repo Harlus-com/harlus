@@ -30,7 +30,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 }) => {
   const selectedFileIds: string[] = [];
   for (const fileGroup of Object.values(openFiles)) {
-    if (fileGroup && fileGroup.selectedFile !== null) {
+    if (fileGroup && !!fileGroup.selectedFile) {
       selectedFileIds.push(fileGroup.selectedFile!.id);
     }
   }
