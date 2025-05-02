@@ -15,11 +15,11 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useParams } from "react-router-dom";
 import { BASE_URL } from "@/api/client";
+import { FileGroupCount } from "./panels";
 
 // move to types.ts?
 interface ChatPanelProps {
-  isOpen: boolean;
-  onFileSelect?: (file: WorkspaceFile) => void;
+  onSourceClicked?: (file: WorkspaceFile) => void;
 }
 
 // move to types.ts?
@@ -36,12 +36,12 @@ interface MessagePair {
 }
 
 const ChatPanelContext = React.createContext<{
-  onFileSelect?: (file: WorkspaceFile) => void;
+  onSourceClicked?: (file: WorkspaceFile) => void;
 }>({});
 
 const Message: React.FC<MessageProps> = memo(({ message, isUser }) => {
   const [showSources, setShowSources] = useState(true);
-  const { onFileSelect } = useContext(ChatPanelContext);
+  const { onSourceClicked } = useContext(ChatPanelContext);
 
   // open source file
   const handleSourceClick = (source: {
@@ -51,8 +51,8 @@ const Message: React.FC<MessageProps> = memo(({ message, isUser }) => {
     bboxes?: any[];
   }) => {
     console.log("handleSourceClick", source);
-    if (onFileSelect) {
-      console.log("onFileSelect", onFileSelect);
+    if (onSourceClicked) {
+      console.log("onSourceClicked", onSourceClicked);
       console.log("file_path", source.file_path);
       const workspaceFile = {
         // TODO: Pass back the actual file id in sources, rather than the file path
@@ -71,7 +71,7 @@ const Message: React.FC<MessageProps> = memo(({ message, isUser }) => {
         },
         appDir: null,
       };
-      onFileSelect(workspaceFile);
+      onSourceClicked(workspaceFile);
       return;
       const file: WorkspaceFile = {
         id: source.file_path,
@@ -81,7 +81,7 @@ const Message: React.FC<MessageProps> = memo(({ message, isUser }) => {
         appDir: null,
       };
       console.log("file", file);
-      onFileSelect(file);
+      onSourceClicked(file);
     }
   };
 
@@ -242,7 +242,7 @@ const LoadingIndicator: React.FC = memo(() => (
 
 LoadingIndicator.displayName = "LoadingIndicator";
 
-const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onFileSelect }) => {
+const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
   const { workspaceId } = useParams();
   const [messagePairs, setMessagePairs] = useState<MessagePair[]>([]);
   const [input, setInput] = useState("");
@@ -478,11 +478,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onFileSelect }) => {
     [handleSendMessage]
   );
 
-  if (!isOpen) return null;
-
   // render chat panel
   return (
-    <ChatPanelContext.Provider value={{ onFileSelect }}>
+    <ChatPanelContext.Provider value={{ onSourceClicked }}>
       <div className="h-full flex flex-col border-l border-border bg-card">
         <div className="p-4 font-medium text-lg border-b border-border">
           Assistant

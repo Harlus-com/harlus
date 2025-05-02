@@ -56,9 +56,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <div className="h-full bg-sidebar border-r border-border flex flex-col">
-      <div className="p-4 font-medium text-lg border-b border-border">
-        Workspace Files
-      </div>
+      <div className="p-4 font-medium text-lg border-b border-border">APPL</div>
 
       <div className="flex-1 overflow-auto p-2 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300">
         <div className="mb-2">
