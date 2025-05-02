@@ -19,8 +19,7 @@ import ChatPanel from "@/components/ChatPanel";
 // They work best when the sum of all the default sizes is 100.
 // If one of the panels is not visible, they will be "resacled" to add up to 100.
 const FILE_EXPLORER = new TopLevelPanel(TopLevelPanelId.FILE_EXPLORER, 15);
-const FILE_VIEWER = new TopLevelPanel(TopLevelPanelId.FILE_VIEWER, 50);
-const COMMENTS = new TopLevelPanel(TopLevelPanelId.COMMENTS, 15);
+const FILE_VIEWER = new TopLevelPanel(TopLevelPanelId.FILE_VIEWER, 65);
 const CHAT = new TopLevelPanel(TopLevelPanelId.CHAT, 20);
 
 export default function Workspace() {
@@ -224,28 +223,7 @@ export default function Workspace() {
           >
             <FileView openFiles={openFiles} setOpenFiles={setOpenFiles} />
           </Panel>
-          {containsAnyOf(visiblePanels, [
-            TopLevelPanelId.COMMENTS,
-            TopLevelPanelId.CHAT,
-          ]) && <PanelDivider />}
-          {visiblePanels.includes(TopLevelPanelId.COMMENTS) && (
-            <Panel
-              id={COMMENTS.id}
-              order={3}
-              defaultSize={COMMENTS.defaultSize}
-              minSize={COMMENTS.minSize}
-              className="bg-green-50 p-4 border-l border-green-200"
-            >
-              <h2 className="text-lg font-semibold text-green-800 mb-2">
-                Comments Panel
-              </h2>
-              <p className="text-green-600">Content for the right panel</p>
-            </Panel>
-          )}
-          {containsAllOf(visiblePanels, [
-            TopLevelPanelId.COMMENTS,
-            TopLevelPanelId.CHAT,
-          ]) && <PanelDivider />}
+          {visiblePanels.includes(TopLevelPanelId.CHAT) && <PanelDivider />}
           {visiblePanels.includes(TopLevelPanelId.CHAT) && (
             <Panel
               id={CHAT.id}
@@ -264,12 +242,4 @@ export default function Workspace() {
       </PanelGroup>
     </div>
   );
-}
-
-function containsAnyOf(array: TopLevelPanelId[], panels: TopLevelPanelId[]) {
-  return array.some((panel) => panels.includes(panel));
-}
-
-function containsAllOf(array: TopLevelPanelId[], panels: TopLevelPanelId[]) {
-  return panels.every((panel) => array.includes(panel));
 }
