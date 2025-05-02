@@ -11,7 +11,6 @@ import { LayoutDashboard, MessageSquareQuote } from "lucide-react";
 import {
   PanelGroup,
   Panel,
-  PanelResizeHandle,
   ImperativePanelHandle,
 } from "react-resizable-panels";
 import { useRef, useState } from "react";
@@ -21,6 +20,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import PanelDivider from "@/components/PanelDivider";
+import WorkspaceHeader from "@/components/WorkspaceHeader";
 
 enum FileGroupCount {
   ONE = 1,
@@ -65,145 +66,30 @@ export default function Workspace() {
 
   const fileExplorerPanelRef = useRef<ImperativePanelHandle>(null);
 
+  const togglePanelVisibility = (panelId: TopLevelPanelId) => {
+    setVisiblePanels((prev) =>
+      prev.includes(panelId)
+        ? prev.filter((id) => id !== panelId)
+        : [...prev, panelId]
+    );
+  };
+
+  const openContrastAnalysis = () => {
+    console.log("openContrastAnalysis");
+  };
+
+  const refreshSyncStatus = () => {
+    console.log("refreshSyncStatus");
+  };
+
   return (
     <div className="h-screen">
-      <header className="border-b border-border p-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold mr-4">APPL</h1>
-        <div className="flex-1" />
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center space-x-2 border-r border-border pr-6">
-            <Button
-              onClick={() => {}}
-              variant="outline"
-              size="sm"
-              className="group relative"
-            >
-              <RefreshCw size={16} />
-              <div className="absolute top-full left-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                Force Sync
-              </div>
-            </Button>
-
-            <Button
-              onClick={() => {}}
-              variant="outline"
-              size="sm"
-              className="group relative"
-            >
-              <ScanSearch size={16} />
-              <div className="absolute top-full left-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                Contrast Analysis
-              </div>
-            </Button>
-          </div>
-
-          <div className="flex items-center space-x-2 pl-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="group relative">
-                  <Columns2 size={16} />
-                  <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                    File Layout
-                  </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem
-                  onClick={() => setFileGroupCount(FileGroupCount.ONE)}
-                >
-                  1 File Group
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setFileGroupCount(FileGroupCount.TWO)}
-                >
-                  2 File Groups
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setFileGroupCount(FileGroupCount.THREE)}
-                >
-                  3 File Groups
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setFileGroupCount(FileGroupCount.FOUR)}
-                >
-                  4 File Groups
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button
-              onClick={() => {
-                if (visiblePanels.includes(TopLevelPanelId.COMMENTS)) {
-                  setVisiblePanels(
-                    visiblePanels.filter(
-                      (panel) => panel !== TopLevelPanelId.COMMENTS
-                    )
-                  );
-                } else {
-                  setVisiblePanels([
-                    ...visiblePanels,
-                    TopLevelPanelId.COMMENTS,
-                  ]);
-                }
-              }}
-              variant="outline"
-              size="sm"
-              className="group relative"
-            >
-              <Files size={16} />
-              <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                Toggle File Explorer
-              </div>
-            </Button>
-
-            <Button
-              onClick={() => {
-                if (visiblePanels.includes(TopLevelPanelId.COMMENTS)) {
-                  setVisiblePanels(
-                    visiblePanels.filter(
-                      (panel) => panel !== TopLevelPanelId.COMMENTS
-                    )
-                  );
-                } else {
-                  setVisiblePanels([
-                    ...visiblePanels,
-                    TopLevelPanelId.COMMENTS,
-                  ]);
-                }
-              }}
-              variant="outline"
-              size="sm"
-              className="group relative"
-            >
-              <MessageSquareQuote size={16} />
-              <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                Toggle Comments
-              </div>
-            </Button>
-
-            <Button
-              onClick={() => {
-                if (visiblePanels.includes(TopLevelPanelId.CHAT)) {
-                  setVisiblePanels(
-                    visiblePanels.filter(
-                      (panel) => panel !== TopLevelPanelId.CHAT
-                    )
-                  );
-                } else {
-                  setVisiblePanels([...visiblePanels, TopLevelPanelId.CHAT]);
-                }
-              }}
-              variant="outline"
-              size="sm"
-              className="group relative"
-            >
-              <MessagesSquare size={16} />
-              <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                Toggle Chat
-              </div>
-            </Button>
-          </div>
-        </div>
-      </header>
+      <WorkspaceHeader
+        onFileGroupCountChange={setFileGroupCount}
+        togglePanelVisibility={togglePanelVisibility}
+        openContrastAnalysis={openContrastAnalysis}
+        refreshSyncStatus={refreshSyncStatus}
+      />
       <PanelGroup id="workspace" direction="horizontal" className="h-full">
         <Panel
           collapsible={true}
@@ -213,7 +99,7 @@ export default function Workspace() {
           order={1}
           defaultSize={FILE_EXPLORER.defaultSize}
           minSize={FILE_EXPLORER.minSize}
-          className={`bg-blue-50 border-r border-blue-200 h-full ${
+          className={`bg-blue-50  h-full ${
             visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER)
               ? "w-auto"
               : "w-8"
@@ -243,7 +129,7 @@ export default function Workspace() {
             </Button>
           )}
         </Panel>
-        <PanelResizeHandle className="w-2 bg-gray-300 hover:bg-blue-400 transition-colors" />
+        <PanelDivider />
         <Panel
           id={FILE_VIEWER.id}
           order={2}
@@ -263,7 +149,7 @@ export default function Workspace() {
             </Panel>
             {fileGroupCount > FileGroupCount.ONE && (
               <>
-                <PanelResizeHandle className="w-2 bg-gray-300 hover:bg-blue-400 transition-colors" />
+                <PanelDivider />
                 <Panel id="file-group-2" order={2}>
                   <div className="bg-white p-4 border-b border-border">
                     <h2 className="text-lg font-semibold text-foreground mb-2">
@@ -278,7 +164,7 @@ export default function Workspace() {
             )}
             {fileGroupCount > FileGroupCount.TWO && (
               <>
-                <PanelResizeHandle className="w-2 bg-gray-300 hover:bg-blue-400 transition-colors" />
+                <PanelDivider />
                 <Panel id="file-group-3" order={3}>
                   <div className="bg-white p-4 border-b border-border">
                     <h2 className="text-lg font-semibold text-foreground mb-2">
@@ -293,7 +179,7 @@ export default function Workspace() {
             )}
             {fileGroupCount > FileGroupCount.THREE && (
               <>
-                <PanelResizeHandle className="w-2 bg-gray-300 hover:bg-blue-400 transition-colors" />
+                <PanelDivider />
                 <Panel id="file-group-4" order={4}>
                   <div className="bg-white p-4 border-b border-border">
                     <h2 className="text-lg font-semibold text-foreground mb-2">
@@ -311,9 +197,7 @@ export default function Workspace() {
         {containsAnyOf(visiblePanels, [
           TopLevelPanelId.COMMENTS,
           TopLevelPanelId.CHAT,
-        ]) && (
-          <PanelResizeHandle className="w-2 bg-gray-300 hover:bg-blue-400 transition-colors" />
-        )}
+        ]) && <PanelDivider />}
         {visiblePanels.includes(TopLevelPanelId.COMMENTS) && (
           <Panel
             id={COMMENTS.id}
@@ -331,9 +215,7 @@ export default function Workspace() {
         {containsAllOf(visiblePanels, [
           TopLevelPanelId.COMMENTS,
           TopLevelPanelId.CHAT,
-        ]) && (
-          <PanelResizeHandle className="w-2 bg-gray-300 hover:bg-blue-400 transition-colors" />
-        )}
+        ]) && <PanelDivider />}
         {visiblePanels.includes(TopLevelPanelId.CHAT) && (
           <Panel
             id={CHAT.id}
