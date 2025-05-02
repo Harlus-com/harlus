@@ -137,5 +137,5 @@ wrapt==1.17.2
 wsproto==1.2.0
 xxhash==3.5.0
 yarl==1.20.0
-./wheels/doc_search-0.1.0-py3-none-any.whl
+./wheels/doc_search-0.1.1-py3-none-any.whl
 ./wheels/contrast_tool-0.1.0-py3-none-any.whl
