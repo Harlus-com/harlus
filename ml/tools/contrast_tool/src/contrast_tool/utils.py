@@ -1,4 +1,3 @@
-
 import os
 import yaml
 from typing import Optional
@@ -29,7 +28,7 @@ def get_file_metadata(file_path: str) -> dict[str, str]:
 
 
 def load_document(file_path: str, document_type: str) -> list[Document]:
-    
+
     parser = LlamaParse(result_type="markdown")
     reader = SimpleDirectoryReader(
         input_files=[file_path],
@@ -40,12 +39,12 @@ def load_document(file_path: str, document_type: str) -> list[Document]:
 
     for i, doc in enumerate(documents):
         doc.metadata["document_type"] = document_type
-        doc.metadata["file_type"] = "pdf" 
+        doc.metadata["file_type"] = "pdf"
         doc.metadata["file_path"] = file_path
 
         if "page_number" not in doc.metadata:
             doc.metadata["page_number"] = i + 1
-            
+
     return documents
 
 
@@ -61,22 +60,20 @@ def load_pdf_sentences(pdf_path: str):
         page = doc[page_no]
         text = page.get_text()
         for sent in sent_tokenize(text):
-            sentences.append({
-                "id": sent_id,
-                "text": sent,
-                "page": page_no + 1  # 1-based page numbering
-            })
+            sentences.append(
+                {
+                    "id": sent_id,
+                    "text": sent,
+                    "page": page_no + 1,  # 1-based page numbering
+                }
+            )
             sent_id += 1
     return sentences
 
 
-
 def find_fuzzy_bounding_boxes(
-    pdf_path: str,
-    sentence: str,
-    page_num: int,
-    threshold: int = 50
-) -> Optional[list[Tuple[float, float, float, float]]]:
+    pdf_path: str, sentence: str, page_num: int, threshold: int = 50
+) -> Tuple[Optional[list[Tuple[float, float, float, float]]], fitz.Document]:
     """
     Fuzzy-match `sentence` on page `page_num` of `pdf_path`.
     Returns a list of (x0, y0, width, height) tuples for each matching line
@@ -92,10 +89,7 @@ def find_fuzzy_bounding_boxes(
     words.sort(key=lambda w: (w[1], w[0]))
 
     # 3) build lower-cased word list
-    page_words = [
-        ((w[0], w[1], w[2], w[3]), w[4].lower(), w[6])
-        for w in words
-    ]
+    page_words = [((w[0], w[1], w[2], w[3]), w[4].lower(), w[6]) for w in words]
     texts = [w for (_, w, _) in page_words]
 
     # 4) slide a window to find best fuzzy match
@@ -139,32 +133,32 @@ def find_fuzzy_bounding_boxes(
         w, h = r.width, r.height  # properties of fitz.Rect
         output.append((x0, y0, w, h))
 
-    return output
+    return output, doc
 
 
 # def visualize_bounding_boxes(
 #         pdf_path: str,
-#         sentences: list[str], 
+#         sentences: list[str],
 #         output_path: str):
-    
+
 #     doc = fitz.open(pdf_path)
-    
+
 #     for sentence in sentences:
 #         for page_num, page in enumerate(doc):
 #             # Find sentence instances
 #             found_instances = page.search_for(sentence)
-            
+
 #             # Draw rectangles on found instances
 #             for bbox in found_instances:
 #                 # Draw a rectangle (red, 1pt width)
 #                 page.draw_rect(
-#                     bbox, 
+#                     bbox,
 #                     color=(1, 0, 0),
 #                     fill=(1, 1, 0),
 #                     width=1.0,
 #                     overlay=False,
-#                 )  
-    
+#                 )
+
 #     doc.save(output_path)
 #     doc.close()
 

@@ -23,6 +23,10 @@ import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 
 // pdfjs worker for the Viewer
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
+import {
+  ContrastClaimCheck,
+  ReactPdfAnnotation,
+} from "./ContrastAnalysisPanel";
 
 interface PdfViewerProps {
   file: WorkspaceFile | null;
@@ -34,65 +38,25 @@ export interface PdfViewerRef {
   setHighlightColor: (areaId: string, color: string) => void;
 }
 
-const areas: (HighlightArea & { id: string; color: string })[] = [
-  {
-    id: "area1",
-    pageIndex: 0,
-    height: 1.55401,
-    width: 28.1674,
-    left: 27.5399,
-    top: 15.0772,
-    color: "yellow",
-  },
-  {
-    id: "area2",
-    pageIndex: 0,
-    height: 1.32637,
-    width: 37.477,
-    left: 55.7062,
-    top: 15.2715,
-    color: "yellow",
-  },
-  {
-    id: "area3",
-    pageIndex: 0,
-    height: 1.55401,
-    width: 28.7437,
-    left: 16.3638,
-    top: 16.6616,
-    color: "yellow",
-  },
-  {
-    id: "area4",
-    pageIndex: 3,
-    height: 1.55401,
-    width: 28.1674,
-    left: 27.5399,
-    top: 15.0772,
-    color: "yellow",
-  },
-  {
-    id: "area5",
-    pageIndex: 3,
-    height: 1.32637,
-    width: 37.477,
-    left: 55.7062,
-    top: 15.2715,
-    color: "yellow",
-  },
-  {
-    id: "area6",
-    pageIndex: 3,
-    height: 1.55401,
-    width: 28.7437,
-    left: 16.3638,
-    top: 16.6616,
-    color: "yellow",
-  },
-];
-
 const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
   const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const areas = [];
+  const claimChecks: ContrastClaimCheck[] = file?.annotations?.data || [];
+  const annotations: ReactPdfAnnotation[] = claimChecks.flatMap(
+    (check) => check.annotations
+  );
+  for (const annotation of annotations) {
+    areas.push({
+      id: annotation.id,
+      pageIndex: annotation.page,
+      left: annotation.left,
+      top: annotation.top,
+      width: annotation.width,
+      height: annotation.height,
+      color: "yellow",
+    });
+  }
+  console.log("AREAS", areas);
   const [highlightAreas, setHighlightAreas] =
     useState<(HighlightArea & { id: string; color: string })[]>(areas);
 

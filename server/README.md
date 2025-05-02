@@ -89,12 +89,22 @@ Right now our strategy will be to accumulate a history of wheel files, for stabl
 
 Note: Iff you need to debug an older tool version, when server has already moved foward (so you can't check out that commit), just edit the files directly in non-compiled site-packages.
 
+### Helper script
+
+Also consider using `python scripts/package.py {tool_name} --package` (this needs to be run from the harlus/server dir).
+
 ### Real time local development
 
-If you want to simultatneously develop with the latest from an ml directory, simply replace the wheels requirement with a relative path:
+If you want to simultatneously develop with the latest from an ml directory use the helper script.
 
-e.g. `./wheels/doc_search-0.1.0-py3-none-any.whl` -> `-e ../ml/tools/doc_search`
+```bash
+python scripts/package.py {tool_name} --link
+```
 
-Then rerun `pip install -r requirements.txt`
+(e.g `python scripts/package.py contrast_tool --link`)
 
-With this setup changes in the tool directory automatically linked in. The one downside is the vs code interpreter won't recognize this, so there is no code completion or highlighting (but the code executes just fine at runtime)
+or to go back to using the local wheel
+
+```bash
+python scripts/package.py {tool_name} --unlink
+```
