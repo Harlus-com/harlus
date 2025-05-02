@@ -165,6 +165,7 @@ def delete_file(file_id: str) -> bool:
     file = file_store.delete_file(file_id)
     if file is None:
         return False
+    tool_library.delete_file_tools(file)
     return True
 
 

@@ -4,14 +4,18 @@ import os
 import pickle
 from collections import defaultdict
 
-from src.file_store import FileStore
+from src.file_store import FileStore, File
 from doc_search import ToolWrapper
 
 
 class ToolLibrary:
     def __init__(self, file_store: FileStore):
-        self.file_name_to_tools: dict[str, list[ToolWrapper]] = defaultdict(list)
+        self.file_path_to_tools: dict[str, list[ToolWrapper]] = defaultdict(list)
         self.file_store = file_store
+
+    def delete_file_tools(self, file: File):
+        if file.absolute_path in self.file_path_to_tools:
+            del self.file_path_to_tools[file.absolute_path]
 
     def load_tools(self):
         for file in self.file_store.get_all_files():
@@ -29,8 +33,8 @@ class ToolLibrary:
                     # Then we can check that the file hash matches the current file on disk, otherwise discard the tool
                     tool = pickle.load(f)
                     tool_wrapper = ToolWrapper(tool, tool_dir, debug_info={})
-                    self.file_name_to_tools[file.absolute_path].append(tool_wrapper)
-        for file_name, tools in self.file_name_to_tools.items():
+                    self.file_path_to_tools[file.absolute_path].append(tool_wrapper)
+        for file_name, tools in self.file_path_to_tools.items():
             print(f"Loaded tools for {file_name}: {[t.get_tool_name() for t in tools]}")
 
     def get_tool_for_all_files(self, tool_name: str):
@@ -39,7 +43,7 @@ class ToolLibrary:
     def get_tool(self, file_path: str, tool_name: str):
         matching_tools = [
             t
-            for t in self.file_name_to_tools[file_path]
+            for t in self.file_path_to_tools[file_path]
             if t.get_tool_name() == tool_name
         ]
         if len(matching_tools) == 0:
@@ -50,10 +54,10 @@ class ToolLibrary:
 
     def has_tool(self, file_path: str, tool_name: str):
         print(f"Checking if tool {tool_name} exists for {file_path}")
-        if file_path not in self.file_name_to_tools:
+        if file_path not in self.file_path_to_tools:
             print(f"File {file_path} not found")
             return False
-        file_tools = [t.get_tool_name() for t in self.file_name_to_tools[file_path]]
+        file_tools = [t.get_tool_name() for t in self.file_path_to_tools[file_path]]
         tool_found = tool_name in file_tools
         print(
             f"Tool {tool_name} {'found' if tool_found else 'not found'} in {file_tools}"
@@ -61,7 +65,7 @@ class ToolLibrary:
         return tool_found
 
     def add_tool(self, file_path: str, tool_wrapper: ToolWrapper):
-        current_tools = self.file_name_to_tools[file_path]
+        current_tools = self.file_path_to_tools[file_path]
         tool_name = tool_wrapper.get_tool_name()
         if tool_name in [t.get_tool_name() for t in current_tools]:
             raise ValueError(f"Tool {tool_name} already exists for file {file_path}")
