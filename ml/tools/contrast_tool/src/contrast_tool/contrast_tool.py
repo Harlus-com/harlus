@@ -1,7 +1,5 @@
 import os, json
 
-from llama_index.core.tools import QueryEngineTool
-
 from .claim_getter import ClaimGetter
 from .claim_checker import ClaimChecker
 
@@ -9,6 +7,8 @@ from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.base.base_query_engine import BaseQueryEngine
 
 from .utils import load_config
+
+from .prompts import get_prompt
 
 DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.yaml")
 
@@ -28,44 +28,133 @@ class ContrastTool:
 
     def get_sources(claims: list[str], doc_retriever: BaseRetriever):
 
-        # TODO
+        return
 
-        pass
+    # def compare_documents_from_path(self, old_file: str, new_file: str):
 
-    def compare_documents_from_path(self, old_file: str, new_file: str):
+    #     print(f"\nExtracting claims from old document: {old_file}")
 
-        print(f"\nExtracting claims from old document: {old_file}")
+    #     claims = self.getter.extract_from_path(old_file)
+    #     claims_text = [claim.text for claim in claims]
+    #     for claim in claims_text:
+    #         print(f"Claim: {claim}")
 
-        claims = self.getter.extract_from_path(old_file)
-        claims_text = [claim.text for claim in claims]
-        for claim in claims_text:
-            print(f"Claim: {claim}")
+    #     print(f"\nAnalyzing claims against new document: {new_file}")
+    #     verdict = self.checker.analyse_from_path(claims_text, new_file)
 
-        print(f"\nAnalyzing claims against new document: {new_file}")
-        verdict = self.checker.analyse_from_path(claims_text, new_file)
+    #     print("\nVerdict:")
+    #     print(json.dumps(verdict, indent=2))
 
-        print("\nVerdict:")
-        print(json.dumps(verdict, indent=2))
+    #     output = {}
+    #     for claim in claims:
+    #         output[claim.text] = {
+    #             "page_num": claim.page_num,
+    #             "bbox": claim.bounding_box,
+    #             "verdict": verdict[claim.text]["verdict"],
+    #             "explanation": verdict[claim.text]["explanation"],
+    #         }
 
-        output = {}
-        for claim in claims:
-            output[claim.text] = {
-                "page_num": claim.page_num,
-                "bbox": claim.bounding_box,
-                "verdict": verdict[claim.text]["verdict"],
-                "explanation": verdict[claim.text]["explanation"],
-            }
+    #     return output
 
-        return output
+
+    def claim_to_questions(self, claim: str, num_questions: int = 3) -> list[str]:
+
+        prompt = get_prompt("get questions to challenge claim")
+        questions_to_verify = self.question_llm.complete(
+            prompt.format(
+                claim=claim,
+                num_questions=num_questions,
+                output_format=self.question_parser.get_format_string(),
+            )
+        )
+        parsed_questions = self.question_parser.parse(
+            questions_to_verify.text
+        ).questions
+
+        return parsed_questions
+
+
+    def questions_to_data(
+            self,
+            questions: list[str], 
+            retriever: BaseRetriever
+        ) -> str:
+
+        evidence_blocks = []
+        nodes_seen = []
+        # TODO can happen asynchronously
+        for question in questions:
+            for hit in retriever.retrieve(question):
+                if hit.node.node_id not in nodes_seen:
+                    nodes_seen.append(hit.node.node_id)
+                    evidence_blocks.append(hit.node.get_content())
+
+        evidence = "\n\n".join(
+            f"Evidence {i+1}:\n{"-" * 40}\n{blok}"
+            for i, blok in enumerate(evidence_blocks)
+        )
+
+        return evidence
+    
+
+    def compare_claim_to_data(self, claim: str, data: str) -> str:
+
+        prompt = get_prompt("verify claim with data")
+        verification = self.verification_llm.complete(
+            prompt.format(
+                claim=claim,
+                data=data,
+                output_format=self.verification_parser.get_format_string(),
+            )
+        )
+        parsed_verification = self.verification_parser.parse(verification.text)
+
+        return parsed_verification
+    
+
+    def analyse(
+            self,
+            claims: list[str],
+            mix_retriever: BaseRetriever,
+            summary_qengine: BaseQueryEngine,
+        ) -> dict:
+
+        try:
+            output = {}
+
+            # TODO can run asynchronously
+            for claim in claims:
+
+                # TODO remove questions, just query engine directly
+                # TODO add a query enhancer right before query engine (that says consider all drivers of the lcaim etc.)
+                questions = self.claim_to_questions(claim, num_questions=3)
+                data = self.questions_to_data(questions, mix_retriever)
+                verification = self.compare_claim_to_data(claim, data, summary_qengine)
+
+                # get sources
+
+                output[claim] = {
+                    "questions": questions,
+                    "verdict": verification.verdict,
+                    "explanation": verification.reasoning,
+                }
+
+            return output
+
+        except Exception as e:
+            return {"error": str(e)}
+        
+
 
     def compare_documents(
         self,
         old_file_path: str,
+        new_file_path: str,
         old_doc_qengine: BaseQueryEngine,
         old_doc_retriever: BaseRetriever,
         new_doc_retriever: BaseRetriever,
     ):
-        # print(f"\nExtracting claims from old document: {old_doc.get_tool_name()}")
+        print(f"\nExtracting claims from old document: {old_file_path}")
 
         claims = self.getter.extract(old_doc_qengine, old_doc_retriever, old_file_path)
         claims_text = [claim.text for claim in claims]
@@ -74,7 +163,7 @@ class ContrastTool:
         for claim in claims_text:
             print(f"Claim: {claim}")
 
-        # print(f"\nAnalyzing claims against new document: {new_doc.get_tool_name()}")
+        print(f"\nAnalyzing claims against new document: {new_file_path}")
         verdict = self.checker.analyse_from_retriever(claims_text, new_doc_retriever)
 
         # print("\nVerdict:")

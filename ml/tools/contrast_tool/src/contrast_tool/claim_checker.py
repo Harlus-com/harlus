@@ -41,10 +41,15 @@ from pathlib import Path
 class ExtractQuestions(BaseModel):
     questions: List[str]
 
+class Source(BaseModel):
+    text: str
+    file_name: str
+    page_num: int
 
 class VerificationResponse(BaseModel):
     verdict: Literal["True", "False", "Insufficient evidence"]
     reasoning: str
+    source: Source
 
 
 # TODO pipeline
@@ -134,54 +139,37 @@ class ClaimChecker:
 
         return mixed_retriever
 
-    def analyse_from_path(self, claims: list[str], file_path: str) -> Dict:
+    # def analyse_from_path(self, claims: list[str], file_path: str) -> Dict:
 
-        documents = load_document(file_path, "source")
+    #     documents = load_document(file_path, "source")
 
-        vector_index = VectorStoreIndex.from_documents(documents)
-        keyword_index = KeywordTableIndex.from_documents(documents)
+    #     vector_index = VectorStoreIndex.from_documents(documents)
+    #     keyword_index = KeywordTableIndex.from_documents(documents)
 
-        vector_retriever = VectorIndexRetriever(index=vector_index, similarity_top_k=3)
-        keyword_retriever = KeywordTableSimpleRetriever(index=keyword_index)
-        mixed_retriever = MixKeywordVectorRetriever(vector_retriever, keyword_retriever)
+    #     vector_retriever = VectorIndexRetriever(index=vector_index, similarity_top_k=3)
+    #     keyword_retriever = KeywordTableSimpleRetriever(index=keyword_index)
+    #     mixed_retriever = MixKeywordVectorRetriever(vector_retriever, keyword_retriever)
 
-        try:
-            output = {}
+    #     try:
+    #         output = {}
 
-            # can run asynchronously
-            for i, claim in enumerate(claims):
+    #         # can run asynchronously
+    #         for i, claim in enumerate(claims):
+    #             questions = self.claim_to_questions(claim, num_questions=3)
+    #             data = self.questions_to_data(questions, mixed_retriever)
+    #             verification = self.compare_claim_to_data(claim, data)
 
-                # TODO remove questions, just query engine directly
-                # TODO add a query enhancer right before query engine (that says consider all drivers of the lcaim etc.)
-                questions = self.claim_to_questions(claim, num_questions=3)
-                data = self.questions_to_data(questions, mixed_retriever)
-                verification = self.compare_claim_to_data(claim, data)
+    #             output[claim] = {
+    #                 "questions": questions,
+    #                 "verdict": verification.verdict,
+    #                 "explanation": verification.reasoning,
+    #             }
 
-                output[claim] = {
-                    "questions": questions,
-                    "verdict": verification.verdict,
-                    "explanation": verification.reasoning,
-                }
+    #         return output
 
-            return output
+    #     except Exception as e:
+    #         return {"error": str(e)}
 
-        except Exception as e:
-            return {"error": str(e)}
-
-    # def analyse(self, claims: list[str], doc_wrapper: QueryEngineTool) -> Dict:
-
-    #     # documents = load_document(req.file_path, 'source')
-
-    #     # vector_index = VectorStoreIndex.from_documents(documents)
-    #     # keyword_index = KeywordTableIndex.from_documents(documents)
-
-    #     # vector_retriever = VectorIndexRetriever(index=vector_index, similarity_top_k=3)
-    #     # keyword_retriever = KeywordTableSimpleRetriever(index=keyword_index)
-    #     # mixed_retriever = MixKeywordVectorRetriever(vector_retriever, keyword_retriever)
-
-    #     retriever = doc_wrapper.doc_tool.query_engine._query_engines['mix_qengine'].retriever
-
-    #     self.analyse_from_retriever(retriever)
 
     def analyse_from_retriever(self, claims: list[str], retriever: BaseRetriever):
 
@@ -209,3 +197,6 @@ class ClaimChecker:
 
         except Exception as e:
             return {"error": str(e)}
+
+
+    

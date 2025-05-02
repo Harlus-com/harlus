@@ -78,39 +78,35 @@ class ClaimGetter:
 
         return index.as_retriever(similarity_top_k=1)
 
-    def extract_from_path(self, file_path: str) -> List[Claim]:
+    # def extract_from_path(self, file_path: str) -> List[Claim]:
 
-        # 1. extract list of claims
-        query_engine = self.build_query_engine(file_path)
-        prompt = get_prompt("extract claims")
-        all_claims = query_engine.query(
-            prompt.format(output_format=self.parser.get_format_string())
-        )
-        parsed_claims = self.parser.parse(all_claims.response).claims
+    #     # 1. extract list of claims
+    #     query_engine = self.build_query_engine(file_path)
+    #     prompt = get_prompt("extract claims")
+    #     all_claims = query_engine.query(
+    #         prompt.format(output_format=self.parser.get_format_string())
+    #     )
+    #     parsed_claims = self.parser.parse(all_claims.response).claims
+    #     # 2. sentence‐level search to get bounding box of each claim
+    #     retriever = self.build_sentence_retriever(file_path)
+    #     claims: List[Claim] = []
+    #     for claim in parsed_claims:
+    #         sentence = retriever.retrieve(claim)[0]
+    #         source = " ".join(sentence.get_content().split())
+    #         page_num = int(sentence.node.metadata.get("page_label"))
+    #         bbox, doc = find_fuzzy_bounding_boxes(file_path, source, page_num) or []
 
-        # TODO have several claims possibly link to same annotation
-
-        # 2. sentence‐level search to get bounding box of each claim
-        retriever = self.build_sentence_retriever(file_path)
-        claims: List[Claim] = []
-        for claim in parsed_claims:
-            sentence = retriever.retrieve(claim)[0]
-            source = " ".join(sentence.get_content().split())
-            page_num = int(sentence.node.metadata.get("page_label"))
-            bbox, doc = find_fuzzy_bounding_boxes(file_path, source, page_num) or []
-
-            claims.append(
-                Claim(
-                    text=claim,
-                    source=source,
-                    page_num=page_num,
-                    bounding_box=bbox,
-                    page_width=doc.rect.width,
-                    page_height=doc.rect.height,
-                )
-            )
-
-        return claims
+    #         claims.append(
+    #             Claim(
+    #                 text=claim,
+    #                 source=source,
+    #                 page_num=page_num,
+    #                 bounding_box=bbox,
+    #                 page_width=doc.rect.width,
+    #                 page_height=doc.rect.height,
+    #             )
+    #         )
+    #     return claims
 
     def extract(
         self,

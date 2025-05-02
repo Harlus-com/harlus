@@ -31,6 +31,16 @@ def get_prompt(key: str) -> PromptTemplate:
         return _PROMPT_REGISTRY[key]
     except KeyError:
         raise KeyError(f"Prompt '{key}' not found in registry")
+    
+
+def get_template(key: str) -> str:
+    """
+    Retrieve a prompt by its key. Raises KeyError if not found.
+    """
+    try:
+        return _PROMPT_REGISTRY[key].template
+    except KeyError:
+        raise KeyError(f"Prompt '{key}' not found in registry")
 
 
 def list_prompts() -> list[str]:

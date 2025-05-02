@@ -14,15 +14,11 @@ register_prompt(PROMPT_GET_CLAIMS, name=_PROMPT_GET_CLAIMS_NAME)
 
 
 _PROMPT_EXTRACT_QUESTIONS_NAME = "get questions to challenge claim"
-_PROMPT_EXTRACT_QUESTIONS_TEXT = """\
-Claim: 
-{claim}
-
-List {num_questions} questions that a financial analyst would ask to identify all relevant information that can verify this claim. Make sure that the questions are
+_PROMPT_EXTRACT_QUESTIONS_TEXT = """
+List 3 questions that a financial analyst would ask to identify all relevant information that can verify this claim. Make sure that the questions are
 - concise, i.e.each question focusses on a different feature of the claim
 - precise, i.e. include as much data from the claim as possible
 - complete, i.e. search for all aliases of the claim's topic and its key drivers
-{output_format}\
 """
 PROMPT_EXTRACT_QUESTIONS = PromptTemplate(_PROMPT_EXTRACT_QUESTIONS_TEXT)
 register_prompt(PROMPT_EXTRACT_QUESTIONS, name=_PROMPT_EXTRACT_QUESTIONS_NAME)
