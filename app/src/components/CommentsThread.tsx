@@ -14,7 +14,7 @@ import { PdfViewerRef } from "./ReactPdfViewer";
 import { ReactPdfAnnotation } from "./ContrastAnalysisPanel";
 
 // Define the Comment type
-interface Comment {
+export interface Comment {
   id: string;
   text: string;
   author: string;
@@ -25,44 +25,47 @@ interface Comment {
 // Define the props for the CommentsThread component
 interface CommentsThreadProps {
   pdfViewerRef: React.RefObject<PdfViewerRef>;
+  comments: Comment[];
 }
+const EXAMPLE_COMMENTS = [
+  {
+    id: "1",
+    text: "This is an important section about equity analysis.",
+    author: "User",
+    timestamp: new Date(),
+    reactPdfAnnotation: {
+      id: "area1",
+      page: 0,
+      height: 1.55401,
+      width: 28.7437,
+      left: 16.3638,
+      top: 16.6616,
+    },
+  },
+  {
+    id: "2",
+    text: "We should highlight the methodology used here.",
+    author: "User",
+    timestamp: new Date(),
+    reactPdfAnnotation: {
+      id: "area4",
+      page: 3,
+      height: 1.55401,
+      width: 28.7437,
+      left: 16.3638,
+      top: 16.6616,
+    },
+  },
+];
 
-const CommentsThread: React.FC<CommentsThreadProps> = ({ pdfViewerRef }) => {
-  const [comments, setComments] = useState<Comment[]>([
-    {
-      id: "1",
-      text: "This is an important section about equity analysis.",
-      author: "User",
-      timestamp: new Date(),
-      reactPdfAnnotation: {
-        id: "area1",
-        page: 0,
-        height: 1.55401,
-        width: 28.7437,
-        left: 16.3638,
-        top: 16.6616,
-      },
-    },
-    {
-      id: "2",
-      text: "We should highlight the methodology used here.",
-      author: "User",
-      timestamp: new Date(),
-      reactPdfAnnotation: {
-        id: "area4",
-        page: 3,
-        height: 1.55401,
-        width: 28.7437,
-        left: 16.3638,
-        top: 16.6616,
-      },
-    },
-  ]);
+const CommentsThread: React.FC<CommentsThreadProps> = (props) => {
+  const [comments, setComments] = useState<Comment[]>(props.comments);
   const [newComment, setNewComment] = useState("");
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(
     null
   );
 
+  const pdfViewerRef = props.pdfViewerRef;
   const handleAddComment = () => {};
 
   const handleCommentClick = (comment: Comment) => {
