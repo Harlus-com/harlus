@@ -132,25 +132,21 @@ export default function Workspace() {
         refreshFiles={refreshFiles}
       />
       <PanelGroup id="workspace" direction="horizontal" className="h-full">
-        <Panel
-          id={FILE_EXPLORER.id}
-          order={1}
-          defaultSize={FILE_EXPLORER.defaultSize}
-          minSize={FILE_EXPLORER.minSize}
-          className={`bg-blue-50  h-full ${
-            visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER)
-              ? "w-auto"
-              : "w-8"
-          }`}
-        >
-          {visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER) && (
+        {visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER) && (
+          <Panel
+            id={FILE_EXPLORER.id}
+            order={1}
+            defaultSize={FILE_EXPLORER.defaultSize}
+            minSize={FILE_EXPLORER.minSize}
+            className="bg-blue-50 h-full w-auto"
+          >
             <FileExplorer
               files={files}
               onFileSelect={handleFileSelect}
               openFiles={openFiles}
             />
-          )}
-        </Panel>
+          </Panel>
+        )}
         <PanelDivider />
         <Panel
           id={FILE_VIEWER.id}
