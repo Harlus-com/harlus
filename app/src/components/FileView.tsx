@@ -1,11 +1,12 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { PanelGroup, Panel } from "react-resizable-panels";
 import { FileGroupCount } from "./panels";
 import PanelDivider from "./PanelDivider";
 import { WorkspaceFile } from "@/api/types";
 import PdfViewer, { PdfViewerRef } from "@/components/ReactPdfViewer";
 import { OpenFileGroup } from "./OpenFileGroup";
-
+import { MessageSquareQuote } from "lucide-react";
+import { Button } from "@/components/ui/button";
 export interface FileViewProps {
   openFiles: Record<FileGroupCount, OpenFileGroup | null>;
   setOpenFiles: React.Dispatch<
@@ -89,47 +90,66 @@ function FileGroupPanel({
 }: FileGroupPanelProps) {
   const viewerRef = useRef<PdfViewerRef>(null);
   const { files, selectedFile } = openFileGroup;
+  const [showComments, setShowComments] = useState(true);
 
   return (
     <Panel id={`file-group-${groupIndex}`} order={1}>
       {selectedFile != null && (
-        <div className="bg-white p-4 border-b border-border">
-          <div className="flex space-x-1 border-b border-gray-200">
-            {Object.values(files).map((file) => {
-              const isActive = selectedFile?.id === file.id;
-              return (
-                <div
-                  key={file.id}
-                  className={`flex items-center -mb-px border-b-2 ${
-                    isActive
-                      ? "border-blue-500"
-                      : "border-transparent hover:border-gray-300"
-                  }`}
-                >
-                  <button
-                    onClick={() => onSelectFile(groupIndex, file)}
-                    className={`px-3 py-1 text-sm font-medium focus:outline-none ${
+        <div className="bg-white border-b border-border">
+          <div className="flex items-center justify-between border-b border-gray-200">
+            <div className="flex space-x-1">
+              {Object.values(files).map((file) => {
+                const isActive = selectedFile?.id === file.id;
+                return (
+                  <div
+                    key={file.id}
+                    className={`flex items-center -mb-px border-b-2 ${
                       isActive
-                        ? "text-blue-600"
-                        : "text-gray-500 hover:text-gray-700"
+                        ? "border-blue-500"
+                        : "border-transparent hover:border-gray-300"
                     }`}
                   >
-                    {file.name}
-                  </button>
-                  <button
-                    onClick={() => onCloseFile(groupIndex, file.id)}
-                    className="ml-1 text-gray-400 hover:text-gray-600 text-xs focus:outline-none"
-                    aria-label={`Close ${file.name}`}
-                  >
-                    ×
-                  </button>
-                </div>
-              );
-            })}
+                    <button
+                      onClick={() => onSelectFile(groupIndex, file)}
+                      className={`px-3 py-1 text-sm font-medium focus:outline-none ${
+                        isActive
+                          ? "text-blue-600"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      {file.name}
+                    </button>
+                    <button
+                      onClick={() => onCloseFile(groupIndex, file.id)}
+                      className="ml-1 text-gray-400 hover:text-gray-600 text-xs focus:outline-none"
+                      aria-label={`Close ${file.name}`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <Button
+              onClick={() => setShowComments(!showComments)}
+              variant="ghost"
+              size="sm"
+              className="group relative"
+            >
+              <MessageSquareQuote size={16} />
+              <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                Toggle Comments
+              </div>
+            </Button>
           </div>
         </div>
       )}
-      <PanelGroup id={`file-group-${groupIndex}-viewer`} direction="horizontal">
+      {/* TODO: Autosave per file */}
+      <PanelGroup
+        id={`file-group-${groupIndex}-viewer`}
+        direction="horizontal"
+        autoSaveId={`file-group-${groupIndex}-viewer`}
+      >
         <Panel id={`file-group-${groupIndex}-file`} order={1} defaultSize={80}>
           {selectedFile != null ? (
             <div className="flex-1 bg-white">
@@ -147,9 +167,9 @@ function FileGroupPanel({
             </div>
           )}
         </Panel>
-        {selectedFile != null && (
+        {selectedFile != null && showComments && (
           <>
-            <PanelDivider />
+            <PanelDivider invisible={true} />
             <Panel
               id={`file-group-${groupIndex}-comments`}
               order={2}
