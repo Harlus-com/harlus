@@ -8,7 +8,6 @@ export enum FileGroupCount {
 export enum TopLevelPanelId {
   FILE_EXPLORER = "file-explorer",
   FILE_VIEWER = "file-viewer",
-  COMMENTS = "comments",
   CHAT = "chat",
 }
 

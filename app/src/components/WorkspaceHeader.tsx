@@ -122,18 +122,6 @@ export default function WorkspaceHeader({
           </Button>
 
           <Button
-            onClick={() => togglePanelVisibility(TopLevelPanelId.COMMENTS)}
-            variant="outline"
-            size="sm"
-            className="group relative"
-          >
-            <MessageSquareQuote size={16} />
-            <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              Toggle Comments
-            </div>
-          </Button>
-
-          <Button
             onClick={() => togglePanelVisibility(TopLevelPanelId.CHAT)}
             variant="outline"
             size="sm"
