@@ -16,22 +16,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { FileGroupCount } from "./panels";
 import { TopLevelPanelId } from "./panels";
-import { Workspace } from "@/api/types";
+import { Workspace, WorkspaceFile } from "@/api/types";
 import { useNavigate } from "react-router-dom";
+import ContrastAnalysisDialog from "./ContrastAnalysisDialog";
 
 export type WorkSpaceHeaderProps = {
   workspace: Workspace;
+  files: WorkspaceFile[];
   onFileGroupCountChange: (fileGroupCount: FileGroupCount) => void;
   togglePanelVisibility: (panelId: TopLevelPanelId) => void;
-  openContrastAnalysis: () => void;
+  onContrastAnalysisResult: (result: any) => void;
   refreshFiles: () => void;
 };
 
 export default function WorkspaceHeader({
   workspace,
+  files,
   onFileGroupCountChange,
   togglePanelVisibility,
-  openContrastAnalysis,
+  onContrastAnalysisResult,
   refreshFiles,
 }: WorkSpaceHeaderProps) {
   const navigate = useNavigate();
@@ -67,17 +70,10 @@ export default function WorkspaceHeader({
             </div>
           </Button>
 
-          <Button
-            onClick={openContrastAnalysis}
-            variant="outline"
-            size="sm"
-            className="group relative"
-          >
-            <ScanSearch size={16} />
-            <div className="absolute top-full left-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              Analyze
-            </div>
-          </Button>
+          <ContrastAnalysisDialog
+            files={files}
+            onContrastAnalysisResult={onContrastAnalysisResult}
+          />
         </div>
 
         <div className="flex items-center space-x-2 pl-4">

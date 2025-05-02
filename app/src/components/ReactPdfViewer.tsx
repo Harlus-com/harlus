@@ -59,7 +59,6 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
       color: "yellow",
     });
   }
-  console.log("AREAS", areas);
   const [highlightAreas, setHighlightAreas] =
     useState<(HighlightArea & { id: string; color: string })[]>(areas);
 
