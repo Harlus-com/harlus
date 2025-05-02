@@ -8,7 +8,6 @@ from llama_index.core.schema import (
     RelatedNodeInfo,
     IndexNode,
     Node,
-    Document
 )
 from tqdm import tqdm
 import asyncio
@@ -21,6 +20,31 @@ from llama_index.core.extractors import BaseExtractor
 
 # TODO: make this configurable
 NUM_WORKERS = 10
+MAX_TEXT_LENGTH = 4096
+
+
+def split_llamaparse_items(items: List[Dict]) -> List[Dict]:
+    items_out = []
+    for item in items:
+        current_max_length = len(item["md"])
+        if current_max_length > MAX_TEXT_LENGTH:
+            splits = item["md"].split(".")
+            current_max_length = 0
+            split_index = 0
+            for i, split in enumerate(splits):
+                current_max_length += len(split)
+                if current_max_length >= MAX_TEXT_LENGTH/2:
+                    split_index = i
+                    break
+            split_1 = splits[:split_index]
+            split_2 = splits[split_index:]
+            item_1 = {**item, "md": ".".join(split_1)}
+            item_2 = {**item, "md": ".".join(split_2)}
+            items_out.extend(split_llamaparse_items([item_1]))
+            items_out.extend(split_llamaparse_items([item_2]))
+        else:
+            items_out.append(item)
+    return items_out
 
 
 def create_nodes_from_llamaparse_json(json_in: List[List[Dict]]) -> List[Node]:
@@ -107,6 +131,16 @@ def create_nodes_from_llamaparse_json(json_in: List[List[Dict]]) -> List[Node]:
             current_headings[item["custom_type"]] = item["md"]
         item["current_headings"] = "\n\n".join(current_headings.values())
         json_out.append(item)
+    json_in = json_out
+
+
+     # 5. Split text nodes if they are too long
+    json_out = []
+    for item in json_in:
+        if item["type"] == "text":
+            json_out.extend(split_llamaparse_items([item]))
+        else:
+            json_out.append(item)
     json_in = json_out
 
     # 6. create nodes from each item which is not a heading
@@ -220,8 +254,7 @@ def split_text_nodes(nodes_in: List[Node], sentence_window_parser: SentenceWindo
         if current_node.metadata["type"] == "text":
             fine_nodes = sentence_window_parser.get_nodes_from_documents([current_node])
             nodes_out.extend(fine_nodes)
-        else:
-            nodes_out.append(current_node)
+        nodes_out.append(current_node)
 
     return nodes_out
 
