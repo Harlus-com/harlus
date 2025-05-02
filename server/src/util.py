@@ -17,3 +17,18 @@ def clean_name(name: str) -> str:
         .replace("'", "")
         .replace('"', "")
     )
+
+
+class BoundingBoxConverter:
+    def __init__(self, page_w: float, page_h: float):
+        self.page_w = page_w
+        self.page_h = page_h
+
+    def from_pymupdf_to_reactpdf(self, bbox: list[float]) -> dict[str, float]:
+        x0, y0, w, h = bbox
+        return {
+            "left": (x0 / self.page_w) * 100,
+            "top": (y0 / self.page_h) * 100,
+            "width": (w / self.page_w) * 100,
+            "height": (h / self.page_h) * 100,
+        }

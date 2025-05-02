@@ -30,8 +30,7 @@ class ContrastTool:
 
         # TODO
 
-        pass 
-
+        pass
 
     def compare_documents_from_path(self, old_file: str, new_file: str):
 
@@ -88,6 +87,8 @@ class ContrastTool:
                 "bbox": claim.bounding_box,
                 "verdict": verdict[claim.text]["verdict"],
                 "explanation": verdict[claim.text]["explanation"],
+                "page_width": claim.page_width,
+                "page_height": claim.page_height,
             }
 
         return output

@@ -4,8 +4,7 @@ import Sidebar from "@/components/Sidebar";
 import PdfViewer, { PdfViewerRef } from "@/components/ReactPdfViewer";
 import ChatPanel from "@/components/ChatPanel";
 import ContrastAnalysisPanel, {
-  AnalysisResult,
-  Annotation,
+  ContrastResult,
 } from "@/components/ContrastAnalysisPanel";
 import WorkspaceEventListener from "@/components/WorkspaceEventListener";
 import CommentsThread from "@/components/CommentsThread";
@@ -347,12 +346,12 @@ const Index = () => {
     </div>
   );
 
-  function handleContrastAnalysisResult(result: AnalysisResult) {
+  function handleContrastAnalysisResult(result: ContrastResult) {
     console.log("handleContrastAnalysisResult", result);
-    const file = files.find((file) => file.id === result.fileId1);
+    const file = files.find((file) => file.id === result.fileId);
     file.annotations = {
       show: true,
-      data: result.annotations,
+      data: result.claimChecks,
     };
     handleFileSelect(file);
   }

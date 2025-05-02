@@ -15,7 +15,8 @@ from platformdirs import user_data_dir
 from pathlib import Path
 from llama_index.core.agent.workflow import ReActAgent
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+from src.util import BoundingBoxConverter, snake_to_camel
 from src.tool_library import ToolLibrary
 from src.sync_workspace import get_workspace_sync_manager
 from src.stream_response import stream_generator_v2
@@ -284,6 +285,33 @@ def get_file_status(file_id: str) -> SyncStatus:
 contrast_result = None
 
 
+class ReactPdfAnnotation(BaseModel):
+    id: str  # typically the text TODO: See if we can delete this
+    page: int  # zero-based
+    left: float
+    top: float
+    width: float
+    height: float
+
+
+class ContrastClaimCheck(BaseModel):
+    annotations: list[ReactPdfAnnotation]
+    verdict: str
+    explanation: str
+
+
+class ContrastResult(BaseModel):
+    file_id: str = Field(alias="fileId")
+    claim_checks: list[ContrastClaimCheck] = Field(alias="claimChecks")
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        alias_generator=snake_to_camel,
+        from_attributes=True,
+        frozen=True,
+    )
+
+
 @app.get("/contrast/analyze")
 def get_contrast_analyze(
     old_file_id: str = Query(..., alias="oldFileId"),
@@ -306,5 +334,34 @@ def get_contrast_analyze(
         claim_query_tool.get(),
         claim_retriever_tool.get(),
         claim_check_tool.get(),
+    )
+    claim_checks = []
+    for key, value in contrast_result.items():
+        bounding_box_converter = BoundingBoxConverter(
+            value["page_width"], value["page_height"]
+        )
+        react_annotations = []
+        for bbox in value["bbox"]:
+            react_bbox = bounding_box_converter.from_pymupdf_to_reactpdf(bbox)
+            react_annotations.append(
+                ReactPdfAnnotation(
+                    id=key,
+                    page=value["page_num"] - 1,
+                    left=react_bbox["left"],
+                    top=react_bbox["top"],
+                    width=react_bbox["width"],
+                    height=react_bbox["height"],
+                )
+            )
+        claim_checks.append(
+            ContrastClaimCheck(
+                annotations=react_annotations,
+                verdict=value["verdict"],
+                explanation=value["explanation"],
+            )
+        )
+    contrast_result = ContrastResult(
+        file_id=old_file_id,
+        claim_checks=claim_checks,
     )
     return contrast_result

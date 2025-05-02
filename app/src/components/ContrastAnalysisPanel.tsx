@@ -4,24 +4,31 @@ import { fileService } from "@/api/fileService";
 import { WorkspaceFile } from "@/api/types";
 import { FileSearch } from "lucide-react";
 
-interface ContrastAnalysisProps {
-  files: WorkspaceFile[];
-  isOpen: boolean;
-  onClose: () => void;
-  onContrastAnalysisResult: (result: AnalysisResult) => void;
+export interface ReactPdfAnnotation {
+  id: string; // typically the text
+  page: number; // zero-based
+  left: number;
+  top: number;
+  width: number;
+  height: number;
 }
 
-export interface Annotation {
-  text: string;
-  page: number;
-  bbox: number[];
+export interface ContrastClaimCheck {
+  annotations: ReactPdfAnnotation[];
   verdict: string;
   explanation: string;
 }
 
-export interface AnalysisResult {
-  fileId1: string;
-  annotations: Annotation[];
+export interface ContrastResult {
+  fileId: string;
+  claimChecks: ContrastClaimCheck[];
+}
+
+interface ContrastAnalysisProps {
+  files: WorkspaceFile[];
+  isOpen: boolean;
+  onClose: () => void;
+  onContrastAnalysisResult: (result: ContrastResult) => void;
 }
 
 const ContrastAnalysisPanel: React.FC<ContrastAnalysisProps> = ({
@@ -39,27 +46,13 @@ const ContrastAnalysisPanel: React.FC<ContrastAnalysisProps> = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const handleRunAnalysis = async () => {
     if (!selectedFile1 || !selectedFile2) return;
-    const annotations: Annotation[] = [];
     setIsAnalyzing(true);
     try {
       const result = await fileService.runContrastAnalysis(
         selectedFile1.id,
         selectedFile2.id
       );
-      for (const [key, value] of Object.entries(result)) {
-        const annotation = value as any;
-        annotations.push({
-          text: key,
-          page: annotation.page_num,
-          bbox: annotation.bbox[0],
-          verdict: annotation.verdict,
-          explanation: annotation.explanation,
-        });
-      }
-      onContrastAnalysisResult({
-        fileId1: selectedFile1.id,
-        annotations,
-      });
+      onContrastAnalysisResult(result);
     } catch (error) {
       console.error("Error running analysis:", error);
     } finally {

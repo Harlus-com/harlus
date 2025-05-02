@@ -23,7 +23,10 @@ import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 
 // pdfjs worker for the Viewer
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
-import { Annotation } from "./ContrastAnalysisPanel";
+import {
+  ContrastClaimCheck,
+  ReactPdfAnnotation,
+} from "./ContrastAnalysisPanel";
 
 interface PdfViewerProps {
   file: WorkspaceFile | null;
@@ -38,15 +41,18 @@ export interface PdfViewerRef {
 const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const areas = [];
-  const annotations: Annotation[] = file?.annotations?.data || [];
+  const claimChecks: ContrastClaimCheck[] = file?.annotations?.data || [];
+  const annotations: ReactPdfAnnotation[] = claimChecks.flatMap(
+    (check) => check.annotations
+  );
   for (const annotation of annotations) {
     areas.push({
-      id: annotation.text,
-      pageIndex: annotation.page - 1,
-      left: annotation.bbox[0] / 100,
-      top: annotation.bbox[1] / 100,
-      width: annotation.bbox[2] / 100,
-      height: annotation.bbox[3] / 100,
+      id: annotation.id,
+      pageIndex: annotation.page,
+      left: annotation.left,
+      top: annotation.top,
+      width: annotation.width,
+      height: annotation.height,
       color: "yellow",
     });
   }
