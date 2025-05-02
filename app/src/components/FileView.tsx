@@ -129,21 +129,35 @@ function FileGroupPanel({
           </div>
         </div>
       )}
-      <PanelGroup id={`file-group-${groupIndex}-files`} direction="horizontal">
-        {selectedFile != null ? (
-          <div className="flex-1 bg-white">
-            <div className="h-full">
-              <PdfViewer
-                file={selectedFile}
-                key={selectedFile.id}
-                ref={viewerRef}
-              />
+      <PanelGroup id={`file-group-${groupIndex}-viewer`} direction="horizontal">
+        <Panel id={`file-group-${groupIndex}-file`} order={1} defaultSize={80}>
+          {selectedFile != null ? (
+            <div className="flex-1 bg-white">
+              <div className="h-full">
+                <PdfViewer
+                  file={selectedFile}
+                  key={selectedFile.id}
+                  ref={viewerRef}
+                />
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="flex-1 bg-white h-full flex items-center justify-center">
-            Empty File Group
-          </div>
+          ) : (
+            <div className="flex-1 bg-white h-full flex items-center justify-center">
+              Empty File Group
+            </div>
+          )}
+        </Panel>
+        {selectedFile != null && (
+          <>
+            <PanelDivider />
+            <Panel
+              id={`file-group-${groupIndex}-comments`}
+              order={2}
+              defaultSize={20}
+            >
+              Comments Panel
+            </Panel>
+          </>
         )}
       </PanelGroup>
     </Panel>
