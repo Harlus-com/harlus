@@ -129,10 +129,6 @@ export default function Workspace() {
     );
   };
 
-  const openContrastAnalysis = () => {
-    console.log("openContrastAnalysis");
-  };
-
   const refreshFiles = async () => {
     if (!workspaceId) return;
 
@@ -164,13 +160,24 @@ export default function Workspace() {
     }));
   };
 
+  const handleContrastAnalysisResult = (result: any) => {
+    console.log("Contrast analysis result:", result);
+    const file = files.find((file) => file.id === result.fileId);
+    file.annotations = {
+      show: true,
+      data: result.claimChecks,
+    };
+    handleFileSelect(file, FileGroupCount.ONE);
+  };
+
   return (
     <div className="flex flex-col h-screen">
       <WorkspaceHeader
         workspace={workspace}
+        files={files}
         onFileGroupCountChange={handleOnFileGroupCountChange}
         togglePanelVisibility={togglePanelVisibility}
-        openContrastAnalysis={openContrastAnalysis}
+        onContrastAnalysisResult={handleContrastAnalysisResult}
         refreshFiles={refreshFiles}
       />
       <PanelGroup id="workspace" direction="horizontal" className="flex-1">

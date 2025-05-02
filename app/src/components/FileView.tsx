@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { PanelGroup, Panel } from "react-resizable-panels";
 import { FileGroupCount } from "./panels";
 import PanelDivider from "./PanelDivider";
@@ -7,7 +7,9 @@ import PdfViewer, { PdfViewerRef } from "@/components/ReactPdfViewer";
 import { OpenFileGroup } from "./OpenFileGroup";
 import { MessageSquareQuote } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import CommentsThread from "./CommentsThread";
+import CommentsThread, { Comment } from "./CommentsThread";
+import { ContrastClaimCheck } from "./ContrastAnalysisPanel";
+
 export interface FileViewProps {
   openFiles: Record<FileGroupCount, OpenFileGroup | null>;
   setOpenFiles: React.Dispatch<
@@ -91,7 +93,21 @@ function FileGroupPanel({
 }: FileGroupPanelProps) {
   const viewerRef = useRef<PdfViewerRef>(null);
   const { files, selectedFile } = openFileGroup;
-  const [showComments, setShowComments] = useState(true);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [showComments, setShowComments] = useState(false);
+  useEffect(() => {
+    const claimChecks: ContrastClaimCheck[] =
+      selectedFile?.annotations?.data || [];
+    const newComments: Comment[] = claimChecks.map((check) => ({
+      id: check.annotations[0].id,
+      text: check.explanation,
+      author: "Harlus",
+      timestamp: new Date(),
+      reactPdfAnnotation: check.annotations[0],
+    }));
+    setComments(newComments);
+    setShowComments(newComments.length > 0);
+  }, [selectedFile]);
 
   return (
     <Panel
@@ -179,7 +195,7 @@ function FileGroupPanel({
               order={2}
               defaultSize={20}
             >
-              <CommentsThread pdfViewerRef={viewerRef} />
+              <CommentsThread pdfViewerRef={viewerRef} comments={comments} />
             </Panel>
           </>
         )}

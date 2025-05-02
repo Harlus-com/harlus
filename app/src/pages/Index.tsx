@@ -308,7 +308,7 @@ const Index = () => {
                 maxWidth: `${maxSidebar}px`,
               }}
             >
-              <CommentsThread pdfViewerRef={pdfViewerRef} />
+              <CommentsThread pdfViewerRef={pdfViewerRef} comments={[]} />
             </div>
           </>
         )}
