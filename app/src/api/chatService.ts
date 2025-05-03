@@ -45,6 +45,7 @@ export class ChatService {
       // 3. listen for source information
       this.eventSource.addEventListener("sources", async (event) => {
         console.log("[ChatService] Raw sources event data:", event.data);
+        // "sources" should be of type ChatSourceComment[]
         const sources = JSON.parse(event.data);
         console.log("[ChatService] Parsed sources:", sources);
 
