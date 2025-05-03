@@ -1,4 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
+import json
+import pickle
+import time
 from fastapi import (
     FastAPI,
     Query,
@@ -298,9 +301,6 @@ def get_file_status(file_id: str) -> SyncStatus:
     return sync_queue.get_sync_status(file_id)
 
 
-contrast_result = None
-
-
 class ReactPdfAnnotation(BaseModel):
     id: str  # typically the text TODO: See if we can delete this
     page: int  # zero-based
@@ -333,10 +333,12 @@ def get_contrast_analyze(
     old_file_id: str = Query(..., alias="oldFileId"),
     new_file_id: str = Query(..., alias="newFileId"),
 ):
+    if os.path.exists("contrast_result.pkl"):
+        with open("contrast_result.pkl", "rb") as f:
+            contrast_result = pickle.load(f)
+            time.sleep(3)
+            return contrast_result
     """Analyze the contrast between two files"""
-    global contrast_result
-    if contrast_result is not None:
-        return contrast_result
 
     old_file = file_store.get_file(old_file_id)
     new_file = file_store.get_file(new_file_id)
@@ -380,6 +382,8 @@ def get_contrast_analyze(
         file_id=old_file_id,
         claim_checks=claim_checks,
     )
+    with open("contrast_result.pkl", "wb") as f:
+        pickle.dump(contrast_result, f)
     return contrast_result
 
 

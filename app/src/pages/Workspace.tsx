@@ -15,6 +15,7 @@ import { workspaceService } from "@/api/workspaceService";
 import { fileService } from "@/api/fileService";
 import { WorkspaceFile, Workspace as WorkspaceType } from "@/api/types";
 import ChatPanel from "@/components/ChatPanel";
+import { modelService } from "@/api/model_service";
 // The default sizes scale relative to each other.
 // They work best when the sum of all the default sizes is 100.
 // If one of the panels is not visible, they will be "resacled" to add up to 100.
@@ -134,6 +135,7 @@ export default function Workspace() {
     try {
       const workspaceFiles = await fileService.getFiles(workspaceId);
       setFiles(workspaceFiles);
+      await modelService.updateKnowledgeGraph(workspaceId);
     } catch (error) {
       console.error("Failed to refresh workspace:", error);
     }
