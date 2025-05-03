@@ -48,6 +48,8 @@ def get_standard_rects_from_pdf(pdf_path: str, target_text: str, page_nb: int = 
     page_width = doc[0].rect.width
     page_height = doc[0].rect.height
 
+    all_standard_rects = []
+
     for page in doc[min_search_page:max_search_page]:
 
         page_number = page.number
@@ -92,9 +94,11 @@ def get_standard_rects_from_pdf(pdf_path: str, target_text: str, page_nb: int = 
                 } 
                 for rect in rects
             ]
-            return standard_rects
+            all_standard_rects.extend(standard_rects)
         except:
             continue
+    print(" // checkpoint 12 //: ", all_standard_rects)
+    return all_standard_rects
 
 
 def prune_overlapping_rects(standard_rects: list[Dict[str, Union[float, int]]], overlap_threshold: float = 0.5) -> list[Dict[str, Union[float, int]]]:
@@ -102,9 +106,9 @@ def prune_overlapping_rects(standard_rects: list[Dict[str, Union[float, int]]], 
 
     all_page_numbers = list(set(rect["page"] for rect in standard_rects))
     pruned = []
-
+    print(" // checkpoint 13 //: ")
     for page_number in all_page_numbers:
-
+        print(" // checkpoint 14 //: ")
         page_standard_rects = [rect for rect in standard_rects if rect["page"] == page_number]
         page_fitz_rects = [fitz.Rect(rect["left"], rect["top"], rect["left"] + rect["width"], rect["top"] + rect["height"]) for rect in page_standard_rects]
 
@@ -129,5 +133,6 @@ def prune_overlapping_rects(standard_rects: list[Dict[str, Union[float, int]]], 
             if keep:
                 pruned.append(page_standard_rects[i])
 
+    print(" // checkpoint 15 //: ", pruned)
     return pruned
 

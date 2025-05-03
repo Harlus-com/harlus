@@ -1,11 +1,29 @@
-import { ChatMessage } from "./types";
+import { ChatMessage, ChatSourceComment, BoundingBox, HighlightArea, ChatSourceCommentGroup } from "./types";
 import { BASE_URL } from "./client";
 import { fileService } from "./fileService";
 
-type MessageCallback = (content: string) => void;
-type SourcesCallback = (sources: any[]) => void;
-type CompleteCallback = () => void;
-type ErrorCallback = (error: any) => void;
+// Utility function to convert snake_case to camelCase
+function snakeToCamel(str: string): string {
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+// Utility function to convert object keys from snake_case to camelCase
+function convertKeysToCamelCase(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(convertKeysToCamelCase);
+  }
+  
+  if (obj !== null && typeof obj === 'object') {
+    const newObj: any = {};
+    Object.keys(obj).forEach(key => {
+      const camelKey = snakeToCamel(key);
+      newObj[camelKey] = convertKeysToCamelCase(obj[key]);
+    });
+    return newObj;
+  }
+  
+  return obj;
+}
 
 /**
  * ChatService class handles streaming chat interactions with the server.
@@ -14,15 +32,18 @@ type ErrorCallback = (error: any) => void;
 export class ChatService {
   private eventSource: EventSource | null = null;
 
-  
   async streamChat(
-    query: string,
+    userQuery: string,
     workspaceId: string,
-    onMessage: MessageCallback,
-    onSources: SourcesCallback,
-    onComplete: CompleteCallback,
-    onError: ErrorCallback
+    onMessage: (content: string) => void,
+    onSources: (sources: ChatSourceCommentGroup[]) => void,
+    onComplete: () => void,
+    onError: (error: any) => void
   ) {
+    console.log("[ChatService] Starting chat stream:", {
+      userQueryLength: userQuery.length,
+      workspaceId
+    });
 
     // Close any existing event source connection
     if (this.eventSource) {
@@ -30,9 +51,8 @@ export class ChatService {
     }
 
     try {
-
       // 1. create the event source
-      const encodedQuery = encodeURIComponent(query);
+      const encodedQuery = encodeURIComponent(userQuery);
       const url = `${BASE_URL}/chat/stream?workspaceId=${workspaceId}&query=${encodedQuery}`;
       this.eventSource = new EventSource(url);
 
@@ -44,29 +64,71 @@ export class ChatService {
 
       // 3. listen for source information
       this.eventSource.addEventListener("sources", async (event) => {
-        console.log("[ChatService] Raw sources event data:", event.data);
-        // "sources" should be of type ChatSourceComment[]
-        const sources = JSON.parse(event.data);
-        console.log("[ChatService] Parsed sources:", sources);
-
-        // get file data for each source
         try {
-          console.log("[ChatService] Fetching workspace files for sources...");
-          const updatedSources = await Promise.all(
-            sources.map(async (source) => {
-              console.log("[ChatService] Fetching file for path:", source.file_path);
-              const workspaceFile = await fileService.getFileFromPath(source.file_path);
-              console.log("[ChatService] Retrieved workspace file:", workspaceFile);
+          // Parse and convert the raw data from snake_case to camelCase
+          const rawData = JSON.parse(event.data);
+          console.log("[ChatService] Raw source data:", rawData);
+          
+          const convertedData = convertKeysToCamelCase(rawData);
+          console.log("[ChatService] Converted source data:", convertedData);
+
+          // Parse source comments with converted data
+          const chatSourceComments = convertedData.map((item: any) => ({
+            id: item.id,
+            fileId: item.fileId,
+            threadId: item.threadId,
+            messageId: item.messageId,
+            text: item.text,
+            highlightArea: {
+              boundingBoxes: item.highlightArea.boundingBoxes.map((bbox: any) => ({
+                left: bbox.left,
+                top: bbox.top,
+                width: bbox.width,
+                height: bbox.height,
+                page: bbox.page
+              })),
+              jumpToPageNumber: item.highlightArea.jumpToPageNumber
+            },
+            nextChatCommentId: item.nextChatCommentId
+          })) as ChatSourceComment[];
+
+          console.log("[ChatService] Parsed source comments:", chatSourceComments);
+
+          // Group source comments by file
+          const chatSourceCommentGroups: ChatSourceCommentGroup[] = [];
+          const fileIdToGroupMap: { [key: string]: ChatSourceCommentGroup } = {};
+          
+          chatSourceComments.forEach((cscomment) => {
+            const fileId = cscomment.fileId;
+            if (!fileIdToGroupMap[fileId]) {
+              fileIdToGroupMap[fileId] = {
+                fileId: fileId,
+                chatSourceComments: [],
+              };
+              chatSourceCommentGroups.push(fileIdToGroupMap[fileId]);
+            }
+            fileIdToGroupMap[fileId].chatSourceComments.push(cscomment);
+          });
+
+          console.log("[ChatService] Grouped source comments by file:", chatSourceCommentGroups);
+
+          // Get workspace files for each source comment
+          const updatedChatSourceCommentGroups = await Promise.all(
+            chatSourceCommentGroups.map(async (cscommentGroup) => {
+              const workspaceFile = await fileService.getFileFromPath(cscommentGroup.fileId);
               return {
-                ...source,
+                ...cscommentGroup,
                 workspace_file: workspaceFile,
               };
             })
           );
-          console.log("[ChatService] Final updated sources with workspace files:", updatedSources);
-          onSources(updatedSources);
+
+          console.log("[ChatService] Final updated sources with workspace files:", updatedChatSourceCommentGroups);
+          onSources(updatedChatSourceCommentGroups);
+          console.log("[ChatService] Passed sources to parent callback");
         } catch (error) {
-          console.error("[ChatService] Error fetching workspace files:", error);
+          console.error("[ChatService] Error processing sources:", error);
+          onError(error);
         }
       });
 
@@ -77,7 +139,7 @@ export class ChatService {
         onComplete();
       });
 
-      // 5. andle errors in the event source
+      // 5. handle errors in the event source
       this.eventSource.addEventListener("error", (error) => {
         console.error("EventSource error:", error);
         this.eventSource?.close();

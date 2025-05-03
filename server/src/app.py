@@ -256,7 +256,22 @@ SYSTEM_PROMPT = """
 async def stream_chat(
     workspace_id: str = Query(..., alias="workspaceId"), query: str = Query(...)
 ):
-    print("passing x tools to the graph pipeline: ", len([tool.get().to_langchain_tool() for tool in tool_library.get_tool_for_all_files("doc_search")]))
+    # TODO: persist the GraphPipeline Instance in memory.
+    # The instance can store all memory related to a thread ID
+    # This can be used to show historical threads and use previous chat context in replies 
+    # 
+    # Example:
+    # 
+    # ...
+    # gp = get_graph_pipeline_from_workspace_id(workspace_id)
+    # ...
+    # gp.event_stream_generator(query, thread_id=thread_id)
+    # ...
+    # 
+    # Another method could also extract the chat history, 
+    # 
+    # gp.get_chat_history(thread_id=thread_id)
+
     gp = GraphPipeline([tool.get().to_langchain_tool() for tool in tool_library.get_tool_for_all_files("doc_search")])
     gp.build_graph()
     response = StreamingResponse(

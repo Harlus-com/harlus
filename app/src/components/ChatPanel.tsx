@@ -11,7 +11,7 @@ import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { fileService } from "@/api/fileService";
-import { ChatMessage, WorkspaceFile } from "@/api/types";
+import { ChatMessage, WorkspaceFile, ChatSourceCommentGroup, ChatSourceComment } from "@/api/types";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useParams } from "react-router-dom";
@@ -20,14 +20,13 @@ import { FileGroupCount } from "./panels";
 import { chatService } from "@/api/chatService";
 
 
-// TODO: create better typing for chat messages
-// TODO: persist chat history in frontend 
-// TODO: communicate a thread_id to the backend, associated with topic/ workspace.
 
 interface ChatPanelProps {
   onSourceClicked?: (file: WorkspaceFile) => void;
 }
 
+
+// TODO: align chatmessage type with backend, such that historical chat can be persisted in backend only
 interface MessageProps {
   message: ChatMessage;
   isUser: boolean;
@@ -39,17 +38,9 @@ interface MessagePair {
   assistantMessage: ChatMessage | null;
 }
 
-interface Source {
-  file_path: string;
-  pages: number[];
-  bboxes?: any[];
-  workspace_file?: WorkspaceFile;
-  file_name?: string;
-}
-
-interface SourcesProps {
-  sources: Source[];
-  onSourceClick: (source: Source) => void;
+interface ChatSourceProps {
+  chatSourceCommentGroups: ChatSourceCommentGroup[];
+  onSourceClick: (source: ChatSourceCommentGroup) => void;
 }
 
 // Create a separate context for source click handling
@@ -58,13 +49,22 @@ const SourceClickContext = React.createContext<{
 }>({});
 
 // Component to display sources
-const Sources: React.FC<SourcesProps> = memo(({ sources, onSourceClick }) => {
+const ChatSources: React.FC<ChatSourceProps> = memo(({ chatSourceCommentGroups, onSourceClick }) => {
   const [showSources, setShowSources] = useState(true);
 
   // Memoize the sources list to prevent unnecessary re-renders
   const renderedSources = useMemo(() => {
-    console.log("[Sources] Rendering sources:", sources);
-    if (!sources || sources.length === 0) return null;
+    console.log("[Sources] Rendering sources:", chatSourceCommentGroups);
+    if (!chatSourceCommentGroups || chatSourceCommentGroups.length === 0) return null;
+
+    // Safely get pages with null checks
+    const pages = chatSourceCommentGroups
+      .filter(group => group?.chatSourceComments) // Filter out groups without comments
+      .flatMap(cscommentGroup => 
+        cscommentGroup.chatSourceComments
+          .filter(comment => comment?.highlightArea?.jumpToPageNumber) // Filter out comments without page numbers
+          .map(cscomment => cscomment.highlightArea.jumpToPageNumber)
+      );
 
     return (
       <div className="mt-4 pt-4 border-t border-gray-200">
@@ -81,15 +81,15 @@ const Sources: React.FC<SourcesProps> = memo(({ sources, onSourceClick }) => {
         </div>
         {showSources && (
           <ul className="space-y-1">
-            {sources.map((source, index) => {
-              console.log("[Sources] Rendering source:", source);
+            {chatSourceCommentGroups.map((chatSourceCommentGroup, index) => {
+              console.log("[Sources] Rendering source:", chatSourceCommentGroup);
               return (
                 <li key={index}>
                   <button
                     className="text-blue-600 hover:text-blue-800 hover:underline text-[12px]"
-                    onClick={() => onSourceClick(source)}
+                    onClick={() => onSourceClick(chatSourceCommentGroup)}
                   >
-                    {source.workspace_file?.name || source.file_name || source.file_path.split("/").pop()}, page(s) {source.pages.join(", ")}
+                    {`${chatSourceCommentGroup.workspace_file?.name || chatSourceCommentGroup.fileId.split("/").pop()} - Pages: ${pages.join(", ")}`}
                   </button>
                 </li>
               );
@@ -98,50 +98,63 @@ const Sources: React.FC<SourcesProps> = memo(({ sources, onSourceClick }) => {
         )}
       </div>
     );
-  }, [sources, showSources, onSourceClick]);
+  }, [chatSourceCommentGroups, showSources, onSourceClick]);
 
   return renderedSources;
 });
 
-Sources.displayName = "Sources";
+ChatSources.displayName = "ChatSources";
 
 // Component to display a chat message
 const Message: React.FC<MessageProps> = memo(({ message, isUser }) => {
   const { onSourceClicked } = useContext(SourceClickContext);
 
   // Open sources associated with a chat message
-  const handleSourceClick = useCallback(async (source: Source) => {
-    console.log("[Message] handleSourceClick", source);
+  const handleSourceClick = useCallback(async (chatSourceCommentGroup: ChatSourceCommentGroup) => {
+    console.log("[Message] Source clicked:", chatSourceCommentGroup);
 
     if (onSourceClicked) {
       try {
-        const file = source.workspace_file;
+        const file = chatSourceCommentGroup.workspace_file;
         const annotations = [];
-        
-        // for development purposes, we explicitly convert the bboxes to the expected format
-        if (source.bboxes && Array.isArray(source.bboxes)) {
-          source.bboxes.forEach((bbox, index) => {
-            console.log("[Message] bbox:", bbox);
+
+
+        // =================================================================================
+        // TODO: replace below once new commant format is implemented
+        // =================================================================================
+        chatSourceCommentGroup.chatSourceComments.forEach((chatSourceComment) => {
+          console.log("[Message] Processing comment:", chatSourceComment);
+
+          if (!chatSourceComment.highlightArea.boundingBoxes) {
+            console.error("[Message] No bounding boxes found for comment:", chatSourceComment);
+            return;
+          }
+
+          chatSourceComment.highlightArea.boundingBoxes.forEach((bbox) => {
+            try {
+              console.log("[Message] Processing bbox:", bbox);
+
             annotations.push({
-              id: bbox.id,
-              page: bbox.page-1, // Use the page number directly from the bbox
+              id: "n.a.",
+              page: bbox.page - 1, 
               left: bbox.left,
               top: bbox.top,
               width: bbox.width,
               height: bbox.height
             });
+          } catch (error) {
+              console.error("[Message] Error processing bounding box:", error);
+            }
           });
-        }
+        });
         
-        // TODO: use dedicated class for chat sources
+
         const claimChecks = [{
           annotations: annotations,
-          verdict: "Source", // Metadata for the highlights
-          explanation: "Source from chat" // Metadata for the highlights
+          verdict: "Source", 
+          explanation: "Source from chat" 
         }];
-        
-        // Add annotations to the workspace file
-        // TODO: design better data structure for annotations
+
         const updatedFile = {
           ...file,
           annotations: {
@@ -149,9 +162,12 @@ const Message: React.FC<MessageProps> = memo(({ message, isUser }) => {
             data: claimChecks
           }
         };
-        
+
         // Pass to the parent callback
         onSourceClicked(updatedFile);
+        // =================================================================================
+        // 
+        // =================================================================================
 
       } catch (error) {
         console.error("[Message] Error opening source:", error);
@@ -267,8 +283,8 @@ const Message: React.FC<MessageProps> = memo(({ message, isUser }) => {
           })}
         </div>
       )}
-      {!isUser && message.sources && message.sources.length > 0 && (
-        <Sources sources={message.sources} onSourceClick={handleSourceClick} />
+      {!isUser && message.chatSourceCommentGroups && message.chatSourceCommentGroups.length > 0 && (
+        <ChatSources chatSourceCommentGroups={message.chatSourceCommentGroups} onSourceClick={handleSourceClick} />
       )}
     </div>
   );
@@ -316,7 +332,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
             assistantMessage: assistantMessage
               ? {
                   ...assistantMessage,
-                  sources: assistantMessage.sources || [],
+                  chatSourceCommentGroups: assistantMessage.chatSourceCommentGroups || [],
                 }
               : null,
           });
@@ -353,6 +369,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
       sender: "user",
       content: input.trim(),
       timestamp: new Date(),
+      chatSourceCommentGroups: [],
     };
 
     // add message pair to the list
@@ -366,7 +383,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           sender: "assistant",
           content: "",
           timestamp: new Date(),
-          sources: [],
+          chatSourceCommentGroups: [],
         },
       },
     ]);
@@ -394,31 +411,30 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           });
         },
         // onSources
-        (sources) => {
-          console.log("[ChatPanel] Received sources from chatService:", sources);
+        (chatSourceCommentGroups: ChatSourceCommentGroup[]) => {
+          console.log("[ChatPanel] Received sources:", chatSourceCommentGroups);
           setMessagePairs((prev) => {
             const newPairs = [...prev];
             const lastPair = newPairs[newPairs.length - 1];
             if (lastPair && lastPair.assistantMessage) {
-              console.log("[ChatPanel] Updating assistant message with sources:", sources);
               lastPair.assistantMessage = {
                 ...lastPair.assistantMessage,
-                sources: sources,
+                chatSourceCommentGroups: chatSourceCommentGroups,
               };
-              console.log("[ChatPanel] Updated assistant message:", lastPair.assistantMessage);
             }
             return newPairs;
           });
         },
         // onComplete
         () => {
+          console.log("[ChatPanel] Chat stream completed");
           setIsLoading(false);
           setIsEventSourceActive(false);
           setCurrentPairId(null);
         },
         // onError
         (error) => {
-          console.error("Error in chat stream:", error);
+          console.error("[ChatPanel] Error in chat stream:", error);
           setIsLoading(false);
           setIsEventSourceActive(false);
           setCurrentPairId(null);
@@ -434,7 +450,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
         }
       );
     } catch (error) {
-      console.error("Error setting up stream:", error);
+      console.error("[ChatPanel] Error setting up stream:", error);
       setIsLoading(false);
       setIsEventSourceActive(false);
       setCurrentPairId(null);
