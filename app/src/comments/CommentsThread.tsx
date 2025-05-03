@@ -1,26 +1,11 @@
 import React, { useState, useContext } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PdfViewerRef } from "./ReactPdfViewer";
-import { ReactPdfAnnotation } from "./ContrastAnalysisPanel";
-
-// Define the Comment type
-export interface Comment {
-  id: string;
-  text: string;
-  author: string;
-  timestamp: Date;
-  reactPdfAnnotation?: ReactPdfAnnotation;
-}
+import { PdfViewerRef } from "../components/ReactPdfViewer";
+import { Comment } from "@/api/types";
 
 // Define the props for the CommentsThread component
 interface CommentsThreadProps {

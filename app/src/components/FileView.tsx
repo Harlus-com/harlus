@@ -7,7 +7,8 @@ import PdfViewer, { PdfViewerRef } from "@/components/ReactPdfViewer";
 import { OpenFileGroup } from "./OpenFileGroup";
 import { MessageSquareQuote } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import CommentsThread, { Comment } from "./CommentsThread";
+import CommentsThread from "../comments/CommentsThread";
+import { Comment } from "@/api/types";
 import { ContrastClaimCheck } from "./ContrastAnalysisPanel";
 
 export interface FileViewProps {
@@ -104,6 +105,7 @@ function FileGroupPanel({
       author: "Harlus",
       timestamp: new Date(),
       reactPdfAnnotation: check.annotations[0],
+      fileId: selectedFile?.id,
     }));
     setComments(newComments);
     setShowComments(newComments.length > 0);

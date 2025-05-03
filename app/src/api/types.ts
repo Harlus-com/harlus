@@ -84,6 +84,15 @@ export interface ChatMessage {
   messageType?: 'reading_message' | 'answer_message';
 }
 
+export interface Comment {
+  id: string;
+  fileId: string;
+  text: string;
+  author: string;
+  timestamp: Date;
+  reactPdfAnnotation?: ReactPdfAnnotation;
+}
+
 export interface ReactPdfAnnotation {
   id: string; // typically the text
   page: number; // zero-based

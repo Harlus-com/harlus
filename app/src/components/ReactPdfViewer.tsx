@@ -23,10 +23,8 @@ import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 
 // pdfjs worker for the Viewer
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
-import {
-  ContrastClaimCheck,
-  ReactPdfAnnotation,
-} from "./ContrastAnalysisPanel";
+import { ReactPdfAnnotation } from "@/api/types";
+import { ContrastClaimCheck } from "./ContrastAnalysisPanel";
 
 interface PdfViewerProps {
   file: WorkspaceFile | null;
