@@ -9,15 +9,20 @@ from langgraph.graph import StateGraph, END, START
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.tools import BaseTool
 from langgraph.graph.message import add_messages
-
 from llama_index.core.tools import QueryEngineTool
 from typing import Annotated, TypedDict, List, Iterator, AsyncIterator
 from .config import LLM, TAVILY_TOOL
 import re
 import json 
-import orjson
-import random 
-from harlus_chat.boundig_boxes import get_vertices, vertices_to_rects, rects_to_reactpdf
+from rapidfuzz.fuzz import partial_ratio
+from harlus_chat.boundig_boxes import get_standard_rects_from_pdf, prune_overlapping_rects
+from pydantic import BaseModel
+import uuid
+
+
+class ToolRetrievedNode(BaseModel):
+    metadata: dict
+    text: str
 
 class BasicToolNode:
     """A node that runs the tools requested in the last AIMessage."""
@@ -45,10 +50,10 @@ class BasicToolNode:
             try:
                 retrieved_nodes_list = []
                 for retrieved_node in tool_result.raw_output.source_nodes:
-                    retrieved_nodes_list.append({
-                        "metadata": retrieved_node.metadata,
-                        "text": retrieved_node.text
-                    })
+                    retrieved_nodes_list.append(ToolRetrievedNode(
+                        metadata=retrieved_node.metadata,
+                        text=retrieved_node.text
+                    ))
                 content = json.dumps(tool_result.content)
                 has_retrieved_nodes = True
             except:
@@ -93,6 +98,26 @@ class AsyncToolNode:
 def sanitize_tool_name(name):
     return re.sub(r"[^a-zA-Z0-9_-]", "_", name)
 
+
+class BoundingBox(BaseModel):
+    left: float
+    top: float
+    width: float
+    height: float
+    page: int
+
+class HighlightArea(BaseModel):
+    bounding_boxes: list[BoundingBox]
+    jump_to_page_number: int
+
+class ChatSourceComment(BaseModel):
+    id: str
+    file_id: str
+    thread_id: str
+    message_id: str
+    text: str
+    highlight_area: HighlightArea
+    next_chat_comment_id: str
 
 class GraphPipeline:
     def __init__(self, tools: List[any]):
@@ -209,7 +234,6 @@ class GraphPipeline:
 
         # compile
         graph = graph_builder.compile(checkpointer=MemorySaver())
-
         self.graph = graph
 
         return graph
@@ -229,44 +253,54 @@ class GraphPipeline:
             if isinstance(message_chunk, AIMessageChunk):
                 yield message_chunk.content
 
-
     def get_retrieved_nodes(self):
-        # TODO: use Polars to regroup the retrieved nodes by file_path
+        retrieved_nodes = self.graph.get_state(self.config).values.get("retrieved_nodes", [])
+        pruned_retrieved_nodes = []
+        for retrieved_node in retrieved_nodes:
+            retrieved_node_text = retrieved_node.text.strip().lower()
+            for pruned_retrieved_node in pruned_retrieved_nodes:
+                pruned_retrieved_node_text = pruned_retrieved_node.text.strip().lower()
+                if partial_ratio(retrieved_node_text, pruned_retrieved_node_text) > 90:
+                    break
+            else:
+                pruned_retrieved_nodes.append(retrieved_node)
+        return pruned_retrieved_nodes
+
+    def get_chat_source_comments(self):
+
+        chat_source_comments = []
 
         # get the retrieved nodes from the graph
-        retrieved_nodes = self.graph.get_state(self.config).values.get("retrieved_nodes", [])
+        retrieved_nodes = self.get_retrieved_nodes()
+        nb_messages = len(self.graph.get_state(self.config).values.get("messages", []))
 
         # convert the retrieved nodes to source annotations
-        source_annotations = {}
+        last_unique_id = ""
         for retrieved_node in retrieved_nodes:
-            file_path = retrieved_node["metadata"].get("file_path")
-            text = retrieved_node.get("text", "")
-            vertices, page_width, page_height = get_vertices(file_path, text)
-            rects = vertices_to_rects(vertices)
-            bboxes = rects_to_reactpdf(rects, page_width, page_height)
-            page_nb = retrieved_node["metadata"].get("page_nb")
-            new_bboxes = [{"pageIndex": page_nb, "id": random.randint(999999, 1000000), **bbox} for bbox in bboxes]
+            file_path = retrieved_node.metadata.get("file_path")
+            text = retrieved_node.text
+            page_nb = retrieved_node.metadata.get("page_nb")
 
-            if file_path not in source_annotations:
-                source_annotations[file_path] = {
-                    "file_path": file_path,
-                    "pages": [page_nb],
-                    "bboxes": new_bboxes
-                }
-            else:
-                if page_nb not in source_annotations[file_path]["pages"]:
-                    source_annotations[file_path]["pages"].append(page_nb)
-                source_annotations[file_path]["bboxes"].extend(new_bboxes)
+            standard_rects = get_standard_rects_from_pdf(file_path, text, page_nb)
+            standard_rects = prune_overlapping_rects(standard_rects)
 
-        # create a list of source annotations
-        source_annotations_list = []
-        for file_path, annotation in source_annotations.items():
-            source_annotations_list.append({
-                "file_path": file_path,
-                "bboxes": annotation["bboxes"],
-                "pages": annotation["pages"],
-            })
-        return source_annotations_list
+            unique_id = str(uuid.uuid4())
+
+            bboxes = [BoundingBox(**rect) for rect in standard_rects]
+            highlight_area = HighlightArea(bounding_boxes=bboxes, jump_to_page_number=page_nb)
+            chat_source_comment = ChatSourceComment(
+                highlight_area=highlight_area,
+                id=unique_id,
+                file_id=file_path,
+                thread_id=self.config["configurable"].get("thread_id"),
+                message_id=str(nb_messages),
+                text="Response source",
+                next_chat_comment_id=last_unique_id
+            )
+            last_unique_id = unique_id
+            chat_source_comments.append(chat_source_comment)
+
+        return chat_source_comments
     
 
     async def event_stream_generator(self, user_message: str, mode: str = "messages"):

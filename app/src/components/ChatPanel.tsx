@@ -52,7 +52,8 @@ interface SourcesProps {
   onSourceClick: (source: Source) => void;
 }
 
-const ChatPanelContext = React.createContext<{
+// Create a separate context for source click handling
+const SourceClickContext = React.createContext<{
   onSourceClicked?: (file: WorkspaceFile) => void;
 }>({});
 
@@ -106,10 +107,10 @@ Sources.displayName = "Sources";
 
 // Component to display a chat message
 const Message: React.FC<MessageProps> = memo(({ message, isUser }) => {
-  const { onSourceClicked } = useContext(ChatPanelContext);
+  const { onSourceClicked } = useContext(SourceClickContext);
 
   // Open sources associated with a chat message
-  const handleSourceClick = async (source: Source) => {
+  const handleSourceClick = useCallback(async (source: Source) => {
     console.log("[Message] handleSourceClick", source);
 
     if (onSourceClicked) {
@@ -120,9 +121,10 @@ const Message: React.FC<MessageProps> = memo(({ message, isUser }) => {
         // for development purposes, we explicitly convert the bboxes to the expected format
         if (source.bboxes && Array.isArray(source.bboxes)) {
           source.bboxes.forEach((bbox, index) => {
+            console.log("[Message] bbox:", bbox);
             annotations.push({
               id: bbox.id,
-              page: bbox.page || 0,
+              page: bbox.page-1, // Use the page number directly from the bbox
               left: bbox.left,
               top: bbox.top,
               width: bbox.width,
@@ -156,7 +158,7 @@ const Message: React.FC<MessageProps> = memo(({ message, isUser }) => {
         // TODO: show an error message to the user here
       }
     }
-  };
+  }, [onSourceClicked]);
 
   // render message content
   const messageContent = (
@@ -459,7 +461,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
 
   // render chat panel
   return (
-    <ChatPanelContext.Provider value={{ onSourceClicked }}>
+    <SourceClickContext.Provider value={{ onSourceClicked }}>
       <div className="h-full flex flex-col border-l border-border bg-card">
         <div className="p-4 font-medium text-lg border-b border-border">
           Assistant
@@ -527,7 +529,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           </div>
         </div>
       </div>
-    </ChatPanelContext.Provider>
+    </SourceClickContext.Provider>
   );
 };
 
