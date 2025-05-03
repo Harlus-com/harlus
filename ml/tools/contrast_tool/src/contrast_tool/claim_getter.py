@@ -18,23 +18,11 @@ from .utils import *
 
 from .prompts import get_prompt
 
+from .contrast_tool import Claim
 
-class Forecast(BaseModel):
-    claims: List[str]
+# class Forecast(BaseModel):
+#     claims: List[str]
 
-
-class Claim(BaseModel):
-    text: str
-    source: str
-    page_num: int
-    bounding_box: List[Tuple[float, float, float, float]]
-    page_width: float
-    page_height: float
-
-    @classmethod
-    def from_rect(cls, text: str, page: int, rects: List[fitz.Rect]):
-        boxes = [(r.x0, r.y0, r.x1, r.y1) for r in rects]
-        return cls(text=text, page=page, bouding_boxes=boxes)
 
 
 # TODO pipeline

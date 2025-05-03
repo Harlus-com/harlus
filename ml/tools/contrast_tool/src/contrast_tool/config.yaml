@@ -33,7 +33,7 @@ claim checker:
   question model:
     model_name: "gpt-4o-mini"
     temperature: 0.1
-    max_tokens: 200
+    max_tokens: 500
     
   verification model:
     model_name: "gpt-4o-mini"

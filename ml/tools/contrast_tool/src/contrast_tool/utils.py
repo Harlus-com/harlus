@@ -133,6 +133,10 @@ def find_fuzzy_bounding_boxes(
         w, h = r.width, r.height  # properties of fitz.Rect
         output.append((x0, y0, w, h))
 
+    # TODO convert from pixel to percentage of p_width and p_height
+    # check util in server that does the convert
+    # check to server/src/util BOundingBoxConveter
+
     return output, doc
 
 
