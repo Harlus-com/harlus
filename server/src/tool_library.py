@@ -35,6 +35,8 @@ class ToolLibrary:
                     tool = pickle.load(f)
                     tool_wrapper = ToolWrapper(tool, tool_dir, debug_info={})
                     self.file_path_to_tools[file.absolute_path].append(tool_wrapper)
+                    self.tools.append(tool_wrapper)
+                    
         for file_name, tools in self.file_path_to_tools.items():
             print(f"Loaded tools for {file_name}: {[t.get_tool_name() for t in tools]}")
 

@@ -14,11 +14,18 @@ def fuzzy_find_best_substring(long_text: str, short_text: str):
     )
     return match
 
+
+
 def get_vertices(pdf_path: str, target_text: str):
 
     doc = fitz.open(pdf_path)
 
     all_quads = []
+
+    try: left_target_text = target_text[:20]
+    except: left_target_text = target_text
+    try: right_target_text = target_text[-20:]
+    except: right_target_text = target_text
 
     for page in doc:
 
@@ -27,29 +34,30 @@ def get_vertices(pdf_path: str, target_text: str):
 
         # left match
         page_text = page.get_text()
-        match = fuzzy_find_best_substring(page_text, target_text[:20])
-        if match is not None:
+        try:
+            match = fuzzy_find_best_substring(page_text, left_target_text)
             rl = page.search_for(match[0])
-            try:
-                start = rl[0].tl  
-            except:
-                start = None
+            start = rl[0].tl 
+        except:
+            continue
+
 
         # right match
         page_text = page.get_text()
-        match = fuzzy_find_best_substring(page_text, target_text[-20:])
-        if match is not None:
+        try:
+            match = fuzzy_find_best_substring(page_text, right_target_text)
             rl = page.search_for(match[0])
-            try:
-                stop = rl[0].br  
-            except:
-                stop = None
+            stop = rl[0].br  
+        except:
+            continue
 
-        if start is not None and stop is not None:
+        try:
             highlight = page.add_highlight_annot(start=start, stop=stop)
             quads = highlight.vertices
             page.delete_annot(highlight)
             all_quads.extend(quads)
+        except:
+            continue
 
     return all_quads
 

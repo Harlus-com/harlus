@@ -16,78 +16,145 @@ import remarkGfm from "remark-gfm";
 import { useParams } from "react-router-dom";
 import { BASE_URL } from "@/api/client";
 import { FileGroupCount } from "./panels";
+import { chatService } from "@/api/chatService";
 
-// move to types.ts?
+
+// TODO: create better typing for chat messages
+// TODO: persist chat history in frontend 
+// TODO: communicate a thread_id to the backend, associated with topic/ workspace.
+
 interface ChatPanelProps {
   onSourceClicked?: (file: WorkspaceFile) => void;
 }
 
-// move to types.ts?
 interface MessageProps {
   message: ChatMessage;
   isUser: boolean;
 }
 
-// move to types.ts?
 interface MessagePair {
   id: string;
   userMessage: ChatMessage;
   assistantMessage: ChatMessage | null;
 }
 
+interface Source {
+  file_path: string;
+  pages: number[];
+  bboxes?: any[];
+  workspace_file?: WorkspaceFile;
+  file_name?: string;
+}
+
+interface SourcesProps {
+  sources: Source[];
+  onSourceClick: (source: Source) => void;
+}
+
 const ChatPanelContext = React.createContext<{
   onSourceClicked?: (file: WorkspaceFile) => void;
 }>({});
 
-const Message: React.FC<MessageProps> = memo(({ message, isUser }) => {
+// Component to display sources
+const Sources: React.FC<SourcesProps> = memo(({ sources, onSourceClick }) => {
   const [showSources, setShowSources] = useState(true);
+
+  console.log("[Sources] Rendering sources:", sources);
+
+  if (!sources || sources.length === 0) return null;
+
+  return (
+    <div className="mt-4 pt-4 border-t border-gray-200">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-[12px] font-medium text-gray-700">
+          Sources:
+        </div>
+        <button
+          onClick={() => setShowSources(!showSources)}
+          className="text-[12px] text-blue-600 hover:text-blue-800"
+        >
+          {showSources ? "Hide" : "Show"} Sources
+        </button>
+      </div>
+      {showSources && (
+        <ul className="space-y-1">
+          {sources.map((source, index) => {
+            console.log("[Sources] Rendering source:", source);
+            return (
+              <li key={index}>
+                <button
+                  className="text-blue-600 hover:text-blue-800 hover:underline text-[12px]"
+                  onClick={() => onSourceClick(source)}
+                >
+                  {source.workspace_file?.name || source.file_name || source.file_path.split("/").pop()}, page(s) {source.pages.join(", ")}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+});
+
+Sources.displayName = "Sources";
+
+// Component to display a chat message
+const Message: React.FC<MessageProps> = memo(({ message, isUser }) => {
   const { onSourceClicked } = useContext(ChatPanelContext);
 
-  // open source file
-  const handleSourceClick = (source: {
-    file_id: string;
-    file_path: string;
-    file_name: string;
-    bboxes?: any[];
-  }) => {
-    console.log("handleSourceClick", source);
+  // Open sources associated with a chat message
+  const handleSourceClick = async (source: Source) => {
+    console.log("[Message] handleSourceClick", source);
+
     if (onSourceClicked) {
-      console.log("onSourceClicked", onSourceClicked);
-      console.log("file_path", source.file_path);
-      const workspaceFile = {
-        // TODO: Pass back the actual file id in sources, rather than the file path
-        // Alternatively we can update the PDF viewer to accept a file path
-        // And allow opening files by file id OR file path.
-        // Also this should not return a full workspace file (given we can't accurately populate the other fields)
-        // We should either accurately populate the other fields or just return an "Annotation object"
-        // which would include a file id or file path and the annotation data.
-        id: source.file_id,
-        name: "",
-        absolutePath: "",
-        workspaceId: "",
-        annotations: {
-          show: true,
-          data: source.bboxes,
-        },
-        appDir: null,
-      };
-      onSourceClicked(workspaceFile);
-      return;
-      const file: WorkspaceFile = {
-        id: source.file_path,
-        name: source.file_name,
-        absolutePath: source.file_path,
-        workspaceId: "",
-        appDir: null,
-      };
-      console.log("file", file);
-      onSourceClicked(file);
+      try {
+        const file = source.workspace_file;
+        const annotations = [];
+        
+        // for development purposes, we explicitly convert the bboxes to the expected format
+        if (source.bboxes && Array.isArray(source.bboxes)) {
+          source.bboxes.forEach((bbox, index) => {
+            annotations.push({
+              id: bbox.id,
+              page: bbox.page || 0,
+              left: bbox.left,
+              top: bbox.top,
+              width: bbox.width,
+              height: bbox.height
+            });
+          });
+        }
+        
+        // TODO: use dedicated class for chat sources
+        const claimChecks = [{
+          annotations: annotations,
+          verdict: "Source", // Metadata for the highlights
+          explanation: "Source from chat" // Metadata for the highlights
+        }];
+        
+        // Add annotations to the workspace file
+        // TODO: design better data structure for annotations
+        const updatedFile = {
+          ...file,
+          annotations: {
+            show: true,
+            data: claimChecks
+          }
+        };
+        
+        // Pass to the parent callback
+        onSourceClicked(updatedFile);
+
+      } catch (error) {
+        console.error("[Message] Error opening source:", error);
+        // TODO: show an error message to the user here
+      }
     }
   };
 
   // render message content
   const messageContent = (
-    // define how to render markdown
     <div
       className={`w-full ${
         isUser
@@ -194,33 +261,7 @@ const Message: React.FC<MessageProps> = memo(({ message, isUser }) => {
         </div>
       )}
       {!isUser && message.sources && message.sources.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-[12px] font-medium text-gray-700">
-              Sources:
-            </div>
-            <button
-              onClick={() => setShowSources(!showSources)}
-              className="text-[12px] text-blue-600 hover:text-blue-800"
-            >
-              {showSources ? "Hide" : "Show"} Sources
-            </button>
-          </div>
-          {showSources && (
-            <ul className="space-y-1">
-              {message.sources.map((source, index) => (
-                <li key={index}>
-                  <button
-                    className="text-blue-600 hover:text-blue-800 hover:underline text-[12px]"
-                    onClick={() => handleSourceClick(source)}
-                  >
-                    {source.file_name}, page(s) {source.pages.join(", ")}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <Sources sources={message.sources} onSourceClick={handleSourceClick} />
       )}
     </div>
   );
@@ -242,6 +283,7 @@ const LoadingIndicator: React.FC = memo(() => (
 
 LoadingIndicator.displayName = "LoadingIndicator";
 
+// Chat panel component
 const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
   const { workspaceId } = useParams();
   const [messagePairs, setMessagePairs] = useState<MessagePair[]>([]);
@@ -325,147 +367,79 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
     setIsLoading(true);
     setIsEventSourceActive(true);
 
-    // close existing event source
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-
+    // handle response from the backend
     try {
-      // create event source
-      const query = encodeURIComponent(input.trim());
-      const url = `${BASE_URL}/chat/stream?workspaceId=${workspaceId}&query=${query}`;
-      const eventSource = new EventSource(url);
-      eventSourceRef.current = eventSource;
-
-      // listen to normal messages (assistant response)
-      eventSource.addEventListener("message", (event) => {
-        const newContent = JSON.parse(event.data).text;
-        setMessagePairs((prev) => {
-          const newPairs = [...prev];
-          const currentPair = newPairs.find((pair) => pair.id === pairId);
-          if (currentPair) {
-            currentPair.assistantMessage = {
-              ...currentPair.assistantMessage!,
-              content:
-                (currentPair.assistantMessage?.content || "") + newContent,
-            };
-          }
-          return newPairs;
-        });
-      });
-
-      // listen to sources (assistant response)
-      eventSource.addEventListener("sources", (event) => {
-        console.log("Received sources event:", event.data);
-        const sources = JSON.parse(event.data);
-        console.log("Parsed sources:", sources);
-        const concatenatedSources = [];
-
-        // structure the sources (nodes)
-        for (let i = 0; i < sources.length; i++) {
-          const metadata = sources[i].metadata;
-
-          if (!metadata) {
-            console.log("Error: metadata is undefined for source", sources[i]);
-            continue;
-          }
-
-          // add page number to the bboxes
-          if (metadata.bBoxes && metadata.page_nb) {
-            metadata.bBoxes = metadata.bBoxes.map((bbox) => ({
-              ...bbox,
-              p: metadata.page_nb,
-            }));
-          }
-
-          if (!metadata.file_name) {
-            console.log("Error: Friendly name not present in nodes");
-            continue;
-          }
-
-          // group by page number
-          const existingSource = concatenatedSources.find(
-            (source) => source.file_name === metadata.file_name
-          );
-
-          if (existingSource) {
-            if (
-              metadata.page_nb &&
-              !existingSource.pages.includes(metadata.page_nb)
-            ) {
-              existingSource.pages.push(metadata.page_nb);
-              if (metadata.bBoxes) {
-                existingSource.bboxes.push(...metadata.bBoxes);
-              }
+      await chatService.streamChat(
+        input.trim(),
+        workspaceId!,
+        // onMessage
+        (newContent) => {
+          setMessagePairs((prev) => {
+            const newPairs = [...prev];
+            const currentPair = newPairs.find((pair) => pair.id === pairId);
+            if (currentPair) {
+              currentPair.assistantMessage = {
+                ...currentPair.assistantMessage!,
+                content: (currentPair.assistantMessage?.content || "") + newContent,
+              };
             }
-          } else {
-            concatenatedSources.push({
-              file_name: metadata.file_name,
-              pages: metadata.page_nb ? [metadata.page_nb] : [],
-              file_path: metadata.file_path,
-              bboxes: metadata.bBoxes || [],
-              file_id: metadata.file_id,
-            });
-          }
+            return newPairs;
+          });
+        },
+        // onSources
+        (sources) => {
+          console.log("[ChatPanel] Received sources from chatService:", sources);
+          setMessagePairs((prev) => {
+            const newPairs = [...prev];
+            const lastPair = newPairs[newPairs.length - 1];
+            if (lastPair && lastPair.assistantMessage) {
+              console.log("[ChatPanel] Updating assistant message with sources:", sources);
+              lastPair.assistantMessage = {
+                ...lastPair.assistantMessage,
+                sources: sources,
+              };
+              console.log("[ChatPanel] Updated assistant message:", lastPair.assistantMessage);
+            }
+            return newPairs;
+          });
+        },
+        // onComplete
+        () => {
+          setIsLoading(false);
+          setIsEventSourceActive(false);
+          setCurrentPairId(null);
+        },
+        // onError
+        (error) => {
+          console.error("Error in chat stream:", error);
+          setIsLoading(false);
+          setIsEventSourceActive(false);
+          setCurrentPairId(null);
+          setMessagePairs((prev) => {
+            const newPairs = [...prev];
+            const currentPair = newPairs.find((pair) => pair.id === pairId);
+            if (currentPair && currentPair.assistantMessage) {
+              currentPair.assistantMessage.content =
+                "Sorry, there was an error processing your request.";
+            }
+            return newPairs;
+          });
         }
-
-        // add sources to the last message pair
-        setMessagePairs((prev) => {
-          const newPairs = [...prev];
-          const lastPair = newPairs[newPairs.length - 1];
-          if (lastPair && lastPair.assistantMessage) {
-            lastPair.assistantMessage = {
-              ...lastPair.assistantMessage,
-              sources: concatenatedSources,
-            };
-          } else {
-          }
-          return newPairs;
-        });
-      });
-
-      // close event source if source is complete
-      eventSource.addEventListener("complete", () => {
-        eventSource.close();
-        setIsLoading(false);
-        setIsEventSourceActive(false);
-        setCurrentPairId(null);
-      });
-
-      // handle error
-      eventSource.addEventListener("error", (error) => {
-        console.error("EventSource error:", error);
-        eventSource.close();
-        setIsLoading(false);
-        setIsEventSourceActive(false);
-        return;
-        setCurrentPairId(null);
-        setMessagePairs((prev) => {
-          const newPairs = [...prev];
-          const currentPair = newPairs.find((pair) => pair.id === pairId);
-          if (currentPair && currentPair.assistantMessage) {
-            currentPair.assistantMessage.content =
-              "Sorry, there was an error processing your request.";
-          }
-          return newPairs;
-        });
-      });
+      );
     } catch (error) {
       console.error("Error setting up stream:", error);
       setIsLoading(false);
       setIsEventSourceActive(false);
       setCurrentPairId(null);
-      setMessagePairs((prev) => {
-        const newPairs = [...prev];
-        const currentPair = newPairs.find((pair) => pair.id === pairId);
-        if (currentPair && currentPair.assistantMessage) {
-          currentPair.assistantMessage.content =
-            "Sorry, there was an error processing your request.";
-        }
-        return newPairs;
-      });
     }
-  }, [input, isEventSourceActive]);
+  }, [input, isEventSourceActive, workspaceId]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      chatService.close();
+    };
+  }, []);
 
   // send message on enter
   const handleKeyDown = useCallback(

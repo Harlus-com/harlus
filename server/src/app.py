@@ -4,6 +4,7 @@ from fastapi import (
     Query,
     Response,
     WebSocket,
+    HTTPException,
 )
 import os
 import asyncio
@@ -255,7 +256,8 @@ SYSTEM_PROMPT = """
 async def stream_chat(
     workspace_id: str = Query(..., alias="workspaceId"), query: str = Query(...)
 ):
-    gp = GraphPipeline([tool.to_langchain_tool() for tool in tool_library.get_tool_for_all_files("doc_search")])
+    print("passing x tools to the graph pipeline: ", len([tool.get().to_langchain_tool() for tool in tool_library.get_tool_for_all_files("doc_search")]))
+    gp = GraphPipeline([tool.get().to_langchain_tool() for tool in tool_library.get_tool_for_all_files("doc_search")])
     gp.build_graph()
     response = StreamingResponse(
         gp.event_stream_generator(query),
@@ -364,3 +366,34 @@ def get_contrast_analyze(
         claim_checks=claim_checks,
     )
     return contrast_result
+
+
+@app.get("/file/get_from_path")
+def get_file_from_path(
+    file_path: str = Query(..., description="The absolute path of the file"),
+):
+    print("Getting file from path", file_path)
+    """Get file object from file path by searching through all workspaces"""
+    try:
+        # Get all workspaces
+        workspaces = file_store.get_workspaces()
+        
+        # Search through each workspace
+        for workspace in workspaces.values():
+            try:
+                file = file_store.get_file_by_path(file_path, workspace.id)
+                return {
+                    "id": file.id,
+                    "name": file.name,
+                    "absolute_path": file.absolute_path,
+                    "workspace_id": file.workspace_id,
+                    "app_dir": file.app_dir,
+                    "status": sync_queue.get_sync_status(file.id)
+                }
+            except ValueError:
+                continue
+                
+        # If we get here, the file wasn't found in any workspace
+        raise HTTPException(status_code=404, detail=f"File not found in any workspace: {file_path}")
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))

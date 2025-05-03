@@ -31,6 +31,7 @@ export interface ChatMessage {
     file_path: string;
     file_id: string;
     bboxes: any[];
+    workspace_file?: WorkspaceFile;
   }>;
 }
 

@@ -96,6 +96,31 @@ class FileService {
       `/contrast/analyze?oldFileId=${file1Id}&newFileId=${file2Id}`
     );
   }
+
+  // Get file ID from path
+  async getFileFromPath(filePath: string): Promise<WorkspaceFile> {
+    const params = new URLSearchParams({
+      file_path: filePath,
+    });
+    const file = await client.get(`/file/get_from_path?${params.toString()}`);
+    
+    // Convert backend file to WorkspaceFile type
+    const workspaceFile: WorkspaceFile = {
+      id: file.id,
+      name: file.name,
+      absolutePath: file.absolute_path,
+      workspaceId: file.workspace_id,
+      appDir: file.app_dir,
+      status: file.status,
+      annotations: file.annotations ? {
+        show: false,
+        data: file.annotations
+      } : undefined
+    };
+    
+    return workspaceFile;
+  }
+
 }
 
 export const fileService = new FileService();

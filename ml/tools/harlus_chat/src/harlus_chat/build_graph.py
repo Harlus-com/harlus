@@ -13,11 +13,11 @@ from langgraph.graph.message import add_messages
 from llama_index.core.tools import QueryEngineTool
 from typing import Annotated, TypedDict, List, Iterator, AsyncIterator
 from .config import LLM, TAVILY_TOOL
-
+import re
 import json 
 import orjson
+import random 
 from harlus_chat.boundig_boxes import get_vertices, vertices_to_rects, rects_to_reactpdf
-
 
 class BasicToolNode:
     """A node that runs the tools requested in the last AIMessage."""
@@ -90,6 +90,8 @@ class AsyncToolNode:
     async def __call__(self, state: GraphState) -> dict:
         return self.tools(state)
 
+def sanitize_tool_name(name):
+    return re.sub(r"[^a-zA-Z0-9_-]", "_", name)
 
 
 class GraphPipeline:
@@ -105,6 +107,8 @@ class GraphPipeline:
                     self.tools.append(tool.to_langchain_tool())
                 except:
                     raise ValueError(f"Tool {tool} is not a recognized tool.")
+        for tool in self.tools:
+            tool.name = sanitize_tool_name(tool.name)
         self.tools_descriptions_string = "\n - " + "\n -".join([f"{tool.name}: {tool.description}" for tool in tools])
         self.LLM = LLM
         self.TOOL_LLM = LLM.bind_tools(self.tools)
@@ -117,7 +121,7 @@ class GraphPipeline:
             You are an autonomous AI agent solving a task step-by-step using tools.
             Decide what to do next. YOU MUST BASE YOUR ANSWER ON THE TOOLS PROVIDED BELOW. DO NOT RELY ON PRIOR KNOWLEDGE.
                         
-            WRITE A SHORT AND CONCISE PLAN LIKE. "I will read the [Document Source] on [Company] from [date] to verify ..."
+            WRITE A SHORT AND CONCISE PLAN LIKE. "Reading [Document Source] on [Company] from [date] to verify [Claim]..."
                         
             {self.tools_descriptions_string}
             """),
@@ -129,12 +133,6 @@ class GraphPipeline:
         async for chunk in self.LLM.astream(prompt):
             delta = chunk.content or ""
             final += delta
-            #yield {
-            #    "messages": [AIMessageChunk(content=delta)],
-            #    "retrieved_nodes": state.get("retrieved_nodes", []),
-            #    "full_answer": state.get("full_answer", ""),
-            #}
-
         yield {
             "messages": state["messages"] + [AIMessage(content=final)],
             "retrieved_nodes": state.get("retrieved_nodes", []),
@@ -145,9 +143,11 @@ class GraphPipeline:
     async def call_tools(self, state: GraphState) -> AsyncIterator[dict]:
         prompt = [
             SystemMessage(content=f"""
-             Only use the toools you have been provided with. 
+            Only use the tools you have been provided with. 
             Base yourself on the plan provided by the user.
             If the plan does not require you to use any tools. Don't do anything.
+                          
+            ONLY USE THE TOOLS YOU HAVE BEEN PROVIDED WITH.
             """),
             *state["messages"],
         ]
@@ -177,11 +177,6 @@ class GraphPipeline:
         async for chunk in self.LLM.astream(prompt):
             delta = chunk.content or ""
             final += delta
-            #yield {
-            #    "messages": [AIMessageChunk(content=delta)],
-            #    "retrieved_nodes": state.get("retrieved_nodes", []),
-            #    "full_answer": state.get("full_answer", ""),
-            #}
 
         yield {
             "messages": state["messages"] + [AIMessage(content=final)],
@@ -226,7 +221,6 @@ class GraphPipeline:
             "retrieved_nodes": [], 
             "full_answer": ""
         }
-        seen = ()
         async for message_chunk, metadata in self.graph.astream(
             input_state,
             stream_mode=mode,
@@ -237,21 +231,42 @@ class GraphPipeline:
 
 
     def get_retrieved_nodes(self):
-        retrieved_nodes = self.graph.get_state(self.config).values.get("retrieved_nodes")
-        source_annotations = []
+        # TODO: use Polars to regroup the retrieved nodes by file_path
+
+        # get the retrieved nodes from the graph
+        retrieved_nodes = self.graph.get_state(self.config).values.get("retrieved_nodes", [])
+
+        # convert the retrieved nodes to source annotations
+        source_annotations = {}
         for retrieved_node in retrieved_nodes:
-            file_path = retrieved_node["metadata"]["file_path"]
-            text = retrieved_node["text"]
+            file_path = retrieved_node["metadata"].get("file_path")
+            text = retrieved_node.get("text", "")
             vertices = get_vertices(file_path, text)
             rects = vertices_to_rects(vertices)
             bboxes = rects_to_reactpdf(rects)
-            page_nb = retrieved_node["metadata"]["page_nb"]
-            source_annotations.append({
+            page_nb = retrieved_node["metadata"].get("page_nb")
+            new_bboxes = [{"pageIndex": page_nb, "id": random.randint(999999, 1000000), **bbox} for bbox in bboxes]
+
+            if file_path not in source_annotations:
+                source_annotations[file_path] = {
+                    "file_path": file_path,
+                    "pages": [page_nb],
+                    "bboxes": new_bboxes
+                }
+            else:
+                if page_nb not in source_annotations[file_path]["pages"]:
+                    source_annotations[file_path]["pages"].append(page_nb)
+                source_annotations[file_path]["bboxes"].extend(new_bboxes)
+
+        # create a list of source annotations
+        source_annotations_list = []
+        for file_path, annotation in source_annotations.items():
+            source_annotations_list.append({
                 "file_path": file_path,
-                "page_nb": page_nb,
-                "bboxes": bboxes
+                "bboxes": annotation["bboxes"],
+                "pages": annotation["pages"],
             })
-        return source_annotations
+        return source_annotations_list
     
 
     async def event_stream_generator(self, user_message: str, mode: str = "messages"):
@@ -260,28 +275,43 @@ class GraphPipeline:
             "retrieved_nodes": [], 
             "full_answer": ""
         }
+
+        # 1. stream the answer 
         async for message_chunk, metadata in self.graph.astream(
             input_state,
             stream_mode=mode,
             config = self.config
         ):
-            if isinstance(message_chunk, AIMessageChunk):
-                response = '\n'.join([
-                    f'data: {json.dumps({"text": message_chunk.content})}',
-                    f'event: {"message"}',
-                    '\n\n'
-                ])
+            try:
+                if isinstance(message_chunk, AIMessageChunk):
+                    response = '\n'.join([
+                        f'data: {json.dumps({"text": message_chunk.content})}',
+                        f'event: {"message"}',
+                        '\n\n'
+                    ])
+                
+                    yield response
+            except Exception as e:
+                print(f"Streaming error: {e}")
             
-                yield response
-        
-        data = self.get_retrieved_nodes()
-        response = '\n'.join([
+        # 2. stream the source annotations
+        try:
+            data = self.get_retrieved_nodes()
+            response = '\n'.join([
                     f'data: {json.dumps(data)}',
-                    f'event: {"source_annotations"}',
+                    f'event: {"sources"}',
                     '\n\n'
-        ])
+            ])
+            yield response
+        except Exception as e:
+            print(f"Error sending source annotations: {e}")
+
+        # 3. stream the completion
+        response = '\n'.join([
+                    f'data: ',
+                    f'event: {"complete"}',
+                    '\n\n'
+            ])
         yield response
-    
-    
     
     
