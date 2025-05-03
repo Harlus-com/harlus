@@ -5,6 +5,7 @@ import React, {
   useCallback,
   memo,
   useContext,
+  useMemo,
 } from "react";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -59,42 +60,46 @@ const ChatPanelContext = React.createContext<{
 const Sources: React.FC<SourcesProps> = memo(({ sources, onSourceClick }) => {
   const [showSources, setShowSources] = useState(true);
 
-  console.log("[Sources] Rendering sources:", sources);
+  // Memoize the sources list to prevent unnecessary re-renders
+  const renderedSources = useMemo(() => {
+    console.log("[Sources] Rendering sources:", sources);
+    if (!sources || sources.length === 0) return null;
 
-  if (!sources || sources.length === 0) return null;
-
-  return (
-    <div className="mt-4 pt-4 border-t border-gray-200">
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-[12px] font-medium text-gray-700">
-          Sources:
+    return (
+      <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-[12px] font-medium text-gray-700">
+            Sources:
+          </div>
+          <button
+            onClick={() => setShowSources(!showSources)}
+            className="text-[12px] text-blue-600 hover:text-blue-800"
+          >
+            {showSources ? "Hide" : "Show"} Sources
+          </button>
         </div>
-        <button
-          onClick={() => setShowSources(!showSources)}
-          className="text-[12px] text-blue-600 hover:text-blue-800"
-        >
-          {showSources ? "Hide" : "Show"} Sources
-        </button>
+        {showSources && (
+          <ul className="space-y-1">
+            {sources.map((source, index) => {
+              console.log("[Sources] Rendering source:", source);
+              return (
+                <li key={index}>
+                  <button
+                    className="text-blue-600 hover:text-blue-800 hover:underline text-[12px]"
+                    onClick={() => onSourceClick(source)}
+                  >
+                    {source.workspace_file?.name || source.file_name || source.file_path.split("/").pop()}, page(s) {source.pages.join(", ")}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
-      {showSources && (
-        <ul className="space-y-1">
-          {sources.map((source, index) => {
-            console.log("[Sources] Rendering source:", source);
-            return (
-              <li key={index}>
-                <button
-                  className="text-blue-600 hover:text-blue-800 hover:underline text-[12px]"
-                  onClick={() => onSourceClick(source)}
-                >
-                  {source.workspace_file?.name || source.file_name || source.file_path.split("/").pop()}, page(s) {source.pages.join(", ")}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
-  );
+    );
+  }, [sources, showSources, onSourceClick]);
+
+  return renderedSources;
 });
 
 Sources.displayName = "Sources";

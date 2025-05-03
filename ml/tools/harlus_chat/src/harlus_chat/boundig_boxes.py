@@ -27,6 +27,9 @@ def get_vertices(pdf_path: str, target_text: str):
     try: right_target_text = target_text[-20:]
     except: right_target_text = target_text
 
+    page_width = doc[0].rect.width
+    page_height = doc[0].rect.height
+
     for page in doc:
 
         start = None
@@ -56,10 +59,11 @@ def get_vertices(pdf_path: str, target_text: str):
             quads = highlight.vertices
             page.delete_annot(highlight)
             all_quads.extend(quads)
+
         except:
             continue
 
-    return all_quads
+    return all_quads, page_width, page_height
 
 
 def vertices_to_rects(vertices: list[Tuple[float, float]]):
@@ -71,13 +75,13 @@ def vertices_to_rects(vertices: list[Tuple[float, float]]):
         rects.append(rect)
     return rects
 
-def rects_to_reactpdf(rects: list[fitz.Rect]):
+def rects_to_reactpdf(rects: list[fitz.Rect], page_width: float, page_height: float):
     return [
             {
-                "left": rect.x0,
-                "top": rect.y0,
-                "width": rect.width,
-                "height": rect.height
+                "left": (rect.x0 / page_width) * 100,
+                "top": (rect.y0 / page_height) * 100,
+                "width": (rect.width / page_width) * 100,
+                "height": (rect.height / page_height) * 100
             } 
             for rect in rects
         ]

@@ -241,9 +241,9 @@ class GraphPipeline:
         for retrieved_node in retrieved_nodes:
             file_path = retrieved_node["metadata"].get("file_path")
             text = retrieved_node.get("text", "")
-            vertices = get_vertices(file_path, text)
+            vertices, page_width, page_height = get_vertices(file_path, text)
             rects = vertices_to_rects(vertices)
-            bboxes = rects_to_reactpdf(rects)
+            bboxes = rects_to_reactpdf(rects, page_width, page_height)
             page_nb = retrieved_node["metadata"].get("page_nb")
             new_bboxes = [{"pageIndex": page_nb, "id": random.randint(999999, 1000000), **bbox} for bbox in bboxes]
 
