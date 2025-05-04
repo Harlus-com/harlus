@@ -4,6 +4,7 @@ from typing import Tuple, Dict, Union
 
 
 
+
 def fuzzy_find_best_substring(long_text: str, short_text: str):
 
     long_text_choices = [long_text[i:i+len(short_text)] for i in range(len(long_text)-len(short_text)+1)]
@@ -131,4 +132,25 @@ def prune_overlapping_rects(standard_rects: list[Dict[str, Union[float, int]]], 
                 pruned.append(page_standard_rects[i])
 
     return pruned
+
+
+
+def get_llamaparse_rects(file_path, retrieved_node, page_nb):
+    doc = fitz.open(file_path)
+    page = doc[page_nb]
+    page_width = page.rect.width
+    page_height = page.rect.height
+    llamaparse_rects = retrieved_node.metadata.get("bounding_boxes")
+    standard_rects = []
+    for rect in llamaparse_rects:
+        standard_rects.append({
+                    "left": float(rect.get("x") / page_width) * 100,
+                    "top": float(rect.get("y") / page_height) * 100,
+                    "width": float(rect.get("w") / page_width) * 100,
+                    "height": float(rect.get("h") / page_height) * 100,
+                    "page": page_nb + 1 # 1-indexed convention 
+                } )
+    return standard_rects
+
+
 

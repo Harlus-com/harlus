@@ -7,7 +7,7 @@ import React, {
   useContext,
   useMemo,
 } from "react";
-import { Send, Search, FileText, Book, ExternalLink, X, BookOpen, User } from "lucide-react";
+import { Send, Search, FileText, Book, ExternalLink, X, BookOpen, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { fileService } from "@/api/fileService";
@@ -24,6 +24,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
 
 interface ChatPanelProps {
   onSourceClicked?: (file: WorkspaceFile) => void;
@@ -64,9 +65,31 @@ interface ReadingIndicatorProps {
 }
 
 const ReadingIndicator: React.FC<ReadingIndicatorProps> = ({ fileName }) => (
-  <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-blue-50/50 rounded-full px-3 py-1 animate-pulse border border-blue-100/50">
-    <Search size={10} className="text-blue-400" />
-    <span className="truncate max-w-[200px]">Reading {fileName}...</span>
+  <div className="flex items-center gap-2 text-xs text-gray-400 py-1.5 animate-pulse group">
+    <div className="relative flex items-center justify-center">
+      <div className="w-4 h-4 rounded-full border border-gray-200 flex items-center justify-center">
+        <Search size={9} className="text-gray-400" />
+      </div>
+      <div className="absolute inset-0">
+        <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24">
+          <circle 
+            className="opacity-25" 
+            cx="12" 
+            cy="12" 
+            r="10" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            fill="none" 
+          />
+          <path 
+            className="opacity-75" 
+            fill="currentColor" 
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" 
+          />
+        </svg>
+      </div>
+    </div>
+    <span className="text-gray-400 text-[11px]">Reading {fileName}...</span>
   </div>
 );
 
@@ -165,16 +188,32 @@ const AssistantMessage: React.FC<{
   isReading: boolean,
   readingFiles: string[]
 }> = memo(({ message, handleSourceClick, isReading, readingFiles }) => {
-  const processedContent = useMemo(() => {
-    // Remove any "Reading..." lines for final display
-    return message.content.replace(/Reading\s+.+?\.\.\.\s*\n?/gm, '').trim();
-  }, [message.content]);
+  const [visibleContent, setVisibleContent] = useState("");
+  const [showReadingIndicators, setShowReadingIndicators] = useState(isReading);
+  
+  // Process the message content - remove reading indicators once regular content appears
+  useEffect(() => {
+    // Check if there's substantial content beyond reading indicators
+    const content = message.content;
+    const readingLines = content.match(/Reading\s+.+?\.\.\.\s*\n?/gm) || [];
+    const hasSubstantialContent = content.replace(/Reading\s+.+?\.\.\.\s*\n?/gm, '').trim().length > 0;
+    
+    // If we have real content, hide the reading indicators in the text
+    if (hasSubstantialContent) {
+      setShowReadingIndicators(false);
+      setVisibleContent(content.replace(/Reading\s+.+?\.\.\.\s*\n?/gm, '').trim());
+    } else {
+      // Otherwise just show the content as is
+      setShowReadingIndicators(true);
+      setVisibleContent(content);
+    }
+  }, [message.content, isReading]);
   
   return (
     <div className="flex flex-col mt-4">
       {/* Reading indicators */}
-      {isReading && readingFiles.length > 0 && (
-        <div className="flex flex-col gap-1 mb-2">
+      {isReading && readingFiles.length > 0 && showReadingIndicators && (
+        <div className="flex flex-col mb-2 text-gray-400">
           {readingFiles.map((file, index) => (
             <ReadingIndicator key={index} fileName={file} />
           ))}
@@ -224,7 +263,7 @@ const AssistantMessage: React.FC<{
               ),
             }}
           >
-            {processedContent}
+            {visibleContent}
           </ReactMarkdown>
         </div>
       </div>
@@ -358,6 +397,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
   const eventSourceRef = useRef<EventSource | null>(null);
   const [currentPairId, setCurrentPairId] = useState<string | null>(null);
   const [readingFiles, setReadingFiles] = useState<string[]>([]);
+  const [readingTimestamps, setReadingTimestamps] = useState<{[fileName: string]: number}>({});
 
   // load previous chat messages
   const loadChatHistory = useCallback(async () => {
@@ -398,15 +438,44 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
     }
   }, [messagePairs, readingFiles]);
 
-  // Add a file to the reading list
-  const addReadingFile = useCallback((fileName: string) => {
-    setReadingFiles(prev => {
-      if (!prev.includes(fileName)) {
-        return [...prev, fileName];
-      }
-      return prev;
-    });
+  // detect and process reading events with a time window
+  const processReadingEvent = useCallback((text: string) => {
+    const readingMatch = text.match(/Reading\s+(.+?)\.\.\.$/);
+    if (readingMatch) {
+      const fileName = readingMatch[1];
+      // Add to reading files with timestamp
+      setReadingFiles(prev => {
+        if (!prev.includes(fileName)) {
+          return [...prev, fileName];
+        }
+        return prev;
+      });
+      
+      // Record the timestamp for this reading event
+      setReadingTimestamps(prev => ({
+        ...prev,
+        [fileName]: Date.now()
+      }));
+    }
   }, []);
+  
+  // Clean up reading files that are older than the time window (5 seconds)
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      const timeWindow = 5000; // 5 seconds
+      
+      // Check each reading file's timestamp
+      setReadingFiles(prev => {
+        return prev.filter(fileName => {
+          const timestamp = readingTimestamps[fileName] || 0;
+          return now - timestamp < timeWindow;
+        });
+      });
+    }, 1000); // Check every second
+    
+    return () => clearInterval(cleanupInterval);
+  }, [readingTimestamps]);
 
   // send message
   const handleSendMessage = useCallback(async () => {
@@ -415,6 +484,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
     const pairId = `${Date.now()}.${Math.floor(Math.random() * 100)}`;
     setCurrentPairId(pairId);
     setReadingFiles([]);
+    setReadingTimestamps({});
 
     // create user message
     const userMessage: ChatMessage = {
@@ -453,10 +523,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
         // onMessage handler - for regular message content
         (newContent) => {
           // Check if this is a reading indicator message
-          const readingMatch = newContent.match(/Reading\s+(.+?)\.\.\.$/);
-          if (readingMatch) {
-            addReadingFile(readingMatch[1]);
-          }
+          processReadingEvent(newContent);
           
           setMessagePairs((prev) => {
             const newPairs = [...prev];
@@ -490,6 +557,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           setIsEventSourceActive(false);
           setCurrentPairId(null);
           setReadingFiles([]);
+          setReadingTimestamps({});
           
           // Clean up any "Reading..." messages from the final response
           setMessagePairs((prev) => {
@@ -519,6 +587,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           setIsEventSourceActive(false);
           setCurrentPairId(null);
           setReadingFiles([]);
+          setReadingTimestamps({});
           setMessagePairs((prev) => {
             const newPairs = [...prev];
             const currentPair = newPairs.find((pair) => pair.id === pairId);
@@ -537,8 +606,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
       setIsEventSourceActive(false);
       setCurrentPairId(null);
       setReadingFiles([]);
+      setReadingTimestamps({});
     }
-  }, [input, isEventSourceActive, workspaceId, addReadingFile]);
+  }, [input, isEventSourceActive, workspaceId, processReadingEvent]);
 
   // Cleanup on unmount
   useEffect(() => {

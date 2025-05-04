@@ -26,7 +26,7 @@ from src.sync_queue import SyncQueue
 from src.stream_manager import StreamManager
 from src.sync_status import SyncStatus
 from contrast_tool import ContrastTool
-from harlus_chat import GraphPipeline
+from harlus_chat import ChatAgentGraph
 
 
 app = FastAPI()
@@ -272,10 +272,9 @@ async def stream_chat(
     # 
     # gp.get_chat_history(thread_id=thread_id)
 
-    gp = GraphPipeline([tool.get().to_langchain_tool() for tool in tool_library.get_tool_for_all_files("doc_search")])
-    gp.build_graph()
+    agent_graph = ChatAgentGraph([tool.get().to_langchain_tool() for tool in tool_library.get_tool_for_all_files("doc_search")])
     response = StreamingResponse(
-        gp.event_stream_generator(query),
+        agent_graph.stream(query),
         media_type="text/event-stream",
     )
     response.headers["Access-Control-Allow-Origin"] = "*"
