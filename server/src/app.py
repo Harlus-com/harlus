@@ -20,13 +20,13 @@ from pydantic import BaseModel, ConfigDict, Field
 from src.util import BoundingBoxConverter, snake_to_camel
 from src.tool_library import ToolLibrary
 from src.sync_workspace import get_workspace_sync_manager
-from src.stream_response import stream_generator_v2
+#from src.stream_response import stream_generator_v2 # TODO: Delete this file
 from src.file_store import FileStore, Workspace, File
 from src.sync_queue import SyncQueue
 from src.stream_manager import StreamManager
 from src.sync_status import SyncStatus
 from contrast_tool import ContrastTool
-from harlus_chat import GraphPipeline
+from harlus_chat import ChatAgentGraph
 
 
 app = FastAPI()
@@ -272,10 +272,10 @@ async def stream_chat(
     # 
     # gp.get_chat_history(thread_id=thread_id)
 
-    gp = GraphPipeline([tool.get().to_langchain_tool() for tool in tool_library.get_tool_for_all_files("doc_search")])
-    gp.build_graph()
+    agent_graph = ChatAgentGraph([tool.get().to_langchain_tool() for tool in tool_library.get_tool_for_all_files("doc_search")])
+    agent_graph.build()
     response = StreamingResponse(
-        gp.event_stream_generator(query),
+        agent_graph.stream(query),
         media_type="text/event-stream",
     )
     response.headers["Access-Control-Allow-Origin"] = "*"
