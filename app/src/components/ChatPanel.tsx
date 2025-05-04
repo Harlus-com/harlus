@@ -7,7 +7,7 @@ import React, {
   useContext,
   useMemo,
 } from "react";
-import { Send, Search, FileText, Book, ExternalLink, X, BookOpen } from "lucide-react";
+import { Send, Search, FileText, Book, ExternalLink, X, BookOpen, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { fileService } from "@/api/fileService";
@@ -23,12 +23,13 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ChatPanelProps {
   onSourceClicked?: (file: WorkspaceFile) => void;
 }
 
-// TODO: align chatmessage type with backend, such that historical chat can be persisted in backend only
+// Message type interfaces
 interface MessageProps {
   message: ChatMessage;
   isUser: boolean;
@@ -38,6 +39,13 @@ interface MessagePair {
   id: string;
   userMessage: ChatMessage;
   assistantMessage: ChatMessage | null;
+  isActiveReading?: boolean;
+}
+
+interface MessagePairProps {
+  pair: MessagePair;
+  isReading: boolean;
+  readingFiles: string[];
 }
 
 interface ChatSourceProps {
@@ -56,8 +64,8 @@ interface ReadingIndicatorProps {
 }
 
 const ReadingIndicator: React.FC<ReadingIndicatorProps> = ({ fileName }) => (
-  <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-blue-50 rounded-full px-3 py-1 animate-pulse">
-    <Search size={12} className="text-blue-500" />
+  <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-blue-50/50 rounded-full px-3 py-1 animate-pulse border border-blue-100/50">
+    <Search size={10} className="text-blue-400" />
     <span className="truncate max-w-[200px]">Reading {fileName}...</span>
   </div>
 );
@@ -100,10 +108,29 @@ const SourceBadge: React.FC<SourceBadgeProps> = ({ source, onClick }) => {
   );
 };
 
+// User message component
+const UserMessage: React.FC<{ message: ChatMessage }> = memo(({ message }) => {
+  return (
+    <div className="flex flex-col">
+      <div className="bg-white border border-gray-100 rounded-lg px-3.5 py-2.5 text-[13px] text-gray-800 leading-relaxed shadow-sm">
+        {message.content}
+      </div>
+      {message.timestamp && (
+        <div className="text-[9px] text-gray-400 mt-1 ml-1">
+          {message.timestamp.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </div>
+      )}
+    </div>
+  );
+});
+
+UserMessage.displayName = "UserMessage";
+
 // Component to display sources with improved UI
 const ChatSources: React.FC<ChatSourceProps> = memo(({ chatSourceCommentGroups, onSourceClick }) => {
-  const [showSources, setShowSources] = useState(true);
-
   // Don't render if no valid sources
   if (!chatSourceCommentGroups || chatSourceCommentGroups.length === 0) return null;
 
@@ -116,151 +143,46 @@ const ChatSources: React.FC<ChatSourceProps> = memo(({ chatSourceCommentGroups, 
 
   return (
     <div className="mt-2 pt-2 border-t border-gray-100">
-      <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-1 text-[10px] font-medium text-gray-600">
-          <ExternalLink size={10} />
-          Sources ({validSources.length})
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-5 px-1.5 text-[10px]"
-          onClick={() => setShowSources(!showSources)}
-        >
-          {showSources ? "Hide" : "Show"}
-        </Button>
+      <div className="flex flex-wrap">
+        {validSources.map((source, index) => (
+          <SourceBadge 
+            key={index} 
+            source={source} 
+            onClick={() => onSourceClick(source)} 
+          />
+        ))}
       </div>
-      
-      {showSources && (
-        <div className="flex flex-wrap">
-          {validSources.map((source, index) => (
-            <SourceBadge 
-              key={index} 
-              source={source} 
-              onClick={() => onSourceClick(source)} 
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 });
 
 ChatSources.displayName = "ChatSources";
 
-// Component to display a chat message with improved styling
-const Message: React.FC<MessageProps> = memo(({ message, isUser }) => {
-  const { onSourceClicked } = useContext(SourceClickContext);
-  const [readingFile, setReadingFile] = useState<string | null>(null);
-
-  // Extract reading status from message content
-  useEffect(() => {
-    if (!isUser && message.content) {
-      const readingMatch = message.content.match(/Reading\s+(.+?)\.\.\.$/m);
-      if (readingMatch) {
-        setReadingFile(readingMatch[1]);
-      } else {
-        setReadingFile(null);
-      }
-    }
-  }, [message.content, isUser]);
-
-  // Open sources associated with a chat message
-  const handleSourceClick = useCallback(async (chatSourceCommentGroup: ChatSourceCommentGroup) => {
-    console.log("[Message] Source clicked:", chatSourceCommentGroup);
-
-    if (onSourceClicked) {
-      try {
-        const file = chatSourceCommentGroup.workspace_file;
-        if (!file) {
-          console.error("[Message] No workspace file found:", chatSourceCommentGroup);
-          return;
-        }
-        
-        const annotations = [];
-
-        if (!chatSourceCommentGroup.chatSourceComments) {
-          console.error("[Message] No comments found in source group:", chatSourceCommentGroup);
-          return;
-        }
-
-        chatSourceCommentGroup.chatSourceComments.forEach((chatSourceComment) => {
-          if (!chatSourceComment?.highlightArea?.boundingBoxes) {
-            console.warn("[Message] Missing highlight area or bounding boxes:", chatSourceComment);
-            return;
-          }
-
-          chatSourceComment.highlightArea.boundingBoxes.forEach((bbox) => {
-            try {
-              if (!bbox?.page) {
-                console.warn("[Message] Missing page in bounding box:", bbox);
-                return;
-              }
-              
-              annotations.push({
-                id: "source-" + Math.random().toString(36).substr(2, 9),
-                page: bbox.page - 1, 
-                left: bbox.left,
-                top: bbox.top,
-                width: bbox.width,
-                height: bbox.height
-              });
-            } catch (error) {
-              console.error("[Message] Error processing bounding box:", error);
-            }
-          });
-        });
-
-        const claimChecks = [{
-          annotations: annotations,
-          verdict: "Source", 
-          explanation: "Source from chat" 
-        }];
-
-        const updatedFile = {
-          ...file,
-          annotations: {
-            show: true,
-            data: claimChecks
-          }
-        };
-
-        onSourceClicked(updatedFile);
-      } catch (error) {
-        console.error("[Message] Error opening source:", error);
-      }
-    }
-  }, [onSourceClicked]);
-
-  // Process the message content to remove reading indicators
+// Assistant message with improved styling
+const AssistantMessage: React.FC<{ 
+  message: ChatMessage, 
+  handleSourceClick: (source: ChatSourceCommentGroup) => void,
+  isReading: boolean,
+  readingFiles: string[]
+}> = memo(({ message, handleSourceClick, isReading, readingFiles }) => {
   const processedContent = useMemo(() => {
-    if (isUser) return message.content;
-    
     // Remove any "Reading..." lines for final display
-    return message.content.replace(/Reading\s+.+?\.\.\.\s*$/gm, '').trim();
-  }, [message.content, isUser]);
+    return message.content.replace(/Reading\s+.+?\.\.\.\s*\n?/gm, '').trim();
+  }, [message.content]);
   
-  // Render message content
   return (
-    <div className={cn(
-      "w-full rounded-lg shadow-sm",
-      isUser 
-        ? "bg-gray-50 border border-gray-100" 
-        : "bg-white border border-gray-100"
-    )}>
-      {/* Main message content */}
-      <div className={cn(
-        "px-3.5 py-2.5",
-        isUser ? "pb-2" : "pb-2.5"
-      )}>
-        {/* Show reading indicator if detected */}
-        {!isUser && readingFile && (
-          <div className="mb-2">
-            <ReadingIndicator fileName={readingFile} />
-          </div>
-        )}
-        
-        {/* Message content */}
+    <div className="flex flex-col mt-4">
+      {/* Reading indicators */}
+      {isReading && readingFiles.length > 0 && (
+        <div className="flex flex-col gap-1 mb-2">
+          {readingFiles.map((file, index) => (
+            <ReadingIndicator key={index} fileName={file} />
+          ))}
+        </div>
+      )}
+      
+      {/* AI Response */}
+      <div className="px-0.5">
         <div className={cn(
           "prose prose-sm max-w-none text-[13px]",
           "prose-headings:font-medium prose-headings:text-gray-800",
@@ -269,7 +191,7 @@ const Message: React.FC<MessageProps> = memo(({ message, isUser }) => {
           "prose-strong:font-medium prose-strong:text-gray-800",
           "prose-code:text-xs prose-code:bg-gray-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded",
           "prose-pre:bg-gray-50 prose-pre:p-2 prose-pre:rounded",
-          "prose-ol:pl-5 prose-ol:my-1.5 prose-ul:pl-5 prose-ul:my-1.5",
+          "prose-ol:pl-5 prose-ol:my-1.5 prose-ul:pl-5 prose-ol:my-1.5",
           "prose-li:my-0.5 prose-li:text-gray-700"
         )}>
           <ReactMarkdown
@@ -307,30 +229,109 @@ const Message: React.FC<MessageProps> = memo(({ message, isUser }) => {
         </div>
       </div>
       
-      {/* Timestamp for user messages */}
-      {isUser && message.timestamp && (
-        <div className="px-3.5 pb-1.5 text-[9px] text-gray-400">
-          {message.timestamp.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </div>
-      )}
-      
-      {/* Sources section */}
-      {!isUser && message.chatSourceCommentGroups && message.chatSourceCommentGroups.length > 0 && (
-        <div className="px-3.5 pb-2">
-          <ChatSources 
-            chatSourceCommentGroups={message.chatSourceCommentGroups} 
-            onSourceClick={handleSourceClick} 
-          />
-        </div>
+      {/* Sources at bottom of message */}
+      {message.chatSourceCommentGroups && message.chatSourceCommentGroups.length > 0 && (
+        <ChatSources 
+          chatSourceCommentGroups={message.chatSourceCommentGroups} 
+          onSourceClick={handleSourceClick} 
+        />
       )}
     </div>
   );
 });
 
-Message.displayName = "Message";
+AssistantMessage.displayName = "AssistantMessage";
+
+// Message pair component
+const MessagePairComponent: React.FC<MessagePairProps> = memo(({ pair, isReading, readingFiles }) => {
+  const { onSourceClicked } = useContext(SourceClickContext);
+  
+  // Handle source clicks
+  const handleSourceClick = useCallback(async (chatSourceCommentGroup: ChatSourceCommentGroup) => {
+    console.log("[MessagePair] Source clicked:", chatSourceCommentGroup);
+
+    if (onSourceClicked) {
+      try {
+        const file = chatSourceCommentGroup.workspace_file;
+        if (!file) {
+          console.error("[MessagePair] No workspace file found:", chatSourceCommentGroup);
+          return;
+        }
+        
+        const annotations = [];
+
+        if (!chatSourceCommentGroup.chatSourceComments) {
+          console.error("[MessagePair] No comments found in source group:", chatSourceCommentGroup);
+          return;
+        }
+
+        chatSourceCommentGroup.chatSourceComments.forEach((chatSourceComment) => {
+          if (!chatSourceComment?.highlightArea?.boundingBoxes) {
+            console.warn("[MessagePair] Missing highlight area or bounding boxes:", chatSourceComment);
+            return;
+          }
+
+          chatSourceComment.highlightArea.boundingBoxes.forEach((bbox) => {
+            try {
+              if (!bbox?.page) {
+                console.warn("[MessagePair] Missing page in bounding box:", bbox);
+                return;
+              }
+              
+              annotations.push({
+                id: "source-" + Math.random().toString(36).substr(2, 9),
+                page: bbox.page - 1, 
+                left: bbox.left,
+                top: bbox.top,
+                width: bbox.width,
+                height: bbox.height
+              });
+            } catch (error) {
+              console.error("[MessagePair] Error processing bounding box:", error);
+            }
+          });
+        });
+
+        const claimChecks = [{
+          annotations: annotations,
+          verdict: "Source", 
+          explanation: "Source from chat" 
+        }];
+
+        const updatedFile = {
+          ...file,
+          annotations: {
+            show: true,
+            data: claimChecks
+          }
+        };
+
+        onSourceClicked(updatedFile);
+      } catch (error) {
+        console.error("[MessagePair] Error opening source:", error);
+      }
+    }
+  }, [onSourceClicked]);
+
+  return (
+    <div className="space-y-1">
+      {/* User message */}
+      <UserMessage message={pair.userMessage} />
+      
+      {/* AI response */}
+      {pair.assistantMessage && (
+        <AssistantMessage 
+          message={pair.assistantMessage}
+          handleSourceClick={handleSourceClick}
+          isReading={isReading}
+          readingFiles={readingFiles}
+        />
+      )}
+    </div>
+  );
+});
+
+MessagePairComponent.displayName = "MessagePairComponent";
 
 // Modern loading indicator
 const LoadingIndicator: React.FC = memo(() => (
@@ -437,6 +438,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           timestamp: new Date(),
           chatSourceCommentGroups: [],
         },
+        isActiveReading: true
       },
     ]);
     setInput("");
@@ -503,6 +505,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                 ...lastPair.assistantMessage,
                 content: cleanedContent,
               };
+              
+              // Mark as no longer reading
+              lastPair.isActiveReading = false;
             }
             return newPairs;
           });
@@ -520,6 +525,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
             if (currentPair && currentPair.assistantMessage) {
               currentPair.assistantMessage.content =
                 "Sorry, there was an error processing your request.";
+              currentPair.isActiveReading = false;
             }
             return newPairs;
           });
@@ -555,7 +561,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
   // render chat panel
   return (
     <SourceClickContext.Provider value={{ onSourceClicked }}>
-      <div className="h-full flex flex-col border-l border-gray-100 bg-white">
+      <div className="h-full flex flex-col border-l border-gray-100 bg-gray-50">
         <div className="py-2.5 px-3.5 font-medium border-b border-gray-100 bg-white flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <BookOpen className="w-4 h-4 text-blue-500" />
@@ -574,9 +580,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
         </div>
 
         <ScrollArea className="flex-1 px-3.5 pt-3.5 pb-2">
-          <div ref={chatContainerRef} className="space-y-4">
+          <div ref={chatContainerRef} className="space-y-6">
             {messagePairs.length === 0 ? (
-              <div className="text-center py-10">
+              <div className="text-center py-10 bg-white rounded-lg shadow-sm border border-gray-100 p-6">
                 <div className="inline-flex rounded-full bg-blue-50 p-2 mb-3">
                   <BookOpen className="h-5 w-5 text-blue-500" />
                 </div>
@@ -588,20 +594,20 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
             ) : (
               <>
                 {messagePairs.map((pair) => (
-                  <div key={pair.id} className="space-y-4">
-                    <Message message={pair.userMessage} isUser={true} />
-                    {pair.assistantMessage && (
-                      <Message message={pair.assistantMessage} isUser={false} />
-                    )}
-                  </div>
+                  <MessagePairComponent 
+                    key={pair.id} 
+                    pair={pair} 
+                    isReading={isEventSourceActive && pair.id === currentPairId && pair.isActiveReading === true}
+                    readingFiles={readingFiles}
+                  />
                 ))}
-                {isLoading && <LoadingIndicator />}
+                {isLoading && currentPairId === null && <LoadingIndicator />}
               </>
             )}
           </div>
         </ScrollArea>
 
-        <div className="p-3 border-t border-gray-100">
+        <div className="p-3 border-t border-gray-100 bg-white">
           <div className="flex flex-col space-y-1.5">
             <div className="flex items-end space-x-2">
               <Textarea
@@ -613,13 +619,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                   }
                 }}
                 placeholder="Ask questions about your documents..."
-                className="min-h-[52px] max-h-[120px] resize-none text-sm border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-300 py-2 px-2.5"
+                className="min-h-[52px] max-h-[120px] resize-none text-sm border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-300 py-2 px-2.5 rounded-md"
                 disabled={isLoading || isEventSourceActive}
               />
               <Button
                 variant="default"
                 size="icon"
-                className="h-[52px] w-[52px] shrink-0 bg-blue-600 hover:bg-blue-700"
+                className="h-[52px] w-[52px] shrink-0 bg-blue-600 hover:bg-blue-700 rounded-md"
                 onClick={() => {
                   if (!isLoading && !isEventSourceActive) {
                     handleSendMessage();
