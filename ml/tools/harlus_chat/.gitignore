@@ -2,7 +2,7 @@ artifacts
 __pycache__
 .venv
 dist
-doc_search.egg-info
+*.egg-info
 *.pdf
 attributes
 dev
