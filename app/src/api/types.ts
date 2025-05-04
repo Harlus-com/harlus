@@ -79,8 +79,9 @@ export interface ChatMessage {
   id: string;
   sender: "user" | "assistant";
   content: string;
-  timestamp: Date;
+  timestamp?: Date;
   chatSourceCommentGroups: ChatSourceCommentGroup[];
+  messageType?: 'reading_message' | 'answer_message';
 }
 
 export interface ReactPdfAnnotation {
