@@ -273,12 +273,7 @@ async def stream_chat(
     #
     # gp.get_chat_history(thread_id=thread_id)
 
-    agent_graph = ChatAgentGraph(
-        [
-            tool.get().to_langchain_tool()
-            for tool in tool_library.get_tool_for_all_files("doc_search")
-        ]
-    )
+    agent_graph = ChatAgentGraph([tool.get() for tool in tool_library.get_tool_for_all_files("doc_search")])
     agent_graph.build()
     response = StreamingResponse(
         agent_graph.stream(query),

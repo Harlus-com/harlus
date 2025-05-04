@@ -22,11 +22,33 @@ from llama_index.core.schema import Node
 from .config import LLM, EMBEDDING_MODEL, FASTLLM
 from .mixed_retriever import MixKeywordVectorRetriever
 
+from pydantic import BaseModel
 
 import asyncio
 from tqdm import tqdm
 
 
+
+class DocSearchToolMetadata(BaseModel):
+    date: str
+    ticker: str
+    keywords: str
+    source_name: str
+    title: str
+    company_name: str
+    summary: str
+    file_path: str
+
+
+class DocSearchToolWrapper:
+   
+    tool: QueryEngineTool
+    metadata: DocSearchToolMetadata
+    name: str
+    tool_class: str
+    description: str
+
+    
 class DocumentPipeline:
 
     def __init__(
@@ -141,7 +163,7 @@ class DocumentPipeline:
         mix_query_engine_tool = QueryEngineTool(
             query_engine=mix_query_engine,
             metadata=ToolMetadata(
-                name=f"{self.file_name}_mix",
+                name=f"doc_search_{self.file_name}",
                 description=f"""Use this tool to answer specific questions about the document.
 
                 This document has the following metadata:
@@ -150,6 +172,20 @@ class DocumentPipeline:
                 """,
             ),
         )
+
+        doc_tool_metadata = DocSearchToolMetadata(
+            **self.metadata,
+        )
+
+        doc_search_tool_wrapper = DocSearchToolWrapper(
+            tool=mix_query_engine_tool,
+            metadata=doc_tool_metadata,
+            name=mix_query_engine_tool.metadata.name,
+            tool_class="DocSearchToolWrapper",
+            description=mix_query_engine_tool.metadata.description
+        )
+
+        return doc_search_tool_wrapper 
 
         # print(" - building summary query engine tool...")
         # summary_query_engine_tool = QueryEngineTool(
@@ -207,4 +243,4 @@ class DocumentPipeline:
         # )
         # self.doctool = doctool
 
-        return mix_query_engine_tool 
+        
