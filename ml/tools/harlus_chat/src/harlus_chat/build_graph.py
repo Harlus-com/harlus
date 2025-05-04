@@ -16,10 +16,8 @@ import re
 import json 
 from rapidfuzz.fuzz import partial_ratio
 from .boundig_boxes import get_standard_rects_from_pdf, prune_overlapping_rects, get_llamaparse_rects
-from .types import GraphState, ToolRetrievedNode, BoundingBox, HighlightArea, ChatSourceComment
+from .custom_types import GraphState, ToolRetrievedNode, BoundingBox, HighlightArea, ChatSourceComment
 import uuid
-
-
 
 
 class BasicToolNode:
@@ -175,7 +173,11 @@ class ChatAgentGraph:
             You are an autonomous AI agent solving a task step-by-step using tools.
             Decide what to do next. YOU MUST BASE YOUR ANSWER ON THE TOOLS PROVIDED BELOW. DO NOT RELY ON PRIOR KNOWLEDGE.
                         
-            WRITE A SHORT AND CONCISE PLAN LIKE. "Reading [Document Source] on [Company] from [date] to verify [Claim]..."
+            WRITE A SHORT AND CONCISE PLAN BASED ON THE TOOLS PROVIDED. FOLLOW THE EXAMPLES BELOW.
+                                  
+            "Reading Apple's 2024 Annual 10K report to find information on ..."
+            "Reading Applied Materials 2024 Earnings call transcript from Q1 to find information on ..."
+            "Searching the web for information on ..."
                         
             {self.tools_descriptions_string}
             """),
@@ -190,8 +192,9 @@ class ChatAgentGraph:
         yield {
             "messages": state["messages"] + [AIMessage(content=final)],
             "retrieved_nodes": state.get("retrieved_nodes", []),
-            "full_answer": state.get("full_answer", "") + final,
+            "full_answer": state.get("full_answer", ""),
         }
+        
 
 
     async def _call_tools(self, state: GraphState) -> AsyncIterator[dict]:
@@ -245,9 +248,9 @@ class ChatAgentGraph:
         graph_builder = StateGraph(GraphState)
 
         # nodes
-        graph_builder.add_node("communicate_plan", self._communicate_plan)
-        graph_builder.add_node("call_tools", self._call_tools)
-        graph_builder.add_node("tools", AsyncToolNode(tools=self.tools))
+        graph_builder.add_node("communicate_plan", self._communicate_plan, metadata={"name": "communicate_plan"})
+        graph_builder.add_node("call_tools", self._call_tools, metadata={"name": "call_tools"})
+        graph_builder.add_node("tools", AsyncToolNode(tools=self.tools), metadata={"name": "tools"})
 
         # fixed edges
         graph_builder.add_edge(START, "communicate_plan")
@@ -350,12 +353,24 @@ class ChatAgentGraph:
             config = self.config
         ):
             try:
+                # stream only message chunks
                 if isinstance(message_chunk, AIMessageChunk):
-                    response = '\n'.join([
-                        f'data: {json.dumps({"text": message_chunk.content})}',
-                        f'event: {"message"}',
-                        '\n\n'
-                    ])
+                    # stream reading message
+                    if metadata.get("langgraph_node") == "communicate_plan":
+                        response = '\n'.join([
+                            f'data: {json.dumps({"text": message_chunk.content})}',
+                            f'event: {"reading_message"}',
+                            '\n\n'
+                        ])
+                    # stream answer message
+                    elif metadata.get("langgraph_node") == "call_tools":
+                        response = '\n'.join([
+                            f'data: {json.dumps({"text": message_chunk.content})}',
+                            f'event: {"answer_message"}',
+                            '\n\n'
+                        ])
+                    else:
+                        print(f"[harlus_chat] Ignoring stream from unknown node: {metadata.get('langgraph_node')}")
                 
                     yield response
             except Exception as e:

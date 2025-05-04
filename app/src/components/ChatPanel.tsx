@@ -40,13 +40,16 @@ interface MessagePair {
   id: string;
   userMessage: ChatMessage;
   assistantMessage: ChatMessage | null;
-  isActiveReading?: boolean;
+  readingMessages: ChatMessage[];
+  answerCount: number;
+  showReadingMessages: boolean;
+  readingMessageBuffer: string; // Buffer to accumulate reading message content
 }
 
 interface MessagePairProps {
   pair: MessagePair;
   isReading: boolean;
-  readingFiles: string[];
+  toggleReadingMessages: (pairId: string) => void;
 }
 
 interface ChatSourceProps {
@@ -59,19 +62,23 @@ const SourceClickContext = React.createContext<{
   onSourceClicked?: (file: WorkspaceFile) => void;
 }>({});
 
-// Reading indicator component
-interface ReadingIndicatorProps {
-  fileName: string;
+// Reading indicator message component
+interface ReadingMessageProps {
+  message: ChatMessage;
+  enoughAnswersToStop: boolean;
 }
 
-const ReadingIndicator: React.FC<ReadingIndicatorProps> = ({ fileName }) => (
-  <div className="flex items-center gap-2 text-xs text-gray-400 py-1.5 animate-pulse group">
-    <div className="relative flex items-center justify-center">
-      <div className="w-4 h-4 rounded-full border border-gray-200 flex items-center justify-center">
-        <Search size={9} className="text-gray-400" />
-      </div>
-      <div className="absolute inset-0">
-        <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24">
+const ReadingMessage: React.FC<ReadingMessageProps> = ({ message, enoughAnswersToStop }) => (
+  <div className={`flex items-center gap-1.5 text-xs py-1 px-2.5 rounded-full border reading-message-transition ${
+    enoughAnswersToStop 
+      ? 'bg-gray-50/50 text-gray-400/70 border-gray-100/70' 
+      : 'bg-gray-50 text-gray-400 border-gray-100 animate-pulse-soft'
+    }`}>
+    <div className="relative flex items-center justify-center h-3.5 w-3.5 shrink-0">
+      {enoughAnswersToStop ? (
+        <div className="h-2 w-2 rounded-full bg-green-300/50"></div>
+      ) : (
+        <svg className="h-3.5 w-3.5 animate-spin text-gray-400" viewBox="0 0 24 24">
           <circle 
             className="opacity-25" 
             cx="12" 
@@ -87,10 +94,44 @@ const ReadingIndicator: React.FC<ReadingIndicatorProps> = ({ fileName }) => (
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" 
           />
         </svg>
-      </div>
+      )}
     </div>
-    <span className="text-gray-400 text-[11px]">Reading {fileName}...</span>
+    <span className={`text-[11px] italic truncate max-w-[180px] ${enoughAnswersToStop ? 'text-gray-500/70' : 'text-gray-500'}`}>
+      {message.content}
+    </span>
   </div>
+);
+
+// Reading messages collapse toggle
+interface ReadingMessagesToggleProps {
+  count: number;
+  isExpanded: boolean;
+  onClick: () => void;
+}
+
+const ReadingMessagesToggle: React.FC<ReadingMessagesToggleProps> = ({ count, isExpanded, onClick }) => (
+  <Button 
+    variant="ghost" 
+    size="sm" 
+    className="h-6 px-2.5 text-[10px] text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full flex items-center gap-1 transition-colors"
+    onClick={onClick}
+  >
+    {isExpanded ? (
+      <>
+        <span className="flex items-center">
+          <X size={10} className="mr-1" />
+          Hide
+        </span>
+      </>
+    ) : (
+      <>
+        <span className="flex items-center">
+          <FileText size={10} className="mr-1" />
+          Show
+        </span>
+      </>
+    )} {count} document{count !== 1 ? "s" : ""} read
+  </Button>
 );
 
 // Improved source badge component
@@ -184,39 +225,49 @@ ChatSources.displayName = "ChatSources";
 // Assistant message with improved styling
 const AssistantMessage: React.FC<{ 
   message: ChatMessage, 
+  readingMessages: ChatMessage[],
+  showReadingMessages: boolean,
+  answerCount: number,
   handleSourceClick: (source: ChatSourceCommentGroup) => void,
-  isReading: boolean,
-  readingFiles: string[]
-}> = memo(({ message, handleSourceClick, isReading, readingFiles }) => {
-  const [visibleContent, setVisibleContent] = useState("");
-  const [showReadingIndicators, setShowReadingIndicators] = useState(isReading);
-  
-  // Process the message content - remove reading indicators once regular content appears
-  useEffect(() => {
-    // Check if there's substantial content beyond reading indicators
-    const content = message.content;
-    const readingLines = content.match(/Reading\s+.+?\.\.\.\s*\n?/gm) || [];
-    const hasSubstantialContent = content.replace(/Reading\s+.+?\.\.\.\s*\n?/gm, '').trim().length > 0;
-    
-    // If we have real content, hide the reading indicators in the text
-    if (hasSubstantialContent) {
-      setShowReadingIndicators(false);
-      setVisibleContent(content.replace(/Reading\s+.+?\.\.\.\s*\n?/gm, '').trim());
-    } else {
-      // Otherwise just show the content as is
-      setShowReadingIndicators(true);
-      setVisibleContent(content);
-    }
-  }, [message.content, isReading]);
-  
+  toggleReadingMessages: () => void,
+  isReading: boolean
+}> = memo(({ 
+  message, 
+  readingMessages, 
+  showReadingMessages, 
+  answerCount, 
+  handleSourceClick, 
+  toggleReadingMessages,
+  isReading 
+}) => {
   return (
     <div className="flex flex-col mt-4">
-      {/* Reading indicators */}
-      {isReading && readingFiles.length > 0 && showReadingIndicators && (
-        <div className="flex flex-col mb-2 text-gray-400">
-          {readingFiles.map((file, index) => (
-            <ReadingIndicator key={index} fileName={file} />
-          ))}
+      {/* Reading messages section */}
+      {readingMessages.length > 0 && (
+        <div className="mb-3">
+          {/* Toggle for reading messages when we have enough answers */}
+          <div className="flex flex-col space-y-1.5">
+            {answerCount >= 5 && (
+              <ReadingMessagesToggle 
+                count={readingMessages.length} 
+                isExpanded={showReadingMessages} 
+                onClick={toggleReadingMessages} 
+              />
+            )}
+            
+            {/* Show reading messages if expanded or we don't have enough answers yet */}
+            {(showReadingMessages || answerCount < 5) && (
+              <div className="flex flex-row flex-wrap gap-2 text-gray-400 mt-1">
+                {readingMessages.map((readingMsg, index) => (
+                  <ReadingMessage 
+                    key={index} 
+                    message={readingMsg} 
+                    enoughAnswersToStop={answerCount >= 10} 
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
       
@@ -263,7 +314,7 @@ const AssistantMessage: React.FC<{
               ),
             }}
           >
-            {visibleContent}
+            {message.content}
           </ReactMarkdown>
         </div>
       </div>
@@ -282,7 +333,7 @@ const AssistantMessage: React.FC<{
 AssistantMessage.displayName = "AssistantMessage";
 
 // Message pair component
-const MessagePairComponent: React.FC<MessagePairProps> = memo(({ pair, isReading, readingFiles }) => {
+const MessagePairComponent: React.FC<MessagePairProps> = memo(({ pair, isReading, toggleReadingMessages }) => {
   const { onSourceClicked } = useContext(SourceClickContext);
   
   // Handle source clicks
@@ -352,6 +403,10 @@ const MessagePairComponent: React.FC<MessagePairProps> = memo(({ pair, isReading
     }
   }, [onSourceClicked]);
 
+  const handleToggleReadingMessages = useCallback(() => {
+    toggleReadingMessages(pair.id);
+  }, [toggleReadingMessages, pair.id]);
+
   return (
     <div className="space-y-1">
       {/* User message */}
@@ -361,9 +416,12 @@ const MessagePairComponent: React.FC<MessagePairProps> = memo(({ pair, isReading
       {pair.assistantMessage && (
         <AssistantMessage 
           message={pair.assistantMessage}
+          readingMessages={pair.readingMessages}
+          showReadingMessages={pair.showReadingMessages}
+          answerCount={pair.answerCount}
           handleSourceClick={handleSourceClick}
+          toggleReadingMessages={handleToggleReadingMessages}
           isReading={isReading}
-          readingFiles={readingFiles}
         />
       )}
     </div>
@@ -396,8 +454,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const [currentPairId, setCurrentPairId] = useState<string | null>(null);
-  const [readingFiles, setReadingFiles] = useState<string[]>([]);
-  const [readingTimestamps, setReadingTimestamps] = useState<{[fileName: string]: number}>({});
 
   // load previous chat messages
   const loadChatHistory = useCallback(async () => {
@@ -417,6 +473,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                   chatSourceCommentGroups: assistantMessage.chatSourceCommentGroups || [],
                 }
               : null,
+            readingMessages: [],
+            answerCount: assistantMessage ? 1 : 0,
+            showReadingMessages: true,
+            readingMessageBuffer: ""
           });
         }
       }
@@ -436,46 +496,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
       const container = chatContainerRef.current;
       container.scrollTop = container.scrollHeight;
     }
-  }, [messagePairs, readingFiles]);
+  }, [messagePairs]);
 
-  // detect and process reading events with a time window
-  const processReadingEvent = useCallback((text: string) => {
-    const readingMatch = text.match(/Reading\s+(.+?)\.\.\.$/);
-    if (readingMatch) {
-      const fileName = readingMatch[1];
-      // Add to reading files with timestamp
-      setReadingFiles(prev => {
-        if (!prev.includes(fileName)) {
-          return [...prev, fileName];
-        }
-        return prev;
-      });
-      
-      // Record the timestamp for this reading event
-      setReadingTimestamps(prev => ({
-        ...prev,
-        [fileName]: Date.now()
-      }));
-    }
+  // Toggle reading messages visibility for a specific pair
+  const toggleReadingMessages = useCallback((pairId: string) => {
+    setMessagePairs(prev => 
+      prev.map(pair => 
+        pair.id === pairId 
+          ? { ...pair, showReadingMessages: !pair.showReadingMessages } 
+          : pair
+      )
+    );
   }, []);
-  
-  // Clean up reading files that are older than the time window (5 seconds)
-  useEffect(() => {
-    const cleanupInterval = setInterval(() => {
-      const now = Date.now();
-      const timeWindow = 5000; // 5 seconds
-      
-      // Check each reading file's timestamp
-      setReadingFiles(prev => {
-        return prev.filter(fileName => {
-          const timestamp = readingTimestamps[fileName] || 0;
-          return now - timestamp < timeWindow;
-        });
-      });
-    }, 1000); // Check every second
-    
-    return () => clearInterval(cleanupInterval);
-  }, [readingTimestamps]);
 
   // send message
   const handleSendMessage = useCallback(async () => {
@@ -483,8 +515,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
 
     const pairId = `${Date.now()}.${Math.floor(Math.random() * 100)}`;
     setCurrentPairId(pairId);
-    setReadingFiles([]);
-    setReadingTimestamps({});
 
     // create user message
     const userMessage: ChatMessage = {
@@ -507,8 +537,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           content: "",
           timestamp: new Date(),
           chatSourceCommentGroups: [],
+          messageType: 'answer_message'
         },
-        isActiveReading: true
+        readingMessages: [],
+        answerCount: 0,
+        showReadingMessages: true,
+        readingMessageBuffer: ""
       },
     ]);
     setInput("");
@@ -520,19 +554,85 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
       await chatService.streamChat(
         input.trim(),
         workspaceId!,
-        // onMessage handler - for regular message content
-        (newContent) => {
-          // Check if this is a reading indicator message
-          processReadingEvent(newContent);
-          
+        // onMessage handler - for all types of messages
+        (newContent, messageType) => {
           setMessagePairs((prev) => {
             const newPairs = [...prev];
             const currentPair = newPairs.find((pair) => pair.id === pairId);
+            
             if (currentPair) {
-              currentPair.assistantMessage = {
-                ...currentPair.assistantMessage!,
-                content: (currentPair.assistantMessage?.content || "") + newContent,
-              };
+              if (messageType === 'reading_message') {
+                // Add to the reading message buffer
+                const updatedBuffer = currentPair.readingMessageBuffer + newContent;
+                currentPair.readingMessageBuffer = updatedBuffer;
+                
+                // Check if the buffer contains any newline characters
+                if (updatedBuffer.includes('\n')) {
+                  // Split the buffer by newline character
+                  const messages = updatedBuffer.split('\n');
+                  
+                  // The last element is an incomplete message
+                  const incomplete = messages.pop() || "";
+                  
+                  // Process complete messages
+                  const newMessages: ChatMessage[] = [];
+                  messages.filter(msg => msg.trim().length > 0).forEach((msgContent) => {
+                    // Create a new reading message for each complete line
+                    newMessages.push({
+                      id: `${pairId}.reading.${Date.now()}.${Math.random().toString(36).substring(2,9)}`,
+                      sender: "assistant",
+                      content: msgContent.trim(),
+                      timestamp: new Date(),
+                      chatSourceCommentGroups: [],
+                      messageType: 'reading_message'
+                    });
+                  });
+                  
+                  // Update reading messages with complete lines
+                  if (newMessages.length > 0) {
+                    currentPair.readingMessages = [...currentPair.readingMessages, ...newMessages];
+                  }
+                  
+                  // Keep incomplete message in buffer
+                  currentPair.readingMessageBuffer = incomplete;
+                }
+                
+                // Always ensure there's at least one reading message visible immediately
+                if (currentPair.readingMessages.length === 0 && updatedBuffer.trim().length > 0) {
+                  // Create a temporary reading message from the buffer
+                  currentPair.readingMessages = [{
+                    id: `${pairId}.reading.temp`,
+                    sender: "assistant",
+                    content: updatedBuffer.trim(),
+                    timestamp: new Date(),
+                    chatSourceCommentGroups: [],
+                    messageType: 'reading_message'
+                  }];
+                } else if (currentPair.readingMessages.length === 1 && 
+                          currentPair.readingMessages[0].id === `${pairId}.reading.temp` &&
+                          !updatedBuffer.includes('\n')) {
+                  // Update the temporary reading message content
+                  currentPair.readingMessages[0].content = updatedBuffer.trim();
+                }
+              } else if (messageType === 'answer_message') {
+                // Add to main answer and increment answer count
+                currentPair.assistantMessage = {
+                  ...currentPair.assistantMessage!,
+                  content: currentPair.assistantMessage!.content + newContent,
+                  messageType: 'answer_message'
+                };
+                
+                // Increment the answer count to trigger animation changes
+                currentPair.answerCount += 1;
+                
+                // If we just reached 5 answers, force an immediate re-render to stop animations
+                if (currentPair.answerCount === 5) {
+                  // This is to ensure the animations stop immediately
+                  setTimeout(() => {
+                    setMessagePairs([...newPairs]);
+                  }, 0);
+                }
+              }
             }
             return newPairs;
           });
@@ -556,26 +656,28 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           setIsLoading(false);
           setIsEventSourceActive(false);
           setCurrentPairId(null);
-          setReadingFiles([]);
-          setReadingTimestamps({});
           
-          // Clean up any "Reading..." messages from the final response
+          // Process any remaining content in the reading message buffer
           setMessagePairs((prev) => {
             const newPairs = [...prev];
             const lastPair = newPairs[newPairs.length - 1];
-            if (lastPair && lastPair.assistantMessage) {
-              // Remove any "Reading..." lines for the final display
-              const cleanedContent = lastPair.assistantMessage.content
-                .replace(/Reading\s+.+?\.\.\.\s*\n?/gm, '')
-                .trim();
-                
-              lastPair.assistantMessage = {
-                ...lastPair.assistantMessage,
-                content: cleanedContent,
+            if (lastPair && lastPair.readingMessageBuffer.trim().length > 0) {
+              // Create a final reading message from remaining buffer content
+              const finalReadingMessage: ChatMessage = {
+                id: `${lastPair.id}.reading.${lastPair.readingMessages.length}`,
+                sender: "assistant",
+                content: lastPair.readingMessageBuffer.trim(),
+                timestamp: new Date(),
+                chatSourceCommentGroups: [],
+                messageType: 'reading_message'
               };
-              
-              // Mark as no longer reading
-              lastPair.isActiveReading = false;
+              lastPair.readingMessages.push(finalReadingMessage);
+              lastPair.readingMessageBuffer = "";
+            }
+            
+            // Automatically collapse reading messages if we have enough answer content
+            if (lastPair && lastPair.answerCount >= 10) {
+              lastPair.showReadingMessages = false;
             }
             return newPairs;
           });
@@ -586,15 +688,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           setIsLoading(false);
           setIsEventSourceActive(false);
           setCurrentPairId(null);
-          setReadingFiles([]);
-          setReadingTimestamps({});
           setMessagePairs((prev) => {
             const newPairs = [...prev];
             const currentPair = newPairs.find((pair) => pair.id === pairId);
             if (currentPair && currentPair.assistantMessage) {
               currentPair.assistantMessage.content =
                 "Sorry, there was an error processing your request.";
-              currentPair.isActiveReading = false;
             }
             return newPairs;
           });
@@ -605,10 +704,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
       setIsLoading(false);
       setIsEventSourceActive(false);
       setCurrentPairId(null);
-      setReadingFiles([]);
-      setReadingTimestamps({});
     }
-  }, [input, isEventSourceActive, workspaceId, processReadingEvent]);
+  }, [input, isEventSourceActive, workspaceId]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -637,14 +734,22 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
             <BookOpen className="w-4 h-4 text-blue-500" />
             <span className="text-sm text-gray-800">AI Assistant</span>
           </div>
-          {isEventSourceActive && readingFiles.length > 0 && (
-            <div className="flex gap-1.5 overflow-x-auto max-w-[70%] py-1">
-              {readingFiles.map((file, index) => (
-                <Badge key={index} variant="outline" className="bg-blue-50 border-blue-100 text-blue-600 flex gap-1 items-center text-[10px] py-0 h-5">
-                  <Search size={10} className="text-blue-500" />
-                  <span className="truncate max-w-[80px]">{file}</span>
-                </Badge>
-              ))}
+          {isEventSourceActive && messagePairs.length > 0 && currentPairId && (
+            <div className="flex items-center gap-1.5">
+              <div className="flex gap-1.5 overflow-x-auto max-w-[70%] py-1">
+                {messagePairs.find(p => p.id === currentPairId)?.readingMessages.slice(-3).map((msg, index) => (
+                  <Badge key={index} variant="outline" className="bg-blue-50 border-blue-100 text-blue-600 flex gap-1 items-center text-[10px] py-0 h-5">
+                    <Search size={10} className="text-blue-500" />
+                    <span className="truncate max-w-[80px]">{msg.content.replace('Reading ', '').replace('...', '')}</span>
+                  </Badge>
+                ))}
+              </div>
+              <div className="relative h-4 w-4">
+                <div className="absolute inset-0 rounded-full border border-blue-200 animate-ping opacity-75"></div>
+                <div className="absolute inset-0 rounded-full bg-blue-100 flex items-center justify-center">
+                  <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -667,8 +772,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                   <MessagePairComponent 
                     key={pair.id} 
                     pair={pair} 
-                    isReading={isEventSourceActive && pair.id === currentPairId && pair.isActiveReading === true}
-                    readingFiles={readingFiles}
+                    isReading={isEventSourceActive && pair.id === currentPairId}
+                    toggleReadingMessages={toggleReadingMessages}
                   />
                 ))}
                 {isLoading && currentPairId === null && <LoadingIndicator />}

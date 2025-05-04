@@ -35,7 +35,7 @@ export class ChatService {
   async streamChat(
     userQuery: string,
     workspaceId: string,
-    onMessage: (content: string) => void,
+    onMessage: (content: string, messageType: 'reading_message' | 'answer_message') => void,
     onSources: (sources: ChatSourceCommentGroup[]) => void,
     onComplete: () => void,
     onError: (error: any) => void
@@ -56,13 +56,19 @@ export class ChatService {
       const url = `${BASE_URL}/chat/stream?workspaceId=${workspaceId}&query=${encodedQuery}`;
       this.eventSource = new EventSource(url);
 
-      // 2. listen for incoming chat messages
-      this.eventSource.addEventListener("message", (event) => {
+      // 2. listen for reading messages
+      this.eventSource.addEventListener("reading_message", (event) => {
         const newContent = JSON.parse(event.data).text;
-        onMessage(newContent);
+        onMessage(newContent, 'reading_message');
       });
 
-      // 3. listen for source information
+      // 3. listen for answer messages
+      this.eventSource.addEventListener("answer_message", (event) => {
+        const newContent = JSON.parse(event.data).text;
+        onMessage(newContent, 'answer_message');
+      });
+
+      // 4. listen for source information
       this.eventSource.addEventListener("sources", async (event) => {
         try {
           // Parse and convert the raw data from snake_case to camelCase
@@ -130,14 +136,14 @@ export class ChatService {
         }
       });
 
-      // 4. listen for the completion of the chat stream
+      // 5. listen for the completion of the chat stream
       this.eventSource.addEventListener("complete", () => {
         this.eventSource?.close();
         this.eventSource = null;
         onComplete();
       });
 
-      // 5. handle errors in the event source
+      // 6. handle errors in the event source
       this.eventSource.addEventListener("error", (error) => {
         console.error("EventSource error:", error);
         this.eventSource?.close();
