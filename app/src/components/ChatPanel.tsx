@@ -68,39 +68,46 @@ interface ReadingMessageProps {
   enoughAnswersToStop: boolean;
 }
 
-const ReadingMessage: React.FC<ReadingMessageProps> = ({ message, enoughAnswersToStop }) => (
-  <div className={`flex items-center gap-1.5 text-xs py-1 px-2.5 rounded-full border reading-message-transition ${
-    enoughAnswersToStop 
-      ? 'bg-gray-50/50 text-gray-400/70 border-gray-100/70' 
-      : 'bg-gray-50 text-gray-400 border-gray-100 animate-pulse-soft'
-    }`}>
-    <div className="relative flex items-center justify-center h-3.5 w-3.5 shrink-0">
-      {enoughAnswersToStop ? (
-        <div className="h-2 w-2 rounded-full bg-green-300/50"></div>
-      ) : (
-        <svg className="h-3.5 w-3.5 animate-spin text-gray-400" viewBox="0 0 24 24">
-          <circle 
-            className="opacity-25" 
-            cx="12" 
-            cy="12" 
-            r="10" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            fill="none" 
-          />
-          <path 
-            className="opacity-75" 
-            fill="currentColor" 
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" 
-          />
-        </svg>
-      )}
+const ReadingMessage: React.FC<ReadingMessageProps> = ({ message, enoughAnswersToStop }) => {
+  // Make sure spinning circle only stops when there are enough answers
+  return (
+    <div 
+      className={`flex items-center gap-1.5 text-xs py-1 px-2.5 rounded-full border reading-message-transition w-full ${
+        enoughAnswersToStop 
+          ? 'bg-gray-50/50 text-gray-400/70 border-gray-100/70' 
+          : 'bg-gray-50 text-gray-400 border-gray-100 animate-pulse-soft'
+      }`}
+    >
+      <div className="relative flex items-center justify-center h-3.5 w-3.5 shrink-0">
+        {enoughAnswersToStop ? (
+          <div className="h-2 w-2 rounded-full bg-green-300/50"></div> 
+        ) : (
+          <svg className="h-3.5 w-3.5 animate-spin text-gray-400" viewBox="0 0 24 24">
+            <circle 
+              className="opacity-25" 
+              cx="12" 
+              cy="12" 
+              r="10" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              fill="none" 
+            />
+            <path 
+              className="opacity-75" 
+              fill="currentColor" 
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" 
+            />
+          </svg>
+        )}
+      </div>
+      <span className={`text-[11px] italic truncate ${
+        enoughAnswersToStop ? 'text-gray-500/70' : 'text-gray-500'
+      }`}>
+        {message.content}
+      </span>
     </div>
-    <span className={`text-[11px] italic truncate max-w-[180px] ${enoughAnswersToStop ? 'text-gray-500/70' : 'text-gray-500'}`}>
-      {message.content}
-    </span>
-  </div>
-);
+  );
+};
 
 // Reading messages collapse toggle
 interface ReadingMessagesToggleProps {
@@ -158,13 +165,13 @@ const SourceBadge: React.FC<SourceBadgeProps> = ({ source, onClick }) => {
     <Button 
       variant="outline" 
       size="sm" 
-      className="h-auto py-1 px-2.5 text-[11px] gap-1 mr-1.5 mb-1.5 inline-flex items-center bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 rounded-full"
+      className="h-auto py-1 px-2.5 text-[11px] gap-1 mr-0 mb-1.5 inline-flex items-center bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 rounded-full grow basis-full sm:basis-[48%] sm:mr-0 sm:max-w-[49%]"
       onClick={onClick}
     >
       <FileText size={10} className="shrink-0" />
-      <span className="truncate max-w-[100px]">{fileName}</span>
+      <span className="truncate">{fileName}</span>
       {pageNumbers.length > 0 && (
-        <Badge variant="secondary" className="h-4 px-1 text-[9px] bg-blue-200 rounded-full ml-0.5">
+        <Badge variant="secondary" className="h-4 px-1 text-[9px] bg-blue-200 rounded-full ml-0.5 shrink-0">
           p.{pageNumbers.join(",")}
         </Badge>
       )}
@@ -207,7 +214,7 @@ const ChatSources: React.FC<ChatSourceProps> = memo(({ chatSourceCommentGroups, 
 
   return (
     <div className="mt-2 pt-2 border-t border-gray-100">
-      <div className="flex flex-wrap">
+      <div className="flex flex-wrap gap-1.5">
         {validSources.map((source, index) => (
           <SourceBadge 
             key={index} 
@@ -242,35 +249,6 @@ const AssistantMessage: React.FC<{
 }) => {
   return (
     <div className="flex flex-col mt-4">
-      {/* Reading messages section */}
-      {readingMessages.length > 0 && (
-        <div className="mb-3">
-          {/* Toggle for reading messages when we have enough answers */}
-          <div className="flex flex-col space-y-1.5">
-            {answerCount >= 5 && (
-              <ReadingMessagesToggle 
-                count={readingMessages.length} 
-                isExpanded={showReadingMessages} 
-                onClick={toggleReadingMessages} 
-              />
-            )}
-            
-            {/* Show reading messages if expanded or we don't have enough answers yet */}
-            {(showReadingMessages || answerCount < 5) && (
-              <div className="flex flex-row flex-wrap gap-2 text-gray-400 mt-1">
-                {readingMessages.map((readingMsg, index) => (
-                  <ReadingMessage 
-                    key={index} 
-                    message={readingMsg} 
-                    enoughAnswersToStop={answerCount >= 10} 
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-      
       {/* AI Response */}
       <div className="px-0.5">
         <div className={cn(
@@ -412,11 +390,40 @@ const MessagePairComponent: React.FC<MessagePairProps> = memo(({ pair, isReading
       {/* User message */}
       <UserMessage message={pair.userMessage} />
       
+      {/* Reading messages section - show immediately after user message */}
+      {pair.readingMessages.length > 0 && (
+        <div className="mt-3 mb-3">
+          {/* Toggle for reading messages when we have enough answers */}
+          <div className="flex flex-col space-y-1.5">
+            {pair.answerCount >= 5 && (
+              <ReadingMessagesToggle 
+                count={pair.readingMessages.length} 
+                isExpanded={pair.showReadingMessages} 
+                onClick={handleToggleReadingMessages} 
+              />
+            )}
+            
+            {/* Show reading messages if expanded or we don't have enough answers yet */}
+            {(pair.showReadingMessages || pair.answerCount < 5) && (
+              <div className="flex flex-row flex-wrap gap-2 text-gray-400 mt-1">
+                {pair.readingMessages.map((readingMsg, index) => (
+                  <ReadingMessage 
+                    key={index} 
+                    message={readingMsg} 
+                    enoughAnswersToStop={pair.answerCount >= 12} 
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
       {/* AI response */}
       {pair.assistantMessage && (
         <AssistantMessage 
           message={pair.assistantMessage}
-          readingMessages={pair.readingMessages}
+          readingMessages={[]} // Don't pass reading messages to AssistantMessage since we're showing them above
           showReadingMessages={pair.showReadingMessages}
           answerCount={pair.answerCount}
           handleSourceClick={handleSourceClick}
@@ -562,75 +569,80 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
             
             if (currentPair) {
               if (messageType === 'reading_message') {
-                // Add to the reading message buffer
-                const updatedBuffer = currentPair.readingMessageBuffer + newContent;
-                currentPair.readingMessageBuffer = updatedBuffer;
+                // Add to the buffer and process the updated content
+                currentPair.readingMessageBuffer += newContent;
                 
-                // Check if the buffer contains any newline characters
-                if (updatedBuffer.includes('\n')) {
-                  // Split the buffer by newline character
-                  const messages = updatedBuffer.split('\n');
+                // Split by newlines and process
+                if (currentPair.readingMessageBuffer.includes('\n')) {
+                  const lines = currentPair.readingMessageBuffer.split('\n');
                   
-                  // The last element is an incomplete message
-                  const incomplete = messages.pop() || "";
+                  // Last item might be incomplete (no newline yet)
+                  const incompleteLine = lines.pop() || '';
                   
-                  // Process complete messages
-                  const newMessages: ChatMessage[] = [];
-                  messages.filter(msg => msg.trim().length > 0).forEach((msgContent) => {
-                    // Create a new reading message for each complete line
-                    newMessages.push({
-                      id: `${pairId}.reading.${Date.now()}.${Math.random().toString(36).substring(2,9)}`,
+                  // Process all complete lines (with newlines)
+                  const existingReadingIds = new Set(currentPair.readingMessages.map(m => m.content.trim()));
+                  
+                  // Add new complete reading messages
+                  lines.forEach(line => {
+                    const trimmedLine = line.trim();
+                    if (trimmedLine && !existingReadingIds.has(trimmedLine)) {
+                      currentPair.readingMessages.push({
+                        id: `${pairId}.reading.${Date.now()}.${Math.random().toString(36).substring(2,8)}`,
+                        sender: "assistant",
+                        content: trimmedLine,
+                        timestamp: new Date(),
+                        chatSourceCommentGroups: [],
+                        messageType: 'reading_message'
+                      });
+                    }
+                  });
+                  
+                  // Update buffer with incomplete line
+                  currentPair.readingMessageBuffer = incompleteLine;
+                }
+                
+                // Always ensure the current buffer content is visible if it's not empty
+                // and doesn't duplicate an existing reading message
+                const bufferContent = currentPair.readingMessageBuffer.trim();
+                if (bufferContent && !currentPair.readingMessages.some(m => m.content === bufferContent)) {
+                  const tempId = `${pairId}.reading.buffer`;
+                  
+                  // Check if we already have a buffer message
+                  const bufferMsgIndex = currentPair.readingMessages.findIndex(m => m.id.includes('.buffer'));
+                  
+                  if (bufferMsgIndex >= 0) {
+                    // Update existing buffer message
+                    currentPair.readingMessages[bufferMsgIndex].content = bufferContent;
+                  } else {
+                    // Add a new buffer message
+                    currentPair.readingMessages.push({
+                      id: tempId,
                       sender: "assistant",
-                      content: msgContent.trim(),
+                      content: bufferContent,
                       timestamp: new Date(),
                       chatSourceCommentGroups: [],
                       messageType: 'reading_message'
                     });
-                  });
-                  
-                  // Update reading messages with complete lines
-                  if (newMessages.length > 0) {
-                    currentPair.readingMessages = [...currentPair.readingMessages, ...newMessages];
                   }
-                  
-                  // Keep incomplete message in buffer
-                  currentPair.readingMessageBuffer = incomplete;
-                }
-                
-                // Always ensure there's at least one reading message visible immediately
-                if (currentPair.readingMessages.length === 0 && updatedBuffer.trim().length > 0) {
-                  // Create a temporary reading message from the buffer
-                  currentPair.readingMessages = [{
-                    id: `${pairId}.reading.temp`,
-                    sender: "assistant",
-                    content: updatedBuffer.trim(),
-                    timestamp: new Date(),
-                    chatSourceCommentGroups: [],
-                    messageType: 'reading_message'
-                  }];
-                } else if (currentPair.readingMessages.length === 1 && 
-                          currentPair.readingMessages[0].id === `${pairId}.reading.temp` &&
-                          !updatedBuffer.includes('\n')) {
-                  // Update the temporary reading message content
-                  currentPair.readingMessages[0].content = updatedBuffer.trim();
                 }
               } else if (messageType === 'answer_message') {
-                // Add to main answer and increment answer count
+                // Add to main answer
                 currentPair.assistantMessage = {
                   ...currentPair.assistantMessage!,
                   content: currentPair.assistantMessage!.content + newContent,
                   messageType: 'answer_message'
                 };
                 
-                // Increment the answer count to trigger animation changes
-                currentPair.answerCount += 1;
-                
-                // If we just reached 5 answers, force an immediate re-render to stop animations
-                if (currentPair.answerCount === 5) {
-                  // This is to ensure the animations stop immediately
-                  setTimeout(() => {
-                    setMessagePairs([...newPairs]);
-                  }, 0);
+                // Only increment answer count when content is meaningful (length > 2)
+                if (newContent.trim().length > 2) {
+                  currentPair.answerCount += 1;
+                  
+                  // If we just reached 5 answers, change reading message appearance
+                  if (currentPair.answerCount === 5) {
+                    setTimeout(() => {
+                      setMessagePairs((prev) => [...prev]);
+                    }, 0);
+                  }
                 }
               }
             }
@@ -661,24 +673,52 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           setMessagePairs((prev) => {
             const newPairs = [...prev];
             const lastPair = newPairs[newPairs.length - 1];
-            if (lastPair && lastPair.readingMessageBuffer.trim().length > 0) {
-              // Create a final reading message from remaining buffer content
-              const finalReadingMessage: ChatMessage = {
-                id: `${lastPair.id}.reading.${lastPair.readingMessages.length}`,
-                sender: "assistant",
-                content: lastPair.readingMessageBuffer.trim(),
-                timestamp: new Date(),
-                chatSourceCommentGroups: [],
-                messageType: 'reading_message'
-              };
-              lastPair.readingMessages.push(finalReadingMessage);
-              lastPair.readingMessageBuffer = "";
+            
+            if (lastPair) {
+              // Process any remaining content in the buffer as a final reading message
+              if (lastPair.readingMessageBuffer.trim()) {
+                const bufferContent = lastPair.readingMessageBuffer.trim();
+                
+                // Check if this content is already in our reading messages
+                const existingMatch = lastPair.readingMessages.find(m => 
+                  m.content === bufferContent || m.id.includes('.buffer')
+                );
+                
+                if (existingMatch) {
+                  // Update the existing buffer message to be a permanent message
+                  existingMatch.id = `${lastPair.id}.reading.${lastPair.readingMessages.length}`;
+                } else if (bufferContent) {
+                  // Add a new final reading message
+                  lastPair.readingMessages.push({
+                    id: `${lastPair.id}.reading.${lastPair.readingMessages.length}`,
+                    sender: "assistant",
+                    content: bufferContent,
+                    timestamp: new Date(),
+                    chatSourceCommentGroups: [],
+                    messageType: 'reading_message'
+                  });
+                }
+                
+                // Clear the buffer
+                lastPair.readingMessageBuffer = "";
+              }
+              
+              // Remove any duplicate reading messages
+              const uniqueContents = new Set<string>();
+              lastPair.readingMessages = lastPair.readingMessages.filter(msg => {
+                if (uniqueContents.has(msg.content)) {
+                  return false;
+                }
+                uniqueContents.add(msg.content);
+                return true;
+              });
+              
+              // Automatically collapse reading messages if we have enough answer content
+              if (lastPair.answerCount >= 12) {
+                lastPair.showReadingMessages = false;
+              }
             }
             
-            // Automatically collapse reading messages if we have enough answer content
-            if (lastPair && lastPair.answerCount >= 10) {
-              lastPair.showReadingMessages = false;
-            }
             return newPairs;
           });
         },
@@ -734,24 +774,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
             <BookOpen className="w-4 h-4 text-blue-500" />
             <span className="text-sm text-gray-800">AI Assistant</span>
           </div>
-          {isEventSourceActive && messagePairs.length > 0 && currentPairId && (
-            <div className="flex items-center gap-1.5">
-              <div className="flex gap-1.5 overflow-x-auto max-w-[70%] py-1">
-                {messagePairs.find(p => p.id === currentPairId)?.readingMessages.slice(-3).map((msg, index) => (
-                  <Badge key={index} variant="outline" className="bg-blue-50 border-blue-100 text-blue-600 flex gap-1 items-center text-[10px] py-0 h-5">
-                    <Search size={10} className="text-blue-500" />
-                    <span className="truncate max-w-[80px]">{msg.content.replace('Reading ', '').replace('...', '')}</span>
-                  </Badge>
-                ))}
-              </div>
-              <div className="relative h-4 w-4">
-                <div className="absolute inset-0 rounded-full border border-blue-200 animate-ping opacity-75"></div>
-                <div className="absolute inset-0 rounded-full bg-blue-100 flex items-center justify-center">
-                  <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         <ScrollArea className="flex-1 px-3.5 pt-3.5 pb-2">

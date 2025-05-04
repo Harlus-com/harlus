@@ -136,6 +136,7 @@ def prune_overlapping_rects(standard_rects: list[Dict[str, Union[float, int]]], 
 
 
 def get_llamaparse_rects(file_path, retrieved_node, page_nb):
+    page_nb = page_nb - 1
     doc = fitz.open(file_path)
     page = doc[page_nb]
     page_width = page.rect.width

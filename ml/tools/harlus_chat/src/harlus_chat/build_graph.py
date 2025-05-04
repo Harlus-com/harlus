@@ -315,6 +315,7 @@ class ChatAgentGraph:
             if len(standard_rects) == 0:
                 print("[harlus_chat] No fine-grained rects found, using course rects")
                 standard_rects = backup_standard_rects
+                standard_rects = prune_overlapping_rects(standard_rects)
 
             # convert to ChatSourceComment framework
             unique_id = str(uuid.uuid4())
