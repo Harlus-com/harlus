@@ -4,10 +4,10 @@ with open("requirements.txt") as f:
 
     
 setup(
-    name="doc_search",
-    version="0.1.2",
+    name="harlus_chat",
+    version="0.1.0",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=requirements,
-    description="Release note: include file path in node metadata",
+    description="Release note: initial release",
 )

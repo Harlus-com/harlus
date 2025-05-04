@@ -55,6 +55,7 @@ class FileService {
       sender: "user",
       content,
       timestamp: new Date(),
+      chatSourceCommentGroups: [],
     };
 
     this.chatHistory.push(userMessage);
@@ -79,6 +80,7 @@ class FileService {
       sender: "assistant",
       content: responseContent,
       timestamp: new Date(),
+      chatSourceCommentGroups: [],
     };
 
     this.chatHistory.push(aiMessage);
@@ -95,6 +97,31 @@ class FileService {
     return client.get(
       `/contrast/analyze?oldFileId=${file1Id}&newFileId=${file2Id}`
     );
+  }
+
+  // Get file ID from path
+  async getFileFromPath(filePath: string): Promise<WorkspaceFile> {
+    const params = new URLSearchParams({
+      file_path: filePath,
+    });
+    console.log("[FileService] Getting file from path:", params.toString());
+    const file = await client.get(`/file/get_from_path?${params.toString()}`);
+    console.log("[FileService] File:", file);
+    // Convert backend file to WorkspaceFile type
+    const workspaceFile: WorkspaceFile = {
+      id: file.id,
+      name: file.name,
+      absolutePath: file.absolute_path,
+      workspaceId: file.workspace_id,
+      appDir: file.app_dir,
+      status: file.status,
+      annotations: file.annotations ? {
+        show: false,
+        data: file.annotations
+      } : undefined
+    };
+    
+    return workspaceFile;
   }
 }
 

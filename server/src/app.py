@@ -4,6 +4,7 @@ from fastapi import (
     Query,
     Response,
     WebSocket,
+    HTTPException,
 )
 import os
 import asyncio
@@ -25,12 +26,14 @@ from src.sync_queue import SyncQueue
 from src.stream_manager import StreamManager
 from src.sync_status import SyncStatus
 from contrast_tool import ContrastTool
+from harlus_chat import GraphPipeline
+
 
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -253,22 +256,34 @@ SYSTEM_PROMPT = """
 async def stream_chat(
     workspace_id: str = Query(..., alias="workspaceId"), query: str = Query(...)
 ):
-    agent = ReActAgent(
-        tools=tool_library.get_tool_for_all_files("doc_search"),
-        llm=OpenAI(model="gpt-4o-mini"),
-        name="test_agent",
-        description="test_description",
-    )
-    handler = agent.run(query + " " + SYSTEM_PROMPT)
+    # TODO: persist the GraphPipeline Instance in memory.
+    # The instance can store all memory related to a thread ID
+    # This can be used to show historical threads and use previous chat context in replies 
+    # 
+    # Example:
+    # 
+    # ...
+    # gp = get_graph_pipeline_from_workspace_id(workspace_id)
+    # ...
+    # gp.event_stream_generator(query, thread_id=thread_id)
+    # ...
+    # 
+    # Another method could also extract the chat history, 
+    # 
+    # gp.get_chat_history(thread_id=thread_id)
+
+    gp = GraphPipeline([tool.get().to_langchain_tool() for tool in tool_library.get_tool_for_all_files("doc_search")])
+    gp.build_graph()
     response = StreamingResponse(
-        stream_generator_v2(handler, file_store.get_file_path_to_id(workspace_id)),
+        gp.event_stream_generator(query),
         media_type="text/event-stream",
     )
     response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Credentials"] = "false"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "*"
     return response
+
 
 
 @app.get("/file/model/status/{file_id}")
@@ -366,3 +381,34 @@ def get_contrast_analyze(
         claim_checks=claim_checks,
     )
     return contrast_result
+
+
+@app.get("/file/get_from_path")
+def get_file_from_path(
+    file_path: str = Query(..., description="The absolute path of the file"),
+):
+    print("Getting file from path", file_path)
+    """Get file object from file path by searching through all workspaces"""
+    try:
+        # Get all workspaces
+        workspaces = file_store.get_workspaces()
+        
+        # Search through each workspace
+        for workspace in workspaces.values():
+            try:
+                file = file_store.get_file_by_path(file_path, workspace.id)
+                return {
+                    "id": file.id,
+                    "name": file.name,
+                    "absolute_path": file.absolute_path,
+                    "workspace_id": file.workspace_id,
+                    "app_dir": file.app_dir,
+                    "status": sync_queue.get_sync_status(file.id)
+                }
+            except ValueError:
+                continue
+                
+        # If we get here, the file wasn't found in any workspace
+        raise HTTPException(status_code=404, detail=f"File not found in any workspace: {file_path}")
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))

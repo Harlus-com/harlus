@@ -57,6 +57,8 @@ class NodePipeline:
 
     async def execute(self) -> tuple[str, str, list[Node]]:
 
+        # TODO: test if simpler markdown parser is better
+
         print(f"Creating nodes for {self.file_path} ...")
         print(" - parsing PDF to JSON...")
         json_ = LlamaParse(api_key=LLAMA_CLOUD_API_KEY).get_json_result(self.file_path)
@@ -86,11 +88,16 @@ class NodePipeline:
             window_metadata_key="window",
             original_text_metadata_key="original_text",
         )
-        fine_nodes = split_text_nodes(nodes, sentence_window_parser)
-        nodes.extend(fine_nodes)
+        nodes = split_text_nodes(nodes, sentence_window_parser)
+
+        print(" - adding file path to nodes...")
+        nodes_out = []
+        for node in nodes:
+            node.metadata["file_path"] = self.file_path
+            nodes_out.append(node)
 
         return (
             json.dumps(json_, indent=2),
-            json.dumps(nodes_to_json_obj(nodes), indent=2),
-            nodes,
+            json.dumps(nodes_to_json_obj(nodes_out), indent=2),
+            nodes_out,
         )
