@@ -40,7 +40,7 @@ export class ChatService {
     onComplete: () => void,
     onError: (error: any) => void
   ) {
-    console.log("[ChatService] Starting chat stream:", {
+    console.log("[ChatService] Initializing", {
       userQueryLength: userQuery.length,
       workspaceId
     });
@@ -67,10 +67,9 @@ export class ChatService {
         try {
           // Parse and convert the raw data from snake_case to camelCase
           const rawData = JSON.parse(event.data);
-          console.log("[ChatService] Raw source data:", rawData);
+          console.log("[ChatService] Received raw source data:", rawData);
           
           const convertedData = convertKeysToCamelCase(rawData);
-          console.log("[ChatService] Converted source data:", convertedData);
 
           // Parse source comments with converted data
           const chatSourceComments = convertedData.map((item: any) => ({
@@ -92,7 +91,7 @@ export class ChatService {
             nextChatCommentId: item.nextChatCommentId
           })) as ChatSourceComment[];
 
-          console.log("[ChatService] Parsed source comments:", chatSourceComments);
+          console.log("[ChatService] Parsed raw data to source comments:", chatSourceComments);
 
           // Group source comments by file
           const chatSourceCommentGroups: ChatSourceCommentGroup[] = [];
@@ -123,9 +122,8 @@ export class ChatService {
             })
           );
 
-          console.log("[ChatService] Final updated sources with workspace files:", updatedChatSourceCommentGroups);
+          console.log("[ChatService] Updated sources with workspace files:", updatedChatSourceCommentGroups);
           onSources(updatedChatSourceCommentGroups);
-          console.log("[ChatService] Passed sources to parent callback");
         } catch (error) {
           console.error("[ChatService] Error processing sources:", error);
           onError(error);

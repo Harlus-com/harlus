@@ -55,6 +55,7 @@ class FileService {
       sender: "user",
       content,
       timestamp: new Date(),
+      chatSourceCommentGroups: [],
     };
 
     this.chatHistory.push(userMessage);
@@ -79,6 +80,7 @@ class FileService {
       sender: "assistant",
       content: responseContent,
       timestamp: new Date(),
+      chatSourceCommentGroups: [],
     };
 
     this.chatHistory.push(aiMessage);
@@ -102,8 +104,9 @@ class FileService {
     const params = new URLSearchParams({
       file_path: filePath,
     });
+    console.log("[FileService] Getting file from path:", params.toString());
     const file = await client.get(`/file/get_from_path?${params.toString()}`);
-    
+    console.log("[FileService] File:", file);
     // Convert backend file to WorkspaceFile type
     const workspaceFile: WorkspaceFile = {
       id: file.id,
@@ -120,7 +123,6 @@ class FileService {
     
     return workspaceFile;
   }
-
 }
 
 export const fileService = new FileService();

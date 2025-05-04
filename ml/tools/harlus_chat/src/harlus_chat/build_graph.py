@@ -264,7 +264,6 @@ class GraphPipeline:
                     break
             else:
                 pruned_retrieved_nodes.append(retrieved_node)
-        print("pruned_retrieved_nodes: ", pruned_retrieved_nodes)
         return pruned_retrieved_nodes
 
     def get_chat_source_comments(self):
@@ -274,27 +273,19 @@ class GraphPipeline:
         # get the retrieved nodes from the graph
         retrieved_nodes = self.get_retrieved_nodes()
         nb_messages = len(self.graph.get_state(self.config).values.get("messages", []))
-        print(" ** checkpoint 1 ** ")
 
         # convert the retrieved nodes to source annotations
         last_unique_id = ""
         for retrieved_node in retrieved_nodes:
-            print(" ** checkpoint 2 ** ")
             file_path = retrieved_node.metadata.get("file_path")
             text = retrieved_node.text
             page_nb = retrieved_node.metadata.get("page_nb")
-            print(" ** checkpoint 3 ** ")
             standard_rects = get_standard_rects_from_pdf(file_path, text, page_nb)
-            print(" ** checkpoint 4 ** ")
             standard_rects = prune_overlapping_rects(standard_rects)
-            print(" ** checkpoint 5 ** ")
 
             unique_id = str(uuid.uuid4())
-            print(" ** checkpoint 6 ** ")
             bboxes = [BoundingBox(**rect) for rect in standard_rects]
-            print(" ** checkpoint 7 ** ")
             highlight_area = HighlightArea(bounding_boxes=bboxes, jump_to_page_number=page_nb)
-            print(" ** checkpoint 8 ** ")
             chat_source_comment = ChatSourceComment(
                 highlight_area=highlight_area,
                 id=unique_id,
@@ -304,11 +295,8 @@ class GraphPipeline:
                 text="Response source",
                 next_chat_comment_id=last_unique_id
             )
-            print(" ** checkpoint 9 ** ")
             last_unique_id = unique_id
-            print(" ** checkpoint 10 ** ")
             chat_source_comments.append(chat_source_comment)
-            print(" ** checkpoint 11 ** ")
 
         return chat_source_comments
     
@@ -321,6 +309,7 @@ class GraphPipeline:
         }
 
         # 1. stream the answer 
+        print("[harlus_chat] Streaming answer...")
         async for message_chunk, metadata in self.graph.astream(
             input_state,
             stream_mode=mode,
@@ -339,6 +328,7 @@ class GraphPipeline:
                 print(f"Streaming error: {e}")
             
         # 2. stream the source annotations
+        print("[harlus_chat] Streaming source annotations...")
         try:
             data = self.get_chat_source_comments()
             data = [d.model_dump() for d in data]
@@ -347,9 +337,10 @@ class GraphPipeline:
                     f'event: {"sources"}',
                     '\n\n'
             ])
+            print(f"[harlus_chat] Sent {len(data)} source annotations")
             yield response
         except Exception as e:
-            print(f"Error sending source annotations: {e}")
+            print(f"[harlus_chat] Error sending source annotations: {e}")
 
         # 3. stream the completion
         response = '\n'.join([
