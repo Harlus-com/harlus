@@ -158,8 +158,6 @@ def create_nodes_from_llamaparse_json(json_in: List[List[Dict]]) -> List[Node]:
     return nodes_out
 
 
-
-
 def add_node_relationships(nodes_in: List[Node]) -> List[Node]:
     """
     Add previous/next relationships between consecutive nodes in a list.
@@ -255,7 +253,6 @@ def split_text_nodes(nodes_in: List[Node], sentence_window_parser: SentenceWindo
             fine_nodes = sentence_window_parser.get_nodes_from_documents([current_node])
             nodes_out.extend(fine_nodes)
         nodes_out.append(current_node)
-
     return nodes_out
 
 async def add_metadata_to_nodes(nodes_in: List[Node], extractor_list: List[BaseExtractor]) -> List[Node]:

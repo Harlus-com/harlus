@@ -12,6 +12,7 @@ class ToolLibrary:
     def __init__(self, file_store: FileStore):
         self.file_path_to_tools: dict[str, list[ToolWrapper]] = defaultdict(list)
         self.file_store = file_store
+        self.tools = []
 
     def delete_file_tools(self, file: File):
         if file.absolute_path in self.file_path_to_tools:
@@ -34,6 +35,8 @@ class ToolLibrary:
                     tool = pickle.load(f)
                     tool_wrapper = ToolWrapper(tool, tool_dir, debug_info={})
                     self.file_path_to_tools[file.absolute_path].append(tool_wrapper)
+                    self.tools.append(tool_wrapper)
+                    
         for file_name, tools in self.file_path_to_tools.items():
             print(f"Loaded tools for {file_name}: {[t.get_tool_name() for t in tools]}")
 
