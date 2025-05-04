@@ -49,14 +49,19 @@ class BasicToolNode:
             # Try to get sources from the tool result
             has_retrieved_nodes = False
             try:
-                retrieved_nodes_list = []
-                for retrieved_node in tool_result.raw_output.source_nodes:
-                    retrieved_nodes_list.append(ToolRetrievedNode(
-                        metadata=retrieved_node.metadata,
-                        text=retrieved_node.text
-                    ))
-                content = json.dumps(tool_result.content)
-                has_retrieved_nodes = True
+                # result from doc_search tool
+                if hasattr(tool_result, "raw_output"):
+                    retrieved_nodes_list = []
+                    for retrieved_node in tool_result.raw_output.source_nodes:
+                        retrieved_nodes_list.append(ToolRetrievedNode(
+                            metadata=retrieved_node.metadata,
+                            text=retrieved_node.text
+                        ))
+                    content = json.dumps(tool_result.content)
+                    has_retrieved_nodes = True
+                # result from tavily tool
+                if hasattr(tool_result, "results"):
+                    pass 
             except:
                 content = json.dumps(tool_result)
 
@@ -95,8 +100,6 @@ class AsyncToolNode:
 
 def sanitize_tool_name(name):
     return re.sub(r"[^a-zA-Z0-9_-]", "_", name)
-
-
 
 
 class ChatAgentGraph:
@@ -148,7 +151,9 @@ class ChatAgentGraph:
 
     """
     def __init__(self, tools: List[any]):
+        self.default_tools = [TAVILY_TOOL]
         self.tools = []
+        self.tools.extend(self.default_tools)
         for tool in tools:
             if isinstance(tool, BaseTool):
                 self.tools.append(tool)
