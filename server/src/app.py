@@ -20,7 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from src.util import BoundingBoxConverter, snake_to_camel
 from src.tool_library import ToolLibrary
 from src.sync_workspace import get_workspace_sync_manager
-from src.stream_response import stream_generator_v2
+#from src.stream_response import stream_generator_v2 # TODO: Delete this file
 from src.file_store import FileStore, Workspace, File
 from src.sync_queue import SyncQueue
 from src.stream_manager import StreamManager
@@ -273,6 +273,7 @@ async def stream_chat(
     # gp.get_chat_history(thread_id=thread_id)
 
     agent_graph = ChatAgentGraph([tool.get().to_langchain_tool() for tool in tool_library.get_tool_for_all_files("doc_search")])
+    agent_graph.build()
     response = StreamingResponse(
         agent_graph.stream(query),
         media_type="text/event-stream",
