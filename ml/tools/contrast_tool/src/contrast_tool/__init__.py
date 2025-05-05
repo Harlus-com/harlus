@@ -5,6 +5,8 @@ from .loader import (
     ClaimCheckToolLaoder,
 )
 from .contrast_tool import ContrastTool
+from .claim_getter import ClaimGetterPipeline
+from .claim_checker import ClaimCheckerPipeline
 
 __all__ = [
     "ToolWrapper",
@@ -12,4 +14,6 @@ __all__ = [
     "ClaimRetrieverToolLoader",
     "ClaimCheckToolLaoder",
     "ContrastTool",
+    "ClaimGetterPipeline",
+    "ClaimCheckerPipeline",
 ]

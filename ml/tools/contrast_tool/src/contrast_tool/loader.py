@@ -2,8 +2,8 @@ from llama_index.core.tools import QueryEngineTool
 from llama_index.core.base.base_query_engine import BaseQueryEngine
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.schema import Node
-from .claim_getter import ClaimGetter
-from .claim_checker import ClaimChecker
+from .claim_getter import ClaimGetterPipeline
+from .claim_checker import ClaimCheckerPipeline
 from .utils import load_config
 from typing import Union, Optional
 import os

@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Literal
 
-
+from llama_index.core.prompts import PromptTemplate
+from pydantic import BaseModel
 
 from llama_index.core import VectorStoreIndex, KeywordTableIndex
 
@@ -10,8 +11,7 @@ from llama_index.core.retrievers import (
     VectorIndexRetriever,
     KeywordTableSimpleRetriever,
 )
-from llama_index.core.query_engine import BaseQueryEngine, SubQuestionQueryEngine
-
+from llama_index.core.query_engine import BaseQueryEngine, SubQuestionQueryEngine, RetrieverQueryEngine
 from llama_index.core.response_synthesizers import (
     BaseSynthesizer,
     get_response_synthesizer,
@@ -21,6 +21,10 @@ from llama_index.core.output_parsers import PydanticOutputParser
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
 
 from llama_index.core.question_gen import LLMQuestionGenerator
+
+from llama_index.core.node_parser import SentenceWindowNodeParser
+
+from llama_index.readers.file import PDFReader
 
 from llama_parse import LlamaParse
 from llama_index.llms.openai import OpenAI
@@ -32,8 +36,6 @@ from .prompts import get_prompt
 import src.contrast_tool.prompts as prompts
 
 from pathlib import Path
-
-from .contrast_tool import Verdict
 
 
 # TODO prevent hallucinations -> add to prompt that "if no info, say no info"
@@ -50,10 +52,53 @@ from .contrast_tool import Verdict
 # TODO: parse out non standard inputs to avoid hallucination
 
 
-# class ExtractQuestions(BaseModel):
-#     questions: List[str]
+class SubQuestion(BaseModel):
+    sub_question: str
+    tool_name: str = "file"
+
+class SubQuestionList(BaseModel):
+    items: List[SubQuestion]
+
+class Verdict(BaseModel):
+    status: Literal["true", "false", "unknown"]
+    explanation: str
+
+# class VerdictList(BaseModel):
+#     verdicts: List[Verdict]   
 
 
+SUBQUESTION_PARSER = PydanticOutputParser(output_cls=SubQuestionList)
+VERDICT_PARSER = PydanticOutputParser(output_cls=Verdict)
+
+PROMPT_SUBQUESTIONS_TEXT = """\
+Claim:
+{query_str}
+
+List {num_questions} questions that a financial analyst would ask to identify all relevant information that can verify this claim. Make sure that the questions are
+- concise, i.e. each question focusses on a different feature of the claim
+- precise, i.e. include as much data from the claim as possible
+- complete, i.e. search for all aliases of the claim's topic and its key drivers
+
+{output_format}\
+Note that "tool_name" should always be "file".
+"""
+PROMPT_SUBQUESTIONS = PromptTemplate(PROMPT_SUBQUESTIONS_TEXT)
+
+PROMPT_VERDICT_TEXT = """\
+You are a fact-verification assistant verifying a claim made some time ago.
+Based on the following new facts, return whether the claim is 'true', 'false' or 'unknown' due to insufficient evidence.
+Support your verdict with a short explanation. For numeric claims:
+- Extract the numeric values from the claim and the evidence.
+- If they differ, compute the percent error as:
+    |(ClaimValue - EvidenceValue) / EvidenceValue| x 100%
+Round to one decimal place and state whether the claim over- or understates the metric.
+When verifying the claim, make sure to consider all aliases of the claim's topic and its key drivers.
+
+{output_format}\
+"""
+PROMPT_VERDICT = PromptTemplate(PROMPT_VERDICT_TEXT)
+
+# TODO make subclass of query engine
 class ClaimCheckerPipeline:
 
     def __init__(
@@ -67,21 +112,34 @@ class ClaimCheckerPipeline:
             model= config["question model"]["model_name"],
             temperature=config["question model"]["temperature"],
             max_tokens=config["question model"]["max_tokens"],
-            # output_parser=PydanticOutputParser(output_cls=SubQuestionToolList),
         )
 
         # llm that compares relevant data to claims
-        self.verification_model_name = config["verification model"]["model_name"]
-        self.verification_parser = PydanticOutputParser(output_cls=Verdict)
+        # self.verification_model_name = config["verification model"]["model_name"]
+        # self.verification_parser = PydanticOutputParser(output_cls=Verdict)
         self.verification_llm = OpenAI(
-            model=self.verification_model_name,
+            model=config["verification model"]["model_name"],
             temperature=config["verification model"]["temperature"],
             max_tokens=config["verification model"]["max_tokens"],
-            output_parser=PydanticOutputParser(output_cls=Verdict)
+            system_prompt=PROMPT_VERDICT.format(output_format=VERDICT_PARSER.get_format_string()),
+            # output_parser=VERDICT_PARSER
         )
 
 
-    async def build_retriever(
+    def build_sentence_retriever(self, file_path: str):
+
+        docs = PDFReader().load_data(file=file_path)
+        splitter = SentenceWindowNodeParser.from_defaults(
+            window_size=1,
+            window_metadata_key="window",
+            original_text_metadata_key="sentence",
+        )
+        index = VectorStoreIndex.from_documents(docs, transformations=[splitter])
+
+        return index.as_retriever(similarity_top_k=1)
+
+
+    def build_retriever(
             self, 
             file_path:str,
         ) -> BaseRetriever:
@@ -146,20 +204,20 @@ class ClaimCheckerPipeline:
         return index.as_retriever()
 
 
-    async def build_qengine(
+    def build_qengine(
             self, 
             file_path:str,
             num_questions: int = 3,
         ) -> BaseQueryEngine:
 
-        retriever = await self.build_retriever(file_path)
+        retriever = self.build_retriever(file_path)
 
         # node_postprocessors = [
         #     # MetadataReplacementPostProcessor(target_metadata_key="window"),
         #     LLMRerank(choice_batch_size=15, top_n=8, llm=self.question_llm),
         # ]
 
-        print(" - building mix keyword vector retriever query engine ...")
+        print(" - building retriever query engine ...")
         mix_query_engine = RetrieverQueryEngine(
             retriever=retriever,
             response_synthesizer=get_response_synthesizer(
@@ -184,38 +242,28 @@ class ClaimCheckerPipeline:
         question_gen = LLMQuestionGenerator.from_defaults(
             llm=self.question_llm,
             prompt_template_str=(
-                prompts.get_prompt("get questions to challenge claim").format(num_questions=num_questions) +
-                # PydanticOutputParser(output_cls=SubQuestionToolList).get_format_string() +
-                "Make sure your respond is a compact JSON object that looks as follows: " +
-                "{items:[{'sub_question':<question_1>, 'tool_name':'file'}, {'sub_question':<question_1>, 'tool_name':'file'}" +
-                "Note that tool_name is always 'file'."
+                PROMPT_SUBQUESTIONS.format(
+                    num_questions=num_questions,
+                    output_format=SUBQUESTION_PARSER.get_format_string(),
+                )
             ),
-            # output_parser=PydanticOutputParser(output_cls=SubQuestionToolList)
         )
 
         response_synthesizer = get_response_synthesizer(
             llm=self.verification_llm,
-            # response_mode=ResponseMode.COMPACT,
+            # prompt_template=,
             use_async=True,
-            output_cls=Verdict,
-            verbose=False,
-        )
-
-        query_engine = SubQuestionQueryEngine.from_defaults(
-            query_engine_tools=query_engine_tools,
-            question_gen=question_gen,
-            use_async=True,
-            # llm=self.verification_llm,
-            verbose=True,
-            response_synthesizer=response_synthesizer,
+            # verbose=True,
         )
         
-        # TODO add response_synthesizer so that it also outputs the nodes
+        return SubQuestionQueryEngine.from_defaults(
+            query_engine_tools=query_engine_tools,
+            question_gen=question_gen,
+            response_synthesizer=response_synthesizer,
+        )
 
-        return query_engine
 
-
-# # TODO pipeline
+# # # TODO pipeline
 # class ClaimChecker:
 
 #     def __init__(

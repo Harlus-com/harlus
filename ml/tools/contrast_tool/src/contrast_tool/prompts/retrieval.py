@@ -2,12 +2,22 @@ from llama_index.core.prompts import PromptTemplate
 from .base import register_prompt
 
 
+# TODO extract the exact sentence
 _PROMPT_GET_CLAIMS_NAME = "extract claims"
 _PROMPT_GET_CLAIMS_TEXT = """\
-What are *all* the sentences in this report that express a projection, an outlook or an expectation about company KPIs or market characteristics. \
-Write one precise sentence per item, each time mentioning the topic, the expected value or trend and the period or horizon date. \
-Use *only* figures that appear in the text. Do not invent anything.
-{output_format}\
+What are *all* the sentences that express a projection, an outlook or an expectation about company KPIs or market characteristics?
+
+For each sentence in the list, output:
+- a precise claim as a string <claim> that captures:
+    - the context of the sentence, i.e. date of the report, company or market discussed
+    - the topic of the sentence, i.e. company KPI or market characteristic
+    - the expected value or trend
+    - the period or horizon date
+- the exact sentence in the document that supports the claim as a string <source_text>
+- the path of the file as a string <file_path>
+- the page number of the sentence in the document as an integer <page_num>
+
+Use *only* figures that appear in the text. Do not invent anything.\
 """
 PROMPT_GET_CLAIMS = PromptTemplate(_PROMPT_GET_CLAIMS_TEXT,)
 register_prompt(PROMPT_GET_CLAIMS, name=_PROMPT_GET_CLAIMS_NAME)

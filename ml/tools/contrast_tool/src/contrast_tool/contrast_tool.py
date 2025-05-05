@@ -1,14 +1,12 @@
 import os, json
 
-from .claim_getter import ClaimGetter
-from .claim_checker import ClaimCheckerPipeline
+from .claim_getter import ClaimGetterPipeline, CLAIM_PARSER
+from .claim_checker import ClaimCheckerPipeline, VERDICT_PARSER
 
 from llama_index.core.output_parsers import PydanticOutputParser
 
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.base.base_query_engine import BaseQueryEngine
-
-from pydantic import BaseModel
 
 from .utils import find_fuzzy_bounding_boxes
 
@@ -17,47 +15,23 @@ from .prompts import get_prompt
 from typing import List, Tuple, Literal
 
 import fitz
+from pydantic import BaseModel
 
-DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.yaml")
+# DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.yaml")
 
-
-class Claim(BaseModel):
-    text: str
-    source: str
-    page_num: int
-    bounding_box: List[Tuple[float, float, float, float]]
-    # page_width: float
-    # page_height: float
-
-    @classmethod
-    def from_rect(cls, text: str, page: int, rects: List[fitz.Rect]):
-        boxes = [(r.x0, r.y0, r.x1, r.y1) for r in rects]
-        return cls(text=text, page=page, bouding_boxes=boxes)
-    
-
-class Source(BaseModel):
-    text: str
-    file_name: str
-    page_num: int
+from .api_interfaces import *
 
 
-class Verdict(BaseModel):
-    status: Literal["true", "false", "unknown"]
-    explanation: str
-    source: Source
+PROMPT_GET_CLAIMS_TEXT = f"""\
+Considering the date of the report, what are *all* the sentences in this report that express a projection, an outlook or an expectation about company KPIs or market characteristics? \
+Write one precise sentence per item, each time mentioning the topic, the expected value or trend and the period or horizon date. \
+Rely on the date of the report to make precise time-related claims. Instead of writing "this year" or "next quarter", specify the year or the quarter. \
+Use *only* figures that appear in the text. Do not invent anything.
+{CLAIM_PARSER.get_format_string()}
+"""
 
 
 class ContrastTool:
-    # def __init__(self):
-
-        # config = load_config(DEFAULT_CONFIG_PATH)
-
-        # self.getter = ClaimGetter(
-        #     config["claim getter"],
-        # )
-
-        # # self.checker = ClaimChecker(config["claim checker"])
-        # self.checker = await ClaimCheckerPipeline(config["claim checker"]).
 
     def get_name(self):
         return "contrast_tool"
@@ -147,124 +121,154 @@ class ContrastTool:
 
     #     return parsed_verification
     
+    @staticmethod
+    def get_highlight_area(
+        claim: str,
+        file_path: str,
+        file_sentence_retriever: BaseRetriever,
+    ) -> HighlightArea:
+        # TODO can highlight on several pages
+        # TODO highlight several sentences related to the claim
+        # TODO move to utils
 
+        # sentence that matches the claim
+        sentence = file_sentence_retriever.retrieve(claim)
+        source = " ".join(sentence[0].get_content().split())
+        page_num = int(sentence[0].node.metadata.get("page_label"))
+
+        bbox = find_fuzzy_bounding_boxes(file_path, source, page_num) or []
+
+        return HighlightArea(bounding_boxes=bbox, jump_to_page=page_num)
+
+
+    @staticmethod
     def extract_claims(
-            self,
-            thesis_retriever,
-            thesis_path,
-            thesis_qengine: BaseQueryEngine,
-        ) -> dict:
+            # self,
+            file_path: str,
+            file_sentence_retriever: BaseRetriever,
+            file_qengine: BaseQueryEngine,
+        ) -> List[Claim]:
 
-        try:
-            output = {}
+        claims = file_qengine.query(PROMPT_GET_CLAIMS_TEXT)
+        parsed_claims = CLAIM_PARSER.parse(claims.response).claims
 
-            claims = self.getter.extract(old_doc_qengine, old_doc_retriever, old_file_path)
+        # TODO can run asynchronously
+        claim_list: List[Claim] =[]
+        for claim in parsed_claims:
 
-            # TODO can run asynchronously
-            for claim in claims:
-
-                # TODO remove questions, just query engine directly
-                # TODO add a query enhancer right before query engine (that says consider all drivers of the lcaim etc.)
-                verification = checker_qengine.query(claim)
-
-                # extract bounding box of claims
-                # 
-
-                output[claim] = {
-                    "text": verification.verdict,
-                    "explanation": verification.reasoning,
-                }
-
-                claims.append(
-                Claim(
-                    text=claim,
-                    source=source,
-                    page_num=page_num,
-                    bounding_box=bbox,
-                    # Using first page's dimensions for now TODO: Set per page
-                    page_width=doc[0].rect.width,
-                    page_height=doc[0].rect.height,
-                )
+            hl_area = ContrastTool.get_highlight_area(
+                claim.text,
+                file_path,
+                file_sentence_retriever,
             )
 
-            return output
+            claim_list.append(
+                Claim(
+                    text=claim.text,
+                    file_path=file_path,
+                    highlight_area=hl_area,
+                )
+            )
+            
+        return claim_list
 
-        except Exception as e:
-            return {"error": str(e)}
-        
 
+    @staticmethod
     def analyse_claims(
-            self,
-            claims: list[str],
-            # checker_retriever: BaseRetriever,
-            checker_qengine: BaseQueryEngine,
-        ) -> dict:
+            claims: List[Claim],
+            file_path: str,
+            file_sentence_retriever: BaseRetriever,
+            file_qengine: BaseQueryEngine,
+        ) -> List[Verdict]:
 
-        try:
-            output = {}
+        verdict_list = {}
 
-            # TODO can run asynchronously
-            for claim in claims:
+        # TODO can run asynchronously
+        verdict_list: List[Verdict] = []
+        for claim in claims:
+            
+            verdict = file_qengine.query(claim.text)
+            parsed_verdict = VERDICT_PARSER.parse(verdict.response)
+            
+            # if parsed_verdict.status not "unknown":
+        
+            #     hl_area = ContrastTool.get_highlight_area(
+            #         claim.text,
+            #         file_path,
+            #         file_sentence_retriever,
+            #     )
 
-                # TODO remove questions, just query engine directly
-                # TODO add a query enhancer right before query engine (that says consider all drivers of the lcaim etc.)
-                verdict = checker_qengine.query(claim)
-                parsed_verdict = PydanticOutputParser(output_cls=Verdict).parse(verdict.text)
+            #     verdict_list.append(
+            #         Verdict(
+            #             claim=claim.text,
+            #             status=,
+            #             explanation=,
+            #             evidence_file_path= ,
+            #             evidence_highlight_area=
+            #         )
+            #     )
 
-                # extract bounding box of sources
-                boxes = find_fuzzy_bounding_boxes()
+            # # extract bounding box of sources
+            # bboxes = find_fuzzy_bounding_boxes(
+            #     verdict.source.file_path,
+            #     verdict.source.text,
+            #     verdict.source.page_num,
+            # )
 
-                output[claim] = {
-                    "questions": verdict.,
-                    "verdict": verdict.text,
-                    "explanation": verdict.explanation,
-                    "source": {
-                        "file_path": ,
-                        "page_num": ,
-                        "bounding_box": ,
-                    },
-                }
+            # output[claim] = {
+            #     # "questions": verdict,
+            #     "status": verdict.status,
+            #     "explanation": verdict.explanation,
+            #     "source": {
+            #         "file_path": [verdict.source.file_path],
+            #         "page_num": [verdict.source.page_num],
+            #         "bounding_box": bboxes,
+            #     },
+            # }
 
-            return output
+        return verdict_list
+    
 
-        except Exception as e:
-            return {"error": str(e)}
-
-
-    def compare_documents(
+    def run(
         self,
-        old_file_path: str,
-        new_file_path: str,
-        old_doc_qengine: BaseQueryEngine,
-        old_doc_retriever: BaseRetriever,
-        new_doc_retriever: BaseRetriever,
+        # thesis_path: str,
+        thesis_qengine: BaseQueryEngine,
+        # thesis_retriever: BaseRetriever,
+        # update_path: str,
+        update_qengine: BaseQueryEngine,
+        # update_retriever: BaseRetriever,
     ):
-        print(f"\nExtracting claims from old document: {old_file_path}")
-
-        claims = 
-        claims_text = [claim.text for claim in claims]
-
-        # claims = self.extract_claims(old_doc)
-        for claim in claims_text:
+        claims = ContrastTool.extract_claims(thesis_qengine)
+        
+        for claim in claims:
             print(f"Claim: {claim}")
 
-        print(f"\nAnalyzing claims against new document: {new_file_path}")
-        
+        verdicts = ContrastTool.analyse_claims(claims, update_qengine)
 
-        verdict = self.checker.analyse_from_retriever(claims_text, new_doc_retriever)
+        for verdict in verdicts:
+            print(verdict)
 
-        # print("\nVerdict:")
-        # print(json.dumps(verdict, indent=4))
+        print("\nVerdict:")
+        print(json.dumps(verdict, indent=4))
 
-        output = {}
+        output: List[Claim] = []
         for claim in claims:
-            output[claim.text] = {
-                "page_num": claim.page_num,
-                "bbox": claim.bounding_box,
-                "verdict": verdict[claim.text]["verdict"],
-                "explanation": verdict[claim.text]["explanation"],
-                "page_width": claim.page_width,
-                "page_height": claim.page_height,
-            }
+            output.append(
+                Claim(
+                    text=verdict[claim]["explanation"], # message to put in comment box
+                    page_num=claim["page_num"],
+                    bounding_boxes=claim["bounding_box"],
+                    sources=(
+                        Source(
+                            file_path= "",
+                            page_num= 0,
+                            bounding_boxes= [[0,0,0,0]],
+                        )
+                    )
+                    # Using first page's dimensions for now TODO: Set per page
+                    # page_width=doc[0].rect.width,
+                    # page_height=doc[0].rect.height,
+                )
+            )
 
         return output

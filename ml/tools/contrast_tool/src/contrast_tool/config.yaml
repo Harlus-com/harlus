@@ -7,42 +7,42 @@
 # 	source_persist_dir: "data/processed_data/source_index"
 
 # Contrast Tool
-contrast tool:
-  api:
-    path: "/contrast/contrast_tool/"
-    methods:
-    - "POST"
-    response_model: "dict"
-    description: "Perform a contrast analysis"
+# contrast tool:
+#   api:
+#     path: "/contrast/contrast_tool/"
+#     methods:
+#     - "POST"
+#     response_model: "dict"
+#     description: "Perform a contrast analysis"
 
 # Claim Getter
 claim getter:
-  model_name: "gpt-4o-mini"
-  temperature: 0.1
+  model_name: "gpt-4o"
+  temperature: 0.
   max_tokens: 500
 
-  api:
-    path: "/contrast/extract_claims/"
-    methods:
-    - "POST"
-    response_model: "list[dict]"
-    description: "Extract claims from document"
+  # api:
+  #   path: "/contrast/extract_claims/"
+  #   methods:
+  #   - "POST"
+  #   response_model: "list[dict]"
+  #   description: "Extract claims from document"
 
 # Claim checker
 claim checker:
   question model:
     model_name: "gpt-4o-mini"
-    temperature: 0.1
+    temperature: 0.
     max_tokens: 500
     
   verification model:
-    model_name: "gpt-4o-mini"
+    model_name: "gpt-4o"
     temperature: 0.1
     max_tokens: 500
 
-  api:
-    path: "/contrast/verify_claims/"
-    methods:
-    - "POST"
-    response_model: "dict"
-    description: "Compare claims to documents"
+  # api:
+  #   path: "/contrast/verify_claims/"
+  #   methods:
+  #   - "POST"
+  #   response_model: "dict"
+  #   description: "Compare claims to documents"
