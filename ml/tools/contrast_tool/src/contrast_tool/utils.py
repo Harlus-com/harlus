@@ -114,7 +114,7 @@ def find_fuzzy_bounding_boxes(
             best_score, best_i = score, i
 
     if best_score < threshold:
-        return None, doc
+        return None
 
     # 6) align boundaries exactly to the target tokens
     start, end = best_i, best_i + N
@@ -148,7 +148,7 @@ def find_fuzzy_bounding_boxes(
         h_pct = (h / p_height) * 100
         output.append((x0_pct, y0_pct, w_pct, h_pct))
 
-    return output, doc
+    return output
 
 
 # def is_table_block(text: str) -> bool:
@@ -207,31 +207,31 @@ def find_fuzzy_bounding_boxes(
 #                         ))
 #     return nodes
 
-# def visualize_bounding_boxes(
-#         pdf_path: str,
-#         sentences: list[str],
-#         output_path: str):
+def visualize_bounding_boxes(
+        pdf_path: str,
+        sentences: list[str],
+        output_path: str):
 
-#     doc = fitz.open(pdf_path)
+    doc = fitz.open(pdf_path)
 
-#     for sentence in sentences:
-#         for page_num, page in enumerate(doc):
-#             # Find sentence instances
-#             found_instances = page.search_for(sentence)
+    for sentence in sentences:
+        for page_num, page in enumerate(doc):
+            # Find sentence instances
+            found_instances = page.search_for(sentence)
 
-#             # Draw rectangles on found instances
-#             for bbox in found_instances:
-#                 # Draw a rectangle (red, 1pt width)
-#                 page.draw_rect(
-#                     bbox,
-#                     color=(1, 0, 0),
-#                     fill=(1, 1, 0),
-#                     width=1.0,
-#                     overlay=False,
-#                 )
+            # Draw rectangles on found instances
+            for bbox in found_instances:
+                # Draw a rectangle (red, 1pt width)
+                page.draw_rect(
+                    bbox,
+                    color=(1, 0, 0),
+                    fill=(1, 1, 0),
+                    width=1.0,
+                    overlay=False,
+                )
 
-#     doc.save(output_path)
-#     doc.close()
+    doc.save(output_path)
+    doc.close()
 
 
 def load_config(file_path: str) -> dict:

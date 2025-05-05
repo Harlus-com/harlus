@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Tuple, Literal
+from typing import List, Tuple, Literal, Optional
 from dataclasses import dataclass
 
 @dataclass
@@ -18,14 +18,14 @@ class Verdict:
     claim: Claim
     status: Literal["true", "false", "unknown"]
     explanation: str # text for the comment
-    evidence_file_path: str
-    evidence_highlight_area: HighlightArea
+    evidence_file_path: Optional[str] = None
+    evidence_highlight_area: Optional[HighlightArea] = None
 
 @dataclass
 class LinkComment:
     file_path: str
-    text: str # text in comment
     highlight_area: HighlightArea
+    text: Optional[str] = None # text in link comment, empty for now
 
 @dataclass
 class ClaimComment:

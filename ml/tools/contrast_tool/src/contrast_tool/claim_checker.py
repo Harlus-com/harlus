@@ -38,7 +38,6 @@ import src.contrast_tool.prompts as prompts
 from pathlib import Path
 
 
-# TODO prevent hallucinations -> add to prompt that "if no info, say no info"
 # TODO use subquestion generator to automatically generate questions given prompt
 # TODO: compare to info of multiple files (see Multi-Document Agents (V1))
 #   - first select which file going to extract info (based on summary of file)
@@ -46,7 +45,6 @@ from pathlib import Path
 #   - use MetadataFilters
 # TODO: add logger
 # TODO: run analysis asynchronously for different claims and different questions
-# TODO: cache document indices
 # TODO: integrate in contrast analysis work flow
 # TODO: optimise code, can greatly simplify it (what should be in class? what should be in workflow?)
 # TODO: parse out non standard inputs to avoid hallucination
@@ -56,36 +54,34 @@ class SubQuestion(BaseModel):
     sub_question: str
     tool_name: str = "file"
 
+
 class SubQuestionList(BaseModel):
     items: List[SubQuestion]
+
 
 class Verdict(BaseModel):
     status: Literal["true", "false", "unknown"]
     explanation: str
 
-# class VerdictList(BaseModel):
-#     verdicts: List[Verdict]   
-
 
 SUBQUESTION_PARSER = PydanticOutputParser(output_cls=SubQuestionList)
 VERDICT_PARSER = PydanticOutputParser(output_cls=Verdict)
 
-PROMPT_SUBQUESTIONS_TEXT = """\
-Claim:
-{query_str}
 
+PROMPT_SUBQUESTIONS_TEXT = """\
+Claim:{query_str}
 List {num_questions} questions that a financial analyst would ask to identify all relevant information that can verify this claim. Make sure that the questions are
 - concise, i.e. each question focusses on a different feature of the claim
 - precise, i.e. include as much data from the claim as possible
 - complete, i.e. search for all aliases of the claim's topic and its key drivers
-
 {output_format}\
 Note that "tool_name" should always be "file".
 """
 PROMPT_SUBQUESTIONS = PromptTemplate(PROMPT_SUBQUESTIONS_TEXT)
 
+
 PROMPT_VERDICT_TEXT = """\
-You are a fact-verification assistant verifying a claim made some time ago.
+You are a fact-verification assistant verifying if a claim made some time ago is correct based on new information.
 Based on the following new facts, return whether the claim is 'true', 'false' or 'unknown' due to insufficient evidence.
 Support your verdict with a short explanation. For numeric claims:
 - Extract the numeric values from the claim and the evidence.
@@ -93,10 +89,9 @@ Support your verdict with a short explanation. For numeric claims:
     |(ClaimValue - EvidenceValue) / EvidenceValue| x 100%
 Round to one decimal place and state whether the claim over- or understates the metric.
 When verifying the claim, make sure to consider all aliases of the claim's topic and its key drivers.
-
-{output_format}\
 """
 PROMPT_VERDICT = PromptTemplate(PROMPT_VERDICT_TEXT)
+
 
 # TODO make subclass of query engine
 class ClaimCheckerPipeline:
@@ -106,8 +101,6 @@ class ClaimCheckerPipeline:
         config: dict,
     ):
         # llm that finds verification questions to extract relevant data for claims
-        # self.question_model_name = config["question model"]["model_name"]
-        # self.question_parser = PydanticOutputParser(output_cls=ExtractQuestions)
         self.question_llm = OpenAI(
             model= config["question model"]["model_name"],
             temperature=config["question model"]["temperature"],
@@ -115,14 +108,12 @@ class ClaimCheckerPipeline:
         )
 
         # llm that compares relevant data to claims
-        # self.verification_model_name = config["verification model"]["model_name"]
-        # self.verification_parser = PydanticOutputParser(output_cls=Verdict)
         self.verification_llm = OpenAI(
             model=config["verification model"]["model_name"],
             temperature=config["verification model"]["temperature"],
             max_tokens=config["verification model"]["max_tokens"],
-            system_prompt=PROMPT_VERDICT.format(output_format=VERDICT_PARSER.get_format_string()),
-            # output_parser=VERDICT_PARSER
+            system_prompt=PROMPT_VERDICT_TEXT,
+            # verbose=True
         )
 
 
@@ -222,7 +213,7 @@ class ClaimCheckerPipeline:
             retriever=retriever,
             response_synthesizer=get_response_synthesizer(
                 response_mode="tree_summarize",
-                llm=self.verification_llm,
+                llm=OpenAI(model="gpt-3.5-turbo", temperature=0.0),
                 verbose=False
             ),
             # node_postprocessors=node_postprocessors,
@@ -251,9 +242,9 @@ class ClaimCheckerPipeline:
 
         response_synthesizer = get_response_synthesizer(
             llm=self.verification_llm,
-            # prompt_template=,
             use_async=True,
-            # verbose=True,
+            response_mode="compact",
+            output_cls=Verdict
         )
         
         return SubQuestionQueryEngine.from_defaults(
