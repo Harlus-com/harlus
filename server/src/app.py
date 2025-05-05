@@ -96,7 +96,7 @@ async def close_workspace_events(workspace_id: str):
     await workspace_sync_manager.close()
 
 
-@app.get("/file/get/{file_id}")
+@app.get("/file/handle/{file_id}")
 def get_file(
     file_id: str,
     workspace_id: str = Query(..., description="The id of the workspace"),
@@ -407,3 +407,8 @@ def get_file_from_path(
         "app_dir": file.app_dir,
         "status": sync_queue.get_sync_status(file.id),
     }
+
+
+@app.get("/file/get/{file_id}")
+def get_file_from_id(file_id: str):
+    return file_store.get_file(file_id)

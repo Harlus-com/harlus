@@ -28,6 +28,7 @@ interface CommentsContextType {
   getActiveComments: (fileId: string) => ReadonlyComment[];
   /** Get all comments for all comments associated with the file */
   getAllComments: (fileId: string) => ReadonlyComment[];
+  getSelectedComment: (fileId: string) => ReadonlyComment | null;
 }
 
 export const CommentsContext = createContext<CommentsContextType | undefined>(

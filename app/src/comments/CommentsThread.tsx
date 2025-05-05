@@ -6,63 +6,28 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PdfViewerRef } from "../components/ReactPdfViewer";
 import { useComments } from "./useComments";
-import {
-  CommentLink,
-  ReadonlyComment,
-  CommentColor,
-  CommentTag,
-} from "./comment_ui_types";
+import { CommentLink, ReadonlyComment, CommentColor } from "./comment_ui_types";
 import { cn } from "@/lib/utils";
 import { FileText } from "lucide-react";
+import { FileGroupCount } from "@/components/panels";
+import CommentTagChip from "./ComentTagChip";
 
-interface CommentTagChipProps {
-  tag: CommentTag;
-}
-
-const CommentTagChip: React.FC<CommentTagChipProps> = ({ tag }) => {
-  const getTagText = (tag: CommentTag) => {
-    switch (tag) {
-      case CommentTag.ALIGNMENT:
-        return "Aligned";
-      case CommentTag.CONTRADICTION:
-        return "Contradiction";
-      default:
-        return tag;
-    }
-  };
-
-  const getTagColor = (tag: CommentTag) => {
-    switch (tag) {
-      case CommentTag.ALIGNMENT:
-        return "bg-green-100 text-green-700";
-      case CommentTag.CONTRADICTION:
-        return "bg-red-100 text-red-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
-
-  return (
-    <span
-      className={cn(
-        "text-[10px] font-medium px-1.5 py-0.5 rounded-full",
-        getTagColor(tag)
-      )}
-    >
-      {getTagText(tag)}
-    </span>
-  );
-};
-
-// Define the props for the CommentsThread component
 interface CommentsThreadProps {
   pdfViewerRef: React.RefObject<PdfViewerRef>;
   fileId: string;
+  openFile: (
+    fileId: string,
+    options: {
+      showComments: boolean;
+      fileGroup: FileGroupCount;
+    }
+  ) => void;
 }
 
 const CommentsThread: React.FC<CommentsThreadProps> = ({
   fileId,
   pdfViewerRef,
+  openFile,
 }) => {
   const { getActiveComments, setSelectedComment } = useComments();
   const [newComment, setNewComment] = useState("");
@@ -70,7 +35,6 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
     null
   );
 
-  // filter out hidden comments
   const comments: ReadonlyComment[] = getActiveComments(fileId).filter(
     (c) => !c.isHidden
   );
@@ -88,7 +52,10 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
   const handleLinkClick = (link: CommentLink) => {
     setSelectedComment(link.linkToCommentId);
     setSelectedCommentId(link.linkToCommentId);
-    // optionally jump to page of the linked comment here
+    openFile(link.likeToFileId, {
+      showComments: true,
+      fileGroup: FileGroupCount.ONE, // TODO: Maybe have this open a new file group?
+    });
   };
 
   return (
@@ -107,22 +74,24 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
             </p>
           </div>
         ) : (
-          <div className="space-y-4 pl-2">
+          <div className="space-y-4 pl-4">
             {comments.map((comment) => (
               <div
                 key={comment.id}
                 className={cn(
                   "transition-all duration-200",
                   selectedCommentId === comment.id
-                    ? "translate-x-0 pointer-events-none"
-                    : "hover:-translate-x-2 cursor-pointer"
+                    ? "-translate-x-4"
+                    : "cursor-pointer"
                 )}
               >
                 <Card
                   onClick={() => handleCommentClick(comment)}
                   className={cn(
                     "w-full",
-                    selectedCommentId === comment.id ? "bg-gray-50" : "",
+                    selectedCommentId === comment.id
+                      ? "bg-white shadow-lg"
+                      : "hover:bg-gray-100 bg-gray-50",
                     "border-l-4 border-gray-200"
                   )}
                   style={{

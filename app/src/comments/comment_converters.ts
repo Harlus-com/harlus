@@ -8,7 +8,7 @@ import {
 } from "@/api/comment_types";
 import { HighlightArea as ReactPdfHighlightArea } from "@react-pdf-viewer/highlight";
 import { fileService } from "@/api/fileService";
-import { Comment, CommentTag } from "./comment_ui_types";
+import { Comment, CommentLink, CommentTag } from "./comment_ui_types";
 import { WorkspaceFile } from "@/api/types";
 
 export async function convertClaimCommentToComments(
@@ -42,11 +42,14 @@ export async function convertClaimCommentToComments(
   return comments;
 }
 
-async function convertLinkCommentToLink(comment: LinkComment) {
+async function convertLinkCommentToLink(
+  comment: LinkComment
+): Promise<CommentLink> {
   const file = await fileService.getFileFromPath(comment.filePath);
   return {
     linkToCommentId: comment.id,
     text: `${file.name}, page ${comment.highlightArea.jumpToPageNumber}`,
+    likeToFileId: file.id,
   };
 }
 
@@ -71,6 +74,7 @@ async function convertLinkCommentToComment(
       {
         linkToCommentId: parentComment.id,
         text: `${parentFile.name}, page ${parentComment.highlightArea.jumpToPageNumber}`,
+        likeToFileId: parentFile.id,
       },
     ],
     jumpToPageNumber: comment.highlightArea.jumpToPageNumber,

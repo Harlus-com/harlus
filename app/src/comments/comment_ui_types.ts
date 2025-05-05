@@ -4,6 +4,7 @@ import { HighlightArea } from "@react-pdf-viewer/highlight";
 export interface CommentLink {
   text: string;
   linkToCommentId: string;
+  likeToFileId: string;
 }
 
 export enum CommentTag {

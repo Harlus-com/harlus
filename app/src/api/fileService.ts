@@ -45,7 +45,7 @@ class FileService {
 
   getFileData(file: WorkspaceFile): Promise<ArrayBuffer> {
     return client.getBuffer(
-      `/file/get/${file.id}?workspace_id=${file.workspaceId}`
+      `/file/handle/${file.id}?workspace_id=${file.workspaceId}`
     );
   }
 
@@ -101,6 +101,11 @@ class FileService {
   ): Promise<ClaimComment[]> {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     return mockContrastAnalysisResponse.claimComments;
+  }
+
+  async getFileFromId(fileId: string): Promise<WorkspaceFile> {
+    const file = await client.get(`/file/get/${fileId}`);
+    return file;
   }
 
   // Get file ID from path

@@ -177,6 +177,17 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
       .map(copyToReadonly);
   };
 
+  const getSelectedComment = (fileId: string): ReadonlyComment | null => {
+    if (!selectedCommentId) {
+      return null;
+    }
+    const comment = comments[selectedCommentId];
+    if (comment && comment.apiData.fileId === fileId) {
+      return copyToReadonly(comment);
+    }
+    return null;
+  };
+
   const value = {
     addClaimComments,
     addChatSourceComments,
@@ -189,6 +200,7 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
     setActiveCommentGroups,
     getActiveComments,
     getAllComments,
+    getSelectedComment,
   };
 
   return (

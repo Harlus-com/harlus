@@ -1,7 +1,6 @@
 import React, {
   useState,
   useEffect,
-  useRef,
   useImperativeHandle,
   forwardRef,
   useMemo,
@@ -38,9 +37,11 @@ export interface PdfViewerRef {
 }
 
 const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
-  const { getActiveComments } = useComments();
+  const { getActiveComments, getSelectedComment } = useComments();
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const activeComments = getActiveComments(file.id);
+  const selectedComment = getSelectedComment(file.id);
+  const initialPage = selectedComment?.jumpToPageNumber;
 
   const highlightAreas: Highlight[] = useMemo(() => {
     const areas: Highlight[] = [];
@@ -103,6 +104,9 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
           const blob = new Blob([data], { type: "application/pdf" });
           const url = URL.createObjectURL(blob);
           setFileUrl(url);
+          if (initialPage) {
+            pageNavigationPluginInstance.jumpToPage(initialPage);
+          }
         })
         .catch((err) => {
           console.error("Failed to load PDF data", err);
@@ -144,6 +148,7 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
               highlightPluginInstance,
               pageNavigationPluginInstance,
             ]}
+            defaultScale={1}
             onPageChange={(e) => {
               // This is just for tracking the current page
               // The actual page change is handled by initialPage prop

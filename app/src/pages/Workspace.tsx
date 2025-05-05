@@ -150,7 +150,6 @@ export default function Workspace() {
     groupNumber: FileGroupCount,
     options: { showComments: boolean }
   ) => {
-    console.log("handleFileSelect", file, groupNumber, options);
     const current = openFiles[groupNumber];
     const updates = {};
     if (current == null) {
