@@ -1,4 +1,3 @@
-from pydantic import BaseModel, Field
 from typing import List, Tuple, Literal, Optional
 from dataclasses import dataclass
 

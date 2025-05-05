@@ -1,7 +1,7 @@
 import os, json
 
-from .claim_getter import ClaimGetterPipeline, CLAIM_PARSER
-from .claim_checker import ClaimCheckerPipeline, VERDICT_PARSER
+from .claim_getter import ClaimQueryEnginePipeline, CLAIM_PARSER
+from .claim_checker import VerdictQueryEnginePipeline, VERDICT_PARSER
 
 from llama_index.core.output_parsers import PydanticOutputParser
 
@@ -36,91 +36,7 @@ class ContrastTool:
     def get_name(self):
         return "contrast_tool"
 
-    # def get_sources(claims: list[str], doc_retriever: BaseRetriever):
 
-    #     return
-
-    # def compare_documents_from_path(self, old_file: str, new_file: str):
-
-    #     print(f"\nExtracting claims from old document: {old_file}")
-
-    #     claims = self.getter.extract_from_path(old_file)
-    #     claims_text = [claim.text for claim in claims]
-    #     for claim in claims_text:
-    #         print(f"Claim: {claim}")
-
-    #     print(f"\nAnalyzing claims against new document: {new_file}")
-    #     verdict = self.checker.analyse_from_path(claims_text, new_file)
-
-    #     print("\nVerdict:")
-    #     print(json.dumps(verdict, indent=2))
-
-    #     output = {}
-    #     for claim in claims:
-    #         output[claim.text] = {
-    #             "page_num": claim.page_num,
-    #             "bbox": claim.bounding_box,
-    #             "verdict": verdict[claim.text]["verdict"],
-    #             "explanation": verdict[claim.text]["explanation"],
-    #         }
-
-    #     return output
-
-
-    # def claim_to_questions(self, claim: str, num_questions: int = 3) -> list[str]:
-
-    #     prompt = get_prompt("get questions to challenge claim")
-    #     questions_to_verify = self.question_llm.complete(
-    #         prompt.format(
-    #             claim=claim,
-    #             num_questions=num_questions,
-    #             output_format=self.question_parser.get_format_string(),
-    #         )
-    #     )
-    #     parsed_questions = self.question_parser.parse(
-    #         questions_to_verify.text
-    #     ).questions
-
-    #     return parsed_questions
-
-
-    # def questions_to_data(
-    #         self,
-    #         questions: list[str], 
-    #         retriever: BaseRetriever
-    #     ) -> str:
-
-    #     evidence_blocks = []
-    #     nodes_seen = []
-    #     # TODO can happen asynchronously
-    #     for question in questions:
-    #         for hit in retriever.retrieve(question):
-    #             if hit.node.node_id not in nodes_seen:
-    #                 nodes_seen.append(hit.node.node_id)
-    #                 evidence_blocks.append(hit.node.get_content())
-
-    #     evidence = "\n\n".join(
-    #         f"Evidence {i+1}:\n{"-" * 40}\n{blok}"
-    #         for i, blok in enumerate(evidence_blocks)
-    #     )
-
-    #     return evidence
-    
-
-    # def compare_claim_to_data(self, claim: str, data: str) -> str:
-
-    #     prompt = get_prompt("verify claim with data")
-    #     verification = self.verification_llm.complete(
-    #         prompt.format(
-    #             claim=claim,
-    #             data=data,
-    #             output_format=self.verification_parser.get_format_string(),
-    #         )
-    #     )
-    #     parsed_verification = self.verification_parser.parse(verification.text)
-
-    #     return parsed_verification
-    
     @staticmethod
     def get_highlight_area(
         sentence: str,
@@ -143,7 +59,6 @@ class ContrastTool:
 
     @staticmethod
     def extract_claims(
-            # self,
             file_path: str,
             file_sentence_retriever: BaseRetriever,
             file_qengine: BaseQueryEngine,
@@ -186,39 +101,6 @@ class ContrastTool:
         # TODO can run asynchronously
         comments: List[ClaimComment] = []
         for claim in claims:
-
-        #     verdict = file_qengine.query(claim.text)
-        #     # parsed_verdict = VERDICT_PARSER.parse(verdict.response)
-            
-        #     print(verdict)
-
-        #     if verdict.status != "unknown":
-        
-        #         hl_area = ContrastTool.get_highlight_area(
-        #             verdict.explanation,
-        #             file_path,
-        #             file_sentence_retriever,
-        #         )
-
-        #         verdict_list.append(
-        #             Verdict(
-        #                 claim=claim.text,
-        #                 status=verdict.status,
-        #                 explanation=verdict.explanation,
-        #                 evidence_file_path=file_path,
-        #                 evidence_highlight_area=hl_area,
-        #             )
-        #         )
-        #     else:
-        #         verdict_list.append(
-        #             Verdict(
-        #                 claim=claim.text,
-        #                 status=verdict.status,
-        #                 explanation=verdict.explanation,
-        #             )
-        #         )
-
-        # return verdict_list    
 
             verdict = file_qengine.query(claim.text)
             # parsed_verdict = VERDICT_PARSER.parse(verdict.response)
@@ -269,52 +151,9 @@ class ContrastTool:
             thesis_qengine,
         )
         
-        for claim in claims:
-            print(f"Claim: {claim}")
-
-        comments = ContrastTool.analyse_claims(
+        return ContrastTool.analyse_claims(
             claims,
             update_path,
             update_sentence_retriever,
             update_qengine
         )
-
-        # for verdict in verdicts:
-        #     print(verdict)
-
-        # comments: List[Claim] = []
-        # for verdict in verdicts:
-
-        #     if verdict.status != "unknown":
-                
-        #         link = LinkComment(
-        #             file_path = verdict.evidence_file_path,
-        #             highlight_area = verdict.evidence_highlight_area
-        #         )
-
-        #     comments.append(
-        #         ClaimComment(
-        #             file_path: str
-        #             text: str # text in comment
-        #             highlight_area: HighlightArea
-        #             links = [link]
-        #             verdict: Literal["true", "false", "unknown"]
-        #         )
-        #         Claim(
-        #             text=verdict[claim]["explanation"], # message to put in comment box
-        #             page_num=claim["page_num"],
-        #             bounding_boxes=claim["bounding_box"],
-        #             sources=(
-        #                 Source(
-        #                     file_path= "",
-        #                     page_num= 0,
-        #                     bounding_boxes= [[0,0,0,0]],
-        #                 )
-        #             )
-        #             # Using first page's dimensions for now TODO: Set per page
-        #             # page_width=doc[0].rect.width,
-        #             # page_height=doc[0].rect.height,
-        #         )
-        #     )
-
-        return comments
