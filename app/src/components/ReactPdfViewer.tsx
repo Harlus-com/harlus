@@ -34,7 +34,7 @@ type Highlight = HighlightArea & { color: string };
 
 // Define the ref interface
 export interface PdfViewerRef {
-  jumpToPage: (pageIndex: number) => void;
+  jumpToPage: (zeroBasedPageIndex: number) => void;
 }
 
 const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
@@ -56,8 +56,8 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
   }, [activeComments]);
 
   useImperativeHandle(ref, () => ({
-    jumpToPage: (pageIndex: number) => {
-      pageNavigationPluginInstance.jumpToPage(pageIndex);
+    jumpToPage: (zeroBasedPageIndex: number) => {
+      pageNavigationPluginInstance.jumpToPage(zeroBasedPageIndex);
     },
   }));
 

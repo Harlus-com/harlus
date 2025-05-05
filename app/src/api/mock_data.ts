@@ -12,7 +12,7 @@ export const mockContrastAnalysisResponse: { claimComments: ClaimComment[] } = {
       text: "The conclusion section over‑simplifies the contributing factors.",
       highlightArea: {
         boundingBoxes: [{ left: 5, top: 80, width: 90, height: 10, page: 0 }],
-        jumpToPageNumber: 0,
+        jumpToPageNumber: 1,
       },
       links: [
         {
@@ -24,7 +24,7 @@ export const mockContrastAnalysisResponse: { claimComments: ClaimComment[] } = {
             boundingBoxes: [
               { left: 10, top: 15, width: 80, height: 12, page: 0 },
             ],
-            jumpToPageNumber: 0,
+            jumpToPageNumber: 1,
           },
           parentCommentId: "c1",
         },
@@ -41,7 +41,7 @@ export const mockContrastAnalysisResponse: { claimComments: ClaimComment[] } = {
       text: "Figure reference lacks proper context in the methodology section.",
       highlightArea: {
         boundingBoxes: [{ left: 12, top: 40, width: 76, height: 8, page: 0 }],
-        jumpToPageNumber: 0,
+        jumpToPageNumber: 1,
       },
       links: [
         {
@@ -53,7 +53,7 @@ export const mockContrastAnalysisResponse: { claimComments: ClaimComment[] } = {
             boundingBoxes: [
               { left: 8, top: 50, width: 84, height: 10, page: 0 },
             ],
-            jumpToPageNumber: 0,
+            jumpToPageNumber: 1,
           },
           parentCommentId: "c2",
         },
@@ -66,7 +66,7 @@ export const mockContrastAnalysisResponse: { claimComments: ClaimComment[] } = {
             boundingBoxes: [
               { left: 15, top: 20, width: 70, height: 7, page: 0 },
             ],
-            jumpToPageNumber: 0,
+            jumpToPageNumber: 1,
           },
           parentCommentId: "c2",
         },

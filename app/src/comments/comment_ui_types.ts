@@ -6,11 +6,16 @@ export interface CommentLink {
   linkToCommentId: string;
 }
 
+export enum CommentTag {
+  ALIGNMENT = "Alignment",
+  CONTRADICTION = "Contradiction",
+}
+
 export interface Comment {
   id: string;
   fileId: string;
   groupId: string;
-  header?: string;
+  tag?: CommentTag;
   body: string;
   author: string;
   timestamp: Date;

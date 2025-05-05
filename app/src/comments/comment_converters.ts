@@ -8,7 +8,7 @@ import {
 } from "@/api/comment_types";
 import { HighlightArea as ReactPdfHighlightArea } from "@react-pdf-viewer/highlight";
 import { fileService } from "@/api/fileService";
-import { Comment } from "./comment_ui_types";
+import { Comment, CommentTag } from "./comment_ui_types";
 import { WorkspaceFile } from "@/api/types";
 
 export async function convertClaimCommentToComments(
@@ -30,9 +30,9 @@ export async function convertClaimCommentToComments(
   };
   console.log("VERDICT", claim.verdict);
   if (claim.verdict === "true") {
-    comment.header = "Alignment";
+    comment.tag = CommentTag.ALIGNMENT;
   } else if (claim.verdict === "false") {
-    comment.header = "Contradiction";
+    comment.tag = CommentTag.CONTRADICTION;
   }
   const comments: Comment[] = [comment];
   for (const link of claim.links) {
