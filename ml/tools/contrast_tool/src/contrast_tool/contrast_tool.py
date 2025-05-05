@@ -1,34 +1,13 @@
-import os, json
-
-from .claim_getter import ClaimQueryEnginePipeline, CLAIM_PARSER
-from .claim_checker import VerdictQueryEnginePipeline, VERDICT_PARSER
-
-from llama_index.core.output_parsers import PydanticOutputParser
+from .claim_getter import CLAIM_PARSER, PROMPT_GET_CLAIMS_TEXT
 
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.base.base_query_engine import BaseQueryEngine
 
 from .utils import find_fuzzy_bounding_boxes
 
-from .prompts import get_prompt
-
-from typing import List, Tuple, Literal
-
-import fitz
-from pydantic import BaseModel
-
-# DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.yaml")
+from typing import List
 
 from .api_interfaces import *
-
-
-PROMPT_GET_CLAIMS_TEXT = f"""\
-Considering the date of the report, what are *all* the sentences in this report that express a projection, an outlook or an expectation about company KPIs or market characteristics? \
-Write one precise sentence per item, each time mentioning the topic, the expected value or trend and the period or horizon date. \
-Rely on the date of the report to make precise time-related claims. Instead of writing "this year" or "next quarter", specify the year or the quarter. \
-Use *only* figures that appear in the text. Do not invent anything.
-{CLAIM_PARSER.get_format_string()}
-"""
 
 
 class ContrastTool:
@@ -64,6 +43,7 @@ class ContrastTool:
             file_qengine: BaseQueryEngine,
         ) -> List[Claim]:
 
+        # TODO integrate parser in query engine
         claims = file_qengine.query(PROMPT_GET_CLAIMS_TEXT)
         parsed_claims = CLAIM_PARSER.parse(claims.response).claims
 
@@ -95,8 +75,6 @@ class ContrastTool:
             file_sentence_retriever: BaseRetriever,
             file_qengine: BaseQueryEngine,
         ) -> List[ClaimComment]:
-
-        verdict_list = {}
 
         # TODO can run asynchronously
         comments: List[ClaimComment] = []

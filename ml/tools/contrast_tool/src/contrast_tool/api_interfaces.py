@@ -1,33 +1,31 @@
 from typing import List, Tuple, Literal, Optional
-from dataclasses import dataclass
+from pydantic import BaseModel
 
-@dataclass
-class HighlightArea:
-    bounding_boxes: List[Tuple[float, float, float, float]]
+# TODO check if can directly use interfaces of server defined in
+# ~\harlus\server\src\comments.py
+
+class BoundingBox(BaseModel):
+    left: float # percentage of page width
+    top: float # percentage of page height
+    width: float # percentage of page width
+    height: float # percentage of page height
+    page: int # 1-based indexing
+
+class HighlightArea(BaseModel):
+    bounding_boxes: List[BoundingBox]
     jump_to_page: int
 
-@dataclass
-class Claim:
+class Claim(BaseModel):
     text: str # claim
     file_path: str
     highlight_area: HighlightArea
 
-@dataclass
-class Verdict:
-    claim: Claim
-    status: Literal["true", "false", "unknown"]
-    explanation: str # text for the comment
-    evidence_file_path: Optional[str] = None
-    evidence_highlight_area: Optional[HighlightArea] = None
-
-@dataclass
-class LinkComment:
+class LinkComment(BaseModel):
     file_path: str
     highlight_area: HighlightArea
     text: Optional[str] = None # text in link comment, empty for now
 
-@dataclass
-class ClaimComment:
+class ClaimComment(BaseModel):
     file_path: str
     text: str # text in comment
     highlight_area: HighlightArea

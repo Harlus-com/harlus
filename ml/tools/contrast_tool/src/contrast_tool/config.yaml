@@ -1,32 +1,10 @@
-# # Document Processing Configuration
-# document:
-# 	chunk_size: 1024
-# 	chunk_overlap: 20
-# 	persist_indices: true
-# 	thesis_persist_dir: "data/processed_data/thesis_index"
-# 	source_persist_dir: "data/processed_data/source_index"
-
-# Contrast Tool
-# contrast tool:
-#   api:
-#     path: "/contrast/contrast_tool/"
-#     methods:
-#     - "POST"
-#     response_model: "dict"
-#     description: "Perform a contrast analysis"
+# Document Processing Configuration
 
 # Claim Getter
 claim getter:
   model_name: "gpt-4o"
   temperature: 0.
   max_tokens: 500
-
-  # api:
-  #   path: "/contrast/extract_claims/"
-  #   methods:
-  #   - "POST"
-  #   response_model: "list[dict]"
-  #   description: "Extract claims from document"
 
 # Claim checker
 claim checker:
@@ -44,10 +22,3 @@ claim checker:
     model_name: "gpt-4o"
     temperature: 0.
     max_tokens: 500
-
-  # api:
-  #   path: "/contrast/verify_claims/"
-  #   methods:
-  #   - "POST"
-  #   response_model: "dict"
-  #   description: "Compare claims to documents"

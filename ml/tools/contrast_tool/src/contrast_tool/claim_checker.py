@@ -1,39 +1,28 @@
 from typing import Dict, List, Optional, Literal
 
-from llama_index.core.prompts import PromptTemplate
 from pydantic import BaseModel
+
+from llama_index.core.prompts import PromptTemplate
 
 from llama_index.core import VectorStoreIndex, KeywordTableIndex
 
-# from llama_index.extractors.entity import EntityExtractor
 from llama_index.core.retrievers import (
     BaseRetriever,
     VectorIndexRetriever,
     KeywordTableSimpleRetriever,
 )
+from llama_index.core.question_gen import LLMQuestionGenerator
 from llama_index.core.query_engine import BaseQueryEngine, SubQuestionQueryEngine, RetrieverQueryEngine
-from llama_index.core.response_synthesizers import (
-    BaseSynthesizer,
-    get_response_synthesizer,
-)
+from llama_index.core.response_synthesizers import get_response_synthesizer
 from llama_index.core.output_parsers import PydanticOutputParser
 
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
-
-from llama_index.core.question_gen import LLMQuestionGenerator
-
-
 
 from llama_parse import LlamaParse
 from llama_index.llms.openai import OpenAI
 
 from .utils import *
 from .mixed_retriever import MixKeywordVectorRetriever
-
-from .prompts import get_prompt
-import src.contrast_tool.prompts as prompts
-
-from pathlib import Path
 
 
 # TODO use subquestion generator to automatically generate questions given prompt
@@ -91,7 +80,7 @@ When verifying the claim, make sure to consider all aliases of the claim's topic
 PROMPT_VERDICT = PromptTemplate(PROMPT_VERDICT_TEXT)
 
 
-# TODO make subclass of query engine
+# TODO make subclass of SubQuestionQueryEngine
 class VerdictQueryEnginePipeline:
 
     @staticmethod

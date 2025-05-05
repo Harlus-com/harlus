@@ -2,22 +2,19 @@ import os
 import yaml
 from typing import Optional, List
 
-# from fastapi import APIRouter
 from typing import Dict, Callable, Tuple, Optional
 
 import fitz
 
-import re
-
 from rapidfuzz import fuzz
 
-import nltk
 from nltk.tokenize import sent_tokenize
-# nltk.download("punkt")
 
 from llama_index.core import Document
 from llama_parse import LlamaParse
 from llama_index.core import SimpleDirectoryReader
+
+from .api_interfaces import BoundingBox
 
 
 def get_file_metadata(file_path: str) -> dict[str, str]:
@@ -79,7 +76,7 @@ def find_fuzzy_bounding_boxes(
     sentence: str,
     page_num: int,
     threshold: int = 50,
-) -> List[Tuple[float, float, float, float]]:
+) -> List[BoundingBox]:
     """
     Fuzzy-match `sentence` on page `page_num` of `pdf_path`.
     Returns a list of (x0_pct, y0_pct, width_pct, height_pct) tuples for each matching line
@@ -138,7 +135,7 @@ def find_fuzzy_bounding_boxes(
         rects.append(r)
 
     # 8) convert to relative percentage coordinates
-    output: List[Tuple[float, float, float, float]] = []
+    output: List[BoundingBox] = []
     for r in rects:
         x0, y0 = r.x0, r.y0
         w, h = r.width, r.height
@@ -146,7 +143,15 @@ def find_fuzzy_bounding_boxes(
         y0_pct = (y0 / p_height) * 100
         w_pct = (w / p_width) * 100
         h_pct = (h / p_height) * 100
-        output.append((x0_pct, y0_pct, w_pct, h_pct))
+        output.append(
+            BoundingBox(
+                left=x0_pct,
+                top=y0_pct,
+                width=w_pct,
+                height=h_pct,
+                page=page_num,
+            )
+        )
 
     return output
 
