@@ -3,7 +3,7 @@ import { fileService } from "@/api/fileService";
 import { modelService } from "@/api/model_service";
 import { WorkspaceFile, Workspace as WorkspaceType } from "@/api/types";
 import { workspaceService } from "@/api/workspaceService";
-import { CommentsProvider } from "@/comments/CommentsContext";
+import { CommentsProvider } from "@/comments/CommentsProvider";
 import ChatPanel from "@/components/ChatPanel";
 import FileExplorer from "@/components/FileExplorer";
 import FileView from "@/components/FileView";
@@ -165,10 +165,6 @@ export default function Workspace() {
     }));
   };
 
-  const handleContrastAnalysisResult = (result: ClaimComment[]) => {
-    console.log("Contrast analysis result:", result);
-  };
-
   return (
     <CommentsProvider>
       <div className="flex flex-col h-screen">
@@ -177,7 +173,7 @@ export default function Workspace() {
           files={files}
           onFileGroupCountChange={handleOnFileGroupCountChange}
           togglePanelVisibility={togglePanelVisibility}
-          onContrastAnalysisResult={handleContrastAnalysisResult}
+          openFile={(file) => handleFileSelect(file, FileGroupCount.ONE)}
           refreshFiles={refreshFiles}
         />
         <PanelGroup id="workspace" direction="horizontal" className="flex-1">

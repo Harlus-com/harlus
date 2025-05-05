@@ -1,15 +1,19 @@
 import {
   ChatSourceComment,
   ClaimComment,
-  CommentGroupId,
+  CommentGroup,
 } from "@/api/comment_types";
-import React, { createContext, useContext, useState } from "react";
-import { CommentComponentData, ReadonlyComment, Comment } from "./comment_ui_types";
+import React, { useState } from "react";
+import {
+  CommentComponentData,
+  ReadonlyComment,
+  Comment,
+  CommentColor,
+} from "./comment_ui_types";
 import { convertClaimCommentToComments } from "./comment_converters";
 import { getCommentColor, updateUiState, copyToReadonly } from "./comment_util";
 import { CommentsContext } from "./CommentsContext";
-
-
+import { flushSync } from "react-dom";
 
 interface CommentsProviderProps {
   children: React.ReactNode;
@@ -18,32 +22,47 @@ interface CommentsProviderProps {
 export const CommentsProvider: React.FC<CommentsProviderProps> = ({
   children,
 }) => {
-  const [comments, setComments] = useState<CommentComponentData[]>([]);
+  const [comments, setComments] = useState<{
+    [key: string]: CommentComponentData;
+  }>({});
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(
     null
   );
-  const [activeCommentGroupIds, setActiveCommentGroupsIds] = useState<{
+  const [activeCommentGroups, setActiveCommentGroupsIds] = useState<{
     [key: string]: string[];
   }>({});
-  const [commentGroups, setCommentGroups] = useState<CommentGroupId[]>([]);
+  const [commentGroups, setCommentGroups] = useState<CommentGroup[]>([]);
 
-  const findComment = (commentId: string): CommentComponentData | null => {
-    return comments.find((comment) => comment.apiData.id === commentId) || null;
-  };
-
-  const replaceWith = (comment: CommentComponentData) => {
-    setComments((prevComments) =>
-      prevComments.map((c) => (c.apiData.id === comment.apiData.id ? comment : c))
-    );
+  const updateComments = (
+    updates: { [key: string]: CommentComponentData },
+    options: { expectAllNew?: boolean; expectReplace?: boolean } = {}
+  ) => {
+    setComments((prevComments) => {
+      if (options.expectAllNew) {
+        Object.keys(updates).forEach((key) => {
+          if (prevComments[key]) {
+            throw new Error(`Comment with id ${key} already exists`);
+          }
+        });
+      }
+      if (options.expectReplace) {
+        Object.keys(updates).forEach((key) => {
+          if (!prevComments[key]) {
+            throw new Error(`Comment with id ${key} does not exist`);
+          }
+        });
+      }
+      return { ...prevComments, ...updates };
+    });
   };
 
   const addClaimComments = async (
     claims: ClaimComment[],
-    groupId: CommentGroupId
+    group: CommentGroup
   ) => {
     const comments: Comment[] = (
       await Promise.all(
-        claims.map((claim) => convertClaimCommentToComments(claim, groupId))
+        claims.map((claim) => convertClaimCommentToComments(claim, group))
       )
     ).flat();
     const claimsById: { [key: string]: ClaimComment } = {};
@@ -56,23 +75,34 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
         uiState: {
           isHidden: false,
           highlightColor: "yellow",
-          color: getCommentColor(claimsById[comment.id]),
+          color: claimsById[comment.id]
+            ? getCommentColor(claimsById[comment.id])
+            : CommentColor.NONE,
         },
       })
     );
-    setComments((prevComments) => [...prevComments, ...commentComponentData]);
+    const updates: { [key: string]: CommentComponentData } = {};
+    for (const comment of commentComponentData) {
+      updates[comment.apiData.id] = comment;
+    }
+    updateComments(updates, { expectAllNew: true });
   };
 
-  const addChatSourceComments = async (comments: ChatSourceComment[]) => {
+  const addChatSourceComments = async (
+    comments: ChatSourceComment[],
+    group: CommentGroup
+  ) => {
     // TODO
   };
 
-  const addCommentGroup = (commentGroupId: CommentGroupId) => {
+  const addCommentGroup = (commentGroup: CommentGroup) => {
     // TODO: Determine if this should also persist the group to the server
-    setCommentGroups((prevCommentGroups) => [
-      ...prevCommentGroups,
-      commentGroupId,
-    ]);
+    flushSync(() => {
+      setCommentGroups((prevCommentGroups) => [
+        ...prevCommentGroups,
+        commentGroup,
+      ]);
+    });
   };
 
   const deleteComment = (commentId: string) => {
@@ -80,47 +110,49 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
   };
 
   const hideComment = (commentId: string) => {
-    const comment = comments.find(
-      (comment) => comment.apiData.id === commentId
-    );
+    const comment = comments[commentId];
     if (comment) {
-      replaceWith(updateUiState(comment, { isHidden: true }));
+      const updates: { [key: string]: CommentComponentData } = {};
+      updates[commentId] = updateUiState(comment, { isHidden: true });
+      updateComments(updates, { expectReplace: true });
     }
   };
 
   const setSelectedComment = (commentId: string) => {
-    const oldSelectedComment = findComment(selectedCommentId);
-    const newSelectedComment = findComment(commentId);
+    const oldSelectedComment = comments[selectedCommentId];
+    const newSelectedComment = comments[commentId];
+    const updates: { [key: string]: CommentComponentData } = {};
     if (oldSelectedComment) {
-      replaceWith(updateUiState(oldSelectedComment, {
+      updates[selectedCommentId] = updateUiState(oldSelectedComment, {
         highlightColor: "yellow",
-      }));
+      });
     }
     if (newSelectedComment) {
-      replaceWith(updateUiState(newSelectedComment, {
+      updates[commentId] = updateUiState(newSelectedComment, {
         highlightColor: "green",
-      }));
+      });
     }
+    updateComments(updates, { expectReplace: true });
     setSelectedCommentId(commentId);
   };
 
-  const getAllCommentGroups = (fileId: string): CommentGroupId[] => {
-    const fileComments = comments.filter(
+  const getAllCommentGroups = (fileId: string): CommentGroup[] => {
+    const fileComments = Object.values(comments).filter(
       (comment) => comment.apiData.fileId === fileId
     );
     const groupIds = Array.from(
       new Set(fileComments.map((comment) => comment.apiData.groupId))
     );
-    const groupIdToGroup: { [key: string]: CommentGroupId } = {};
+    const groupIdToGroup: { [key: string]: CommentGroup } = {};
     commentGroups.forEach((group) => {
       groupIdToGroup[group.id] = group;
     });
     return groupIds.map((id) => groupIdToGroup[id]);
   };
 
-  const getActiveCommentGroups = (fileId: string): CommentGroupId[] => {
+  const getActiveCommentGroups = (fileId: string): CommentGroup[] => {
     const allGroups = getAllCommentGroups(fileId);
-    const activeGroups = activeCommentGroupIds[fileId] || [];
+    const activeGroups = activeCommentGroups[fileId] || [];
     return allGroups.filter((group) => activeGroups.includes(group.id));
   };
 
@@ -132,14 +164,14 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
   };
 
   const getActiveComments = (fileId: string): ReadonlyComment[] => {
-    const activeGroups = activeCommentGroupIds[fileId] || [];
-    return comments
+    const activeGroups = activeCommentGroups[fileId] || [];
+    return Object.values(comments)
       .filter((comment) => activeGroups.includes(comment.apiData.groupId))
       .map(copyToReadonly);
   };
 
   const getAllComments = (fileId: string): ReadonlyComment[] => {
-    return comments
+    return Object.values(comments)
       .filter((comment) => comment.apiData.fileId === fileId)
       .map(copyToReadonly);
   };
@@ -164,4 +196,3 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
     </CommentsContext.Provider>
   );
 };
-

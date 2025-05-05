@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PdfViewerRef } from "../components/ReactPdfViewer";
-import { Comment } from "@/api/types";
+import { useComments } from "./useComments";
+import { ReadonlyComment } from "./comment_ui_types";
 
 // Define the props for the CommentsThread component
 interface CommentsThreadProps {
   pdfViewerRef: React.RefObject<PdfViewerRef>;
-  comments: Comment[];
+  fileId: string;
 }
 const EXAMPLE_COMMENTS = [
   {
@@ -44,44 +45,22 @@ const EXAMPLE_COMMENTS = [
 ];
 
 const CommentsThread: React.FC<CommentsThreadProps> = (props) => {
-  const [comments, setComments] = useState<Comment[]>(props.comments);
+  const { getActiveComments, setSelectedComment } = useComments();
   const [newComment, setNewComment] = useState("");
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(
     null
   );
 
   const pdfViewerRef = props.pdfViewerRef;
+  const comments = getActiveComments(props.fileId);
+  console.log("comments in comments thread", comments);
   const handleAddComment = () => {};
 
-  const handleCommentClick = (comment: Comment) => {
+  const handleCommentClick = (comment: ReadonlyComment) => {
     console.log("handleCommentClick", comment);
-    if (!!pdfViewerRef?.current) {
-      if (selectedCommentId) {
-        const previousActiveComment = comments.find(
-          (c) => c.id === selectedCommentId
-        );
-        if (previousActiveComment?.reactPdfAnnotation) {
-          pdfViewerRef.current.setHighlightColor(
-            previousActiveComment.reactPdfAnnotation,
-            "yellow"
-          );
-        }
-      }
-
-      pdfViewerRef.current.jumpToPage(comment.reactPdfAnnotation.page);
-
-      if (comment.reactPdfAnnotation) {
-        console.log("setting highlight color", comment.reactPdfAnnotation);
-        pdfViewerRef.current.setHighlightColor(
-          comment.reactPdfAnnotation,
-          "green"
-        );
-      }
-
-      setSelectedCommentId(comment.id);
-    }
+    setSelectedComment(comment.id);
+    pdfViewerRef.current.jumpToPage(comment.jumpToPageNumber);
   };
-  const pageNumber = 1;
 
   return (
     <div className="flex flex-col h-full">
@@ -113,14 +92,14 @@ const CommentsThread: React.FC<CommentsThreadProps> = (props) => {
                       </CardTitle>
                       <p className="text-xs text-muted-foreground">
                         {comment.timestamp.toLocaleString()}
-                        {comment.reactPdfAnnotation &&
-                          ` • Page ${comment.reactPdfAnnotation.page + 1}`}
+                        {comment.jumpToPageNumber &&
+                          ` • Page ${comment.jumpToPageNumber}`}
                       </p>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="pb-2">
-                  <p className="text-sm">{comment.text}</p>
+                  <p className="text-sm">{comment.body}</p>
                 </CardContent>
               </Card>
             ))}

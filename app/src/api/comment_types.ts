@@ -1,10 +1,9 @@
 // API Response
 
-export interface CommentGroupId {
+export interface CommentGroup {
   readonly id: string;
   readonly name: string;
 }
-
 
 // ASSUME THAT ALL REFERENCE TO filePath means filePath when returned from the API
 
@@ -42,7 +41,7 @@ export interface ChatSourceComment {
   readonly commentGroupId: string;
   readonly text: string; // In original version something generic like "Response source"
   readonly highlightArea: HighlightArea;
-  readonly nextChatCommentId: string; // Links to the next source comment associated with the chat 
+  readonly nextChatCommentId: string; // Links to the next source comment associated with the chat
 }
 
 /*
@@ -55,4 +54,3 @@ export interface LinkComment {
   readonly highlightArea: HighlightArea;
   readonly parentCommentId: string;
 }
-

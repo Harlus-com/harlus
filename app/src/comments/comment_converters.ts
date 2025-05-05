@@ -1,15 +1,21 @@
 // This file contians functions to convert API comment types to a universal UI comment type that the PDF viewer can render.
 
-import { ClaimComment, CommentGroupId, HighlightArea, LinkComment } from "@/api/comment_types";
+import {
+  ClaimComment,
+  CommentGroup,
+  HighlightArea,
+  LinkComment,
+} from "@/api/comment_types";
+import { HighlightArea as ReactPdfHighlightArea } from "@react-pdf-viewer/highlight";
 import { fileService } from "@/api/fileService";
-import { Comment, ReactPdfAnnotation } from "./comment_ui_types";
+import { Comment } from "./comment_ui_types";
 import { WorkspaceFile } from "@/api/types";
 
 export async function convertClaimCommentToComments(
   claim: ClaimComment,
-  group: CommentGroupId
+  group: CommentGroup
 ): Promise<Comment[]> {
-  const file = await fileService.lookupFileByPath(claim.filePath);
+  const file = await fileService.getFileFromPath(claim.filePath);
   const links = await Promise.all(claim.links.map(convertLinkCommentToLink));
   const comment: Comment = {
     id: claim.id,
@@ -36,7 +42,7 @@ export async function convertClaimCommentToComments(
 }
 
 async function convertLinkCommentToLink(comment: LinkComment) {
-  const file = await fileService.lookupFileByPath(comment.filePath);
+  const file = await fileService.getFileFromPath(comment.filePath);
   return {
     linkToCommentId: comment.id,
     text: `${file.name}, page ${comment.highlightArea.jumpToPageNumber}`,
@@ -47,9 +53,9 @@ async function convertLinkCommentToComment(
   comment: LinkComment,
   parentComment: ClaimComment,
   parentFile: WorkspaceFile,
-  group: CommentGroupId
+  group: CommentGroup
 ): Promise<Comment> {
-  const file = await fileService.lookupFileByPath(comment.filePath);
+  const file = await fileService.getFileFromPath(comment.filePath);
   return {
     id: comment.id,
     fileId: file.id,
@@ -72,15 +78,9 @@ async function convertLinkCommentToComment(
 
 function convertHighlightAreaToAnnotations(
   highlightArea: HighlightArea
-): ReactPdfAnnotation[] {
-  return highlightArea.boundingBoxes.map((boundingBox) => {
-    return {
-      id: "DELETE IF WE CAN",
-      pageNumber: boundingBox.page,
-      left: boundingBox.left,
-      top: boundingBox.top,
-      width: boundingBox.width,
-      height: boundingBox.height,
-    };
-  });
+): ReactPdfHighlightArea[] {
+  return highlightArea.boundingBoxes.map((boundingBox) => ({
+    pageIndex: boundingBox.page,
+    ...boundingBox,
+  }));
 }

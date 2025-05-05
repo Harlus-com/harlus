@@ -1,17 +1,9 @@
 import { ComponentData, ReadonlyComponentData } from "@/core/ui_state";
+import { HighlightArea } from "@react-pdf-viewer/highlight";
 
 export interface CommentLink {
   text: string;
   linkToCommentId: string;
-}
-
-export interface ReactPdfAnnotation {
-  id: string; // typically the text (TODO: see if we can delete this)
-  pageNumber: number; // zero-based
-  left: number;
-  top: number;
-  width: number;
-  height: number;
 }
 
 export interface Comment {
@@ -22,7 +14,7 @@ export interface Comment {
   body: string;
   author: string;
   timestamp: Date;
-  annotations: ReactPdfAnnotation[];
+  annotations: HighlightArea[];
   links: CommentLink[];
   jumpToPageNumber: number;
 }
@@ -42,5 +34,3 @@ export enum CommentColor {
 export type CommentComponentData = ComponentData<Comment, CommentState>;
 
 export type ReadonlyComment = ReadonlyComponentData<Comment, CommentState>;
-
-

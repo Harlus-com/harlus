@@ -23,7 +23,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from src.util import BoundingBoxConverter, snake_to_camel
 from src.tool_library import ToolLibrary
 from src.sync_workspace import get_workspace_sync_manager
-#from src.stream_response import stream_generator_v2 # TODO: Delete this file
+
+# from src.stream_response import stream_generator_v2 # TODO: Delete this file
 from src.file_store import FileStore, Workspace, File
 from src.sync_queue import SyncQueue
 from src.stream_manager import StreamManager
@@ -261,21 +262,26 @@ async def stream_chat(
 ):
     # TODO: persist the GraphPipeline Instance in memory.
     # The instance can store all memory related to a thread ID
-    # This can be used to show historical threads and use previous chat context in replies 
-    # 
+    # This can be used to show historical threads and use previous chat context in replies
+    #
     # Example:
-    # 
+    #
     # ...
     # gp = get_graph_pipeline_from_workspace_id(workspace_id)
     # ...
     # gp.event_stream_generator(query, thread_id=thread_id)
     # ...
-    # 
-    # Another method could also extract the chat history, 
-    # 
+    #
+    # Another method could also extract the chat history,
+    #
     # gp.get_chat_history(thread_id=thread_id)
 
-    agent_graph = ChatAgentGraph([tool.get().to_langchain_tool() for tool in tool_library.get_tool_for_all_files("doc_search")])
+    agent_graph = ChatAgentGraph(
+        [
+            tool.get().to_langchain_tool()
+            for tool in tool_library.get_tool_for_all_files("doc_search")
+        ]
+    )
     agent_graph.build()
     response = StreamingResponse(
         agent_graph.stream(query),
@@ -286,7 +292,6 @@ async def stream_chat(
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "*"
     return response
-
 
 
 @app.get("/file/model/status/{file_id}")
@@ -393,26 +398,12 @@ def get_file_from_path(
 ):
     print("Getting file from path", file_path)
     """Get file object from file path by searching through all workspaces"""
-    try:
-        # Get all workspaces
-        workspaces = file_store.get_workspaces()
-        
-        # Search through each workspace
-        for workspace in workspaces.values():
-            try:
-                file = file_store.get_file_by_path(file_path, workspace.id)
-                return {
-                    "id": file.id,
-                    "name": file.name,
-                    "absolute_path": file.absolute_path,
-                    "workspace_id": file.workspace_id,
-                    "app_dir": file.app_dir,
-                    "status": sync_queue.get_sync_status(file.id)
-                }
-            except ValueError:
-                continue
-                
-        # If we get here, the file wasn't found in any workspace
-        raise HTTPException(status_code=404, detail=f"File not found in any workspace: {file_path}")
-    except Exception as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    file = file_store.get_file_by_path(file_path)
+    return {
+        "id": file.id,
+        "name": file.name,
+        "absolute_path": file.absolute_path,
+        "workspace_id": file.workspace_id,
+        "app_dir": file.app_dir,
+        "status": sync_queue.get_sync_status(file.id),
+    }

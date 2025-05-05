@@ -10,7 +10,8 @@ import {
 import { FileSearch } from "lucide-react";
 import { WorkspaceFile } from "@/api/types";
 import { fileService } from "@/api/fileService";
-import { ClaimComment } from "@/api/comment_types";
+import { CommentGroup } from "@/api/comment_types";
+import { useComments } from "@/comments/useComments";
 
 export interface ContrastResult {
   fileId: string;
@@ -30,12 +31,12 @@ export interface ContrastResult {
 
 interface ContrastAnalysisDialogProps {
   files: WorkspaceFile[];
-  onContrastAnalysisResult: (result: ClaimComment[]) => void;
+  openFile: (file: WorkspaceFile) => void;
 }
 
 const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
   files,
-  onContrastAnalysisResult,
+  openFile,
 }) => {
   const [selectedFile1, setSelectedFile1] = useState<WorkspaceFile | null>(
     null
@@ -43,6 +44,8 @@ const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
   const [selectedFile2, setSelectedFile2] = useState<WorkspaceFile | null>(
     null
   );
+  const { addClaimComments, addCommentGroup, setActiveCommentGroups } =
+    useComments();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -54,7 +57,14 @@ const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
         selectedFile1.id,
         selectedFile2.id
       );
-      onContrastAnalysisResult(result);
+      const commentGroup: CommentGroup = {
+        name: `Compare ${selectedFile1.name} and ${selectedFile2.name}`,
+        id: `compare-${selectedFile1.id}-${selectedFile2.id}`,
+      };
+      addCommentGroup(commentGroup);
+      setActiveCommentGroups(selectedFile1.id, [commentGroup.id]);
+      await addClaimComments(result, commentGroup);
+      openFile(selectedFile1);
       setIsOpen(false);
     } catch (error) {
       console.error("Error running analysis:", error);

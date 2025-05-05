@@ -1,25 +1,28 @@
 import {
   ChatSourceComment,
   ClaimComment,
-  CommentGroupId,
+  CommentGroup,
 } from "@/api/comment_types";
 import { createContext } from "react";
 import { ReadonlyComment } from "./comment_ui_types";
 
 interface CommentsContextType {
-  addClaimComments: (comments: ClaimComment[], groupId: CommentGroupId) => void;
+  addClaimComments: (
+    comments: ClaimComment[],
+    group: CommentGroup
+  ) => Promise<void>;
   addChatSourceComments: (
     comments: ChatSourceComment[],
-    groupId: CommentGroupId
+    group: CommentGroup
   ) => void;
-  addCommentGroup: (commentGroupId: CommentGroupId) => void;
+  addCommentGroup: (commentGroup: CommentGroup) => void;
 
   deleteComment: (commentId: string) => void;
   hideComment: (commentId: string) => void;
   setSelectedComment: (commentId: string) => void;
 
-  getAllCommentGroups: (fileId: string) => CommentGroupId[];
-  getActiveCommentGroups: (fileId: string) => CommentGroupId[];
+  getAllCommentGroups: (fileId: string) => CommentGroup[];
+  getActiveCommentGroups: (fileId: string) => CommentGroup[];
   setActiveCommentGroups: (fileId: string, commentGroupIds: string[]) => void;
   /** Get all comments for the active comment groups, including hidden ones */
   getActiveComments: (fileId: string) => ReadonlyComment[];

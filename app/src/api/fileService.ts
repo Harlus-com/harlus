@@ -95,14 +95,12 @@ class FileService {
   }
 
   // Run contrast analysis between two files
-  async runContrastAnalysis(file1Id: string, file2Id: string): Promise<ClaimComment[]> {
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+  async runContrastAnalysis(
+    file1Id: string,
+    file2Id: string
+  ): Promise<ClaimComment[]> {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     return mockContrastAnalysisResponse.claimComments;
-  }
-
-  lookupFileByPath(filePath: string): Promise<WorkspaceFile> {
-    // TODO: Implement this
-    return Promise.resolve(null);
   }
 
   // Get file ID from path
@@ -121,16 +119,16 @@ class FileService {
       workspaceId: file.workspace_id,
       appDir: file.app_dir,
       status: file.status,
-      annotations: file.annotations ? {
-        show: false,
-        data: file.annotations
-      } : undefined
+      annotations: file.annotations
+        ? {
+            show: false,
+            data: file.annotations,
+          }
+        : undefined,
     };
-    
+
     return workspaceFile;
   }
 }
-
-
 
 export const fileService = new FileService();

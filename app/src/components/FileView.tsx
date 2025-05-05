@@ -8,9 +8,6 @@ import { OpenFileGroup } from "./OpenFileGroup";
 import { MessageSquareQuote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CommentsThread from "../comments/CommentsThread";
-import { Comment } from "@/api/types";
-import { ContrastClaimCheck } from "./ContrastAnalysisPanel";
-import { useComments } from "@/comments/useComments";
 
 export interface FileViewProps {
   openFiles: Record<FileGroupCount, OpenFileGroup | null>;
@@ -95,7 +92,6 @@ function FileGroupPanel({
 }: FileGroupPanelProps) {
   const viewerRef = useRef<PdfViewerRef>(null);
   const { files, selectedFile } = openFileGroup;
-  const { comments, setComments } = useComments();
   const [showComments, setShowComments] = useState(false);
   return (
     <Panel
@@ -183,7 +179,10 @@ function FileGroupPanel({
               order={2}
               defaultSize={20}
             >
-              <CommentsThread pdfViewerRef={viewerRef} comments={comments} />
+              <CommentsThread
+                pdfViewerRef={viewerRef}
+                fileId={selectedFile.id}
+              />
             </Panel>
           </>
         )}
