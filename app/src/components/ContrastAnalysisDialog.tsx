@@ -10,6 +10,7 @@ import {
 import { FileSearch } from "lucide-react";
 import { WorkspaceFile } from "@/api/types";
 import { fileService } from "@/api/fileService";
+import { ClaimComment } from "@/api/comment_types";
 
 export interface ContrastResult {
   fileId: string;
@@ -29,7 +30,7 @@ export interface ContrastResult {
 
 interface ContrastAnalysisDialogProps {
   files: WorkspaceFile[];
-  onContrastAnalysisResult: (result: ContrastResult) => void;
+  onContrastAnalysisResult: (result: ClaimComment[]) => void;
 }
 
 const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({

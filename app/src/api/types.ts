@@ -84,18 +84,26 @@ export interface ChatMessage {
   messageType?: 'reading_message' | 'answer_message';
 }
 
+export interface CommentLink {
+  text: string;
+  linkToCommentId: string;
+}
+
 export interface Comment {
   id: string;
   fileId: string;
-  text: string;
+  header: string;
+  body: string;
   author: string;
   timestamp: Date;
-  reactPdfAnnotation?: ReactPdfAnnotation;
+  reactPdfAnnotation: ReactPdfAnnotation[];
+  links: CommentLink[];
+  color: string; // This could be styles in the future
 }
 
 export interface ReactPdfAnnotation {
-  id: string; // typically the text
-  page: number; // zero-based
+  id: string; // typically the text (TODO: see if we can delete this)
+  pageNumber: number; // zero-based
   left: number;
   top: number;
   width: number;

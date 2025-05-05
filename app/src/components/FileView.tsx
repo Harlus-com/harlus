@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import CommentsThread from "../comments/CommentsThread";
 import { Comment } from "@/api/types";
 import { ContrastClaimCheck } from "./ContrastAnalysisPanel";
+import { useComments } from "@/comments/useComments";
 
 export interface FileViewProps {
   openFiles: Record<FileGroupCount, OpenFileGroup | null>;
@@ -94,23 +95,8 @@ function FileGroupPanel({
 }: FileGroupPanelProps) {
   const viewerRef = useRef<PdfViewerRef>(null);
   const { files, selectedFile } = openFileGroup;
-  const [comments, setComments] = useState<Comment[]>([]);
+  const { comments, setComments } = useComments();
   const [showComments, setShowComments] = useState(false);
-  useEffect(() => {
-    const claimChecks: ContrastClaimCheck[] =
-      selectedFile?.annotations?.data || [];
-    const newComments: Comment[] = claimChecks.map((check) => ({
-      id: check.annotations[0].id,
-      text: check.explanation,
-      author: "Harlus",
-      timestamp: new Date(),
-      reactPdfAnnotation: check.annotations[0],
-      fileId: selectedFile?.id,
-    }));
-    setComments(newComments);
-    setShowComments(newComments.length > 0);
-  }, [selectedFile]);
-
   return (
     <Panel
       id={`file-group-${groupIndex}`}

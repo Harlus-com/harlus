@@ -1,6 +1,8 @@
 // Service to handle file operations and communication with the backend API
 import { WorkspaceFile, ChatMessage } from "./types";
 import { client } from "./client";
+import { mockContrastAnalysisResponse } from "./mock_data";
+import { ClaimComment } from "./comment_types";
 // Mock API service for now - will be replaced with actual API calls
 class FileService {
   private chatHistory: ChatMessage[] = [];
@@ -93,10 +95,14 @@ class FileService {
   }
 
   // Run contrast analysis between two files
-  async runContrastAnalysis(file1Id: string, file2Id: string): Promise<any> {
-    return client.get(
-      `/contrast/analyze?oldFileId=${file1Id}&newFileId=${file2Id}`
-    );
+  async runContrastAnalysis(file1Id: string, file2Id: string): Promise<ClaimComment[]> {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    return mockContrastAnalysisResponse.claimComments;
+  }
+
+  lookupFileByPath(filePath: string): Promise<WorkspaceFile> {
+    // TODO: Implement this
+    return Promise.resolve(null);
   }
 
   // Get file ID from path
@@ -124,5 +130,7 @@ class FileService {
     return workspaceFile;
   }
 }
+
+
 
 export const fileService = new FileService();
