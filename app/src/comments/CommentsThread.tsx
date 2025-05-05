@@ -107,82 +107,85 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 pl-2">
             {comments.map((comment) => (
-              <Card
+              <div
                 key={comment.id}
-                onClick={() => handleCommentClick(comment)}
                 className={cn(
-                  "w-full cursor-pointer transition-colors",
+                  "transition-all duration-200",
                   selectedCommentId === comment.id
-                    ? comment.color === CommentColor.GREEN
-                      ? "bg-green-50 border-green-200"
-                      : comment.color === CommentColor.RED
-                      ? "bg-red-50 border-red-200"
-                      : "bg-gray-50 border-gray-200"
-                    : "hover:bg-gray-50",
-                  "border-l-4"
+                    ? "translate-x-0 pointer-events-none"
+                    : "hover:-translate-x-2 cursor-pointer"
                 )}
-                style={{
-                  borderLeftColor:
-                    comment.color === CommentColor.GREEN
-                      ? "#10B981"
-                      : comment.color === CommentColor.RED
-                      ? "#EF4444"
-                      : "#E5E7EB",
-                }}
               >
-                <CardHeader className="pb-2">
-                  <div className="flex items-start space-x-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-blue-100 text-blue-600">
-                        {comment.author[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col flex-1">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CardTitle className="text-sm font-medium text-gray-800">
-                            {comment.author}
-                          </CardTitle>
-                        </div>
-                        {comment.tag && <CommentTagChip tag={comment.tag} />}
-                      </div>
-                      {comment.jumpToPageNumber !== undefined && (
-                        <span className="text-[10px] text-gray-500 mt-0.5">
-                          Page {comment.jumpToPageNumber}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pb-3">
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    {comment.body}
-                  </p>
-                  {comment.links.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-gray-100">
-                      <div className="flex flex-wrap gap-1.5">
-                        {comment.links.map((link) => (
-                          <Button
-                            key={link.linkToCommentId}
-                            variant="outline"
-                            size="sm"
-                            className="h-auto py-1 px-2.5 text-[11px] gap-1 mr-0 mb-1.5 inline-flex items-center bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 rounded-full"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleLinkClick(link);
-                            }}
-                          >
-                            <FileText size={10} className="shrink-0" />
-                            <span className="truncate">{link.text}</span>
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
+                <Card
+                  onClick={() => handleCommentClick(comment)}
+                  className={cn(
+                    "w-full",
+                    selectedCommentId === comment.id ? "bg-gray-50" : "",
+                    "border-l-4 border-gray-200"
                   )}
-                </CardContent>
-              </Card>
+                  style={{
+                    borderLeftColor:
+                      comment.color === CommentColor.GREEN
+                        ? "#10B981"
+                        : comment.color === CommentColor.RED
+                        ? "#EF4444"
+                        : "#E5E7EB",
+                  }}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start space-x-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-blue-100 text-blue-600">
+                          {comment.author[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col flex-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="text-sm font-medium text-gray-800">
+                              {comment.author}
+                            </CardTitle>
+                          </div>
+                          {comment.tag && <CommentTagChip tag={comment.tag} />}
+                        </div>
+                        {comment.jumpToPageNumber !== undefined && (
+                          <span className="text-[10px] text-gray-500 mt-0.5">
+                            Page {comment.jumpToPageNumber}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      {comment.body}
+                    </p>
+                    {comment.links.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-gray-100">
+                        <div className="flex flex-wrap gap-1.5">
+                          {comment.links.map((link) => (
+                            <Button
+                              key={link.linkToCommentId}
+                              variant="outline"
+                              size="sm"
+                              className="h-auto py-1 px-2.5 text-[11px] gap-1 mr-0 mb-1.5 inline-flex items-center bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 rounded-full"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleLinkClick(link);
+                              }}
+                            >
+                              <FileText size={10} className="shrink-0" />
+                              <span className="truncate">{link.text}</span>
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             ))}
           </div>
         )}
