@@ -28,6 +28,7 @@ export async function convertClaimCommentToComments(
     links,
     jumpToPageNumber: claim.highlightArea.jumpToPageNumber,
   };
+  console.log("VERDICT", claim.verdict);
   if (claim.verdict === "true") {
     comment.header = "Alignment";
   } else if (claim.verdict === "false") {

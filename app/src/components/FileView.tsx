@@ -42,6 +42,13 @@ export default function FileView({ openFiles, setOpenFiles }: FileViewProps) {
     });
   };
 
+  const handleToggleComments = (groupIndex: FileGroupCount, fileId: string) => {
+    const group = openFiles[groupIndex] || OpenFileGroup.empty();
+    setOpenFiles((prev) => {
+      return { ...prev, [groupIndex]: group.toggleShowComments(fileId) };
+    });
+  };
+
   const makeFileGroup = (
     groupIndex: FileGroupCount,
     options: { panelDivider: boolean } = { panelDivider: true }
@@ -57,6 +64,7 @@ export default function FileView({ openFiles, setOpenFiles }: FileViewProps) {
           groupIndex={groupIndex}
           onSelectFile={handleSelectFile}
           onCloseFile={handleCloseFile}
+          onToggleComments={handleToggleComments}
         />
       </>
     );
@@ -82,6 +90,7 @@ interface FileGroupPanelProps {
   groupIndex: FileGroupCount;
   onSelectFile: (group: FileGroupCount, file: WorkspaceFile) => void;
   onCloseFile: (group: FileGroupCount, fileId: string) => void;
+  onToggleComments: (group: FileGroupCount, fileId: string) => void;
 }
 
 function FileGroupPanel({
@@ -89,10 +98,11 @@ function FileGroupPanel({
   groupIndex,
   onSelectFile,
   onCloseFile,
+  onToggleComments,
 }: FileGroupPanelProps) {
   const viewerRef = useRef<PdfViewerRef>(null);
-  const { files, selectedFile } = openFileGroup;
-  const [showComments, setShowComments] = useState(false);
+  const { files, selectedFile, showComments } = openFileGroup;
+
   return (
     <Panel
       id={`file-group-${groupIndex}`}
@@ -136,7 +146,7 @@ function FileGroupPanel({
               })}
             </div>
             <Button
-              onClick={() => setShowComments(!showComments)}
+              onClick={() => onToggleComments(groupIndex, selectedFile.id)}
               variant="ghost"
               size="sm"
               className="group relative"
@@ -171,7 +181,7 @@ function FileGroupPanel({
             </div>
           )}
         </Panel>
-        {selectedFile != null && showComments && (
+        {selectedFile != null && showComments[selectedFile.id] && (
           <>
             <PanelDivider invisible={true} />
             <Panel

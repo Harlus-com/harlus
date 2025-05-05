@@ -26,7 +26,7 @@ export type WorkSpaceHeaderProps = {
   onFileGroupCountChange: (fileGroupCount: FileGroupCount) => void;
   togglePanelVisibility: (panelId: TopLevelPanelId) => void;
   refreshFiles: () => void;
-  openFile: (file: WorkspaceFile) => void;
+  openFile: (file: WorkspaceFile, options: { showComments: boolean }) => void;
 };
 
 export default function WorkspaceHeader({

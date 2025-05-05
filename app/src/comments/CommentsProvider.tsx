@@ -166,6 +166,7 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
   const getActiveComments = (fileId: string): ReadonlyComment[] => {
     const activeGroups = activeCommentGroups[fileId] || [];
     return Object.values(comments)
+      .filter((comment) => comment.apiData.fileId === fileId)
       .filter((comment) => activeGroups.includes(comment.apiData.groupId))
       .map(copyToReadonly);
   };

@@ -31,7 +31,7 @@ export interface ContrastResult {
 
 interface ContrastAnalysisDialogProps {
   files: WorkspaceFile[];
-  openFile: (file: WorkspaceFile) => void;
+  openFile: (file: WorkspaceFile, options: { showComments: boolean }) => void;
 }
 
 const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
@@ -63,8 +63,9 @@ const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
       };
       addCommentGroup(commentGroup);
       setActiveCommentGroups(selectedFile1.id, [commentGroup.id]);
+      setActiveCommentGroups(selectedFile2.id, [commentGroup.id]);
       await addClaimComments(result, commentGroup);
-      openFile(selectedFile1);
+      openFile(selectedFile1, { showComments: true });
       setIsOpen(false);
     } catch (error) {
       console.error("Error running analysis:", error);

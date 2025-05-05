@@ -71,7 +71,7 @@ export const mockContrastAnalysisResponse: { claimComments: ClaimComment[] } = {
           parentCommentId: "c2",
         },
       ] as LinkComment[],
-      verdict: "unknown",
+      verdict: "false",
     },
   ],
 };

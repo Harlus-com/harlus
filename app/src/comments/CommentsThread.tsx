@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PdfViewerRef } from "../components/ReactPdfViewer";
 import { useComments } from "./useComments";
-import { ReadonlyComment } from "./comment_ui_types";
+import { CommentLink, ReadonlyComment } from "./comment_ui_types";
 
 // Define the props for the CommentsThread component
 interface CommentsThreadProps {
@@ -43,23 +43,37 @@ const EXAMPLE_COMMENTS = [
     },
   },
 ];
-
-const CommentsThread: React.FC<CommentsThreadProps> = (props) => {
+const CommentsThread: React.FC<CommentsThreadProps> = ({
+  fileId,
+  pdfViewerRef,
+}) => {
   const { getActiveComments, setSelectedComment } = useComments();
   const [newComment, setNewComment] = useState("");
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(
     null
   );
 
-  const pdfViewerRef = props.pdfViewerRef;
-  const comments = getActiveComments(props.fileId);
-  console.log("comments in comments thread", comments);
-  const handleAddComment = () => {};
+  // filter out hidden comments
+  const comments: ReadonlyComment[] = getActiveComments(fileId).filter(
+    (c) => !c.isHidden
+  );
+
+  console.log("comments", comments);
+
+  const handleAddComment = () => {
+    // your existing add-comment logic…
+  };
 
   const handleCommentClick = (comment: ReadonlyComment) => {
-    console.log("handleCommentClick", comment);
     setSelectedComment(comment.id);
-    pdfViewerRef.current.jumpToPage(comment.jumpToPageNumber);
+    setSelectedCommentId(comment.id);
+    pdfViewerRef.current?.jumpToPage(comment.jumpToPageNumber);
+  };
+
+  const handleLinkClick = (link: CommentLink) => {
+    setSelectedComment(link.linkToCommentId);
+    setSelectedCommentId(link.linkToCommentId);
+    // optionally jump to page of the linked comment here
   };
 
   return (
@@ -74,12 +88,13 @@ const CommentsThread: React.FC<CommentsThreadProps> = (props) => {
             {comments.map((comment) => (
               <Card
                 key={comment.id}
+                onClick={() => handleCommentClick(comment)}
                 className={`w-full cursor-pointer transition-colors ${
                   selectedCommentId === comment.id
                     ? "bg-green-50 border-green-200"
                     : "hover:bg-gray-50"
                 }`}
-                onClick={() => handleCommentClick(comment)}
+                style={{ borderLeft: `4px solid ${comment.color}` }}
               >
                 <CardHeader className="pb-2">
                   <div className="flex items-center space-x-2">
@@ -92,14 +107,39 @@ const CommentsThread: React.FC<CommentsThreadProps> = (props) => {
                       </CardTitle>
                       <p className="text-xs text-muted-foreground">
                         {comment.timestamp.toLocaleString()}
-                        {comment.jumpToPageNumber &&
+                        {comment.jumpToPageNumber !== undefined &&
                           ` • Page ${comment.jumpToPageNumber}`}
                       </p>
+                      {comment.header && (
+                        <p className="mt-1 text-sm font-medium">
+                          {comment.header}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="pb-2">
                   <p className="text-sm">{comment.body}</p>
+                  {comment.links.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-xs font-semibold">Links:</p>
+                      <ul className="list-disc list-inside space-y-1 text-sm">
+                        {comment.links.map((link) => (
+                          <li key={link.linkToCommentId}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleLinkClick(link);
+                              }}
+                              className="underline hover:text-blue-600"
+                            >
+                              {link.text}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}

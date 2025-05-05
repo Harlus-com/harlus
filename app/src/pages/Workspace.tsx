@@ -147,17 +147,22 @@ export default function Workspace() {
 
   const handleFileSelect = (
     file: WorkspaceFile,
-    groupNumber: FileGroupCount
+    groupNumber: FileGroupCount,
+    options: { showComments: boolean }
   ) => {
-    console.log("handleFileSelect", file, groupNumber);
+    console.log("handleFileSelect", file, groupNumber, options);
     const current = openFiles[groupNumber];
     const updates = {};
     if (current == null) {
       updates[groupNumber] = OpenFileGroup.empty().addFile(file, {
         select: true,
+        showComments: options.showComments,
       });
     } else {
-      updates[groupNumber] = current.addFile(file, { select: true });
+      updates[groupNumber] = current.addFile(file, {
+        select: true,
+        showComments: options.showComments,
+      });
     }
     setOpenFiles((prev) => ({
       ...prev,
@@ -173,7 +178,9 @@ export default function Workspace() {
           files={files}
           onFileGroupCountChange={handleOnFileGroupCountChange}
           togglePanelVisibility={togglePanelVisibility}
-          openFile={(file) => handleFileSelect(file, FileGroupCount.ONE)}
+          openFile={(file, options) =>
+            handleFileSelect(file, FileGroupCount.ONE, options)
+          }
           refreshFiles={refreshFiles}
         />
         <PanelGroup id="workspace" direction="horizontal" className="flex-1">
@@ -205,7 +212,9 @@ export default function Workspace() {
               >
                 <FileExplorer
                   files={files}
-                  onFileSelect={handleFileSelect}
+                  onFileSelect={(file, groupNumber) =>
+                    handleFileSelect(file, groupNumber, { showComments: false })
+                  }
                   openFiles={openFiles}
                   onFilesChange={setFiles}
                 />
@@ -230,7 +239,9 @@ export default function Workspace() {
               >
                 <ChatPanel
                   onSourceClicked={(file) =>
-                    handleFileSelect(file, FileGroupCount.ONE)
+                    handleFileSelect(file, FileGroupCount.ONE, {
+                      showComments: true,
+                    })
                   }
                 />
               </Panel>
