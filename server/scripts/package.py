@@ -71,10 +71,6 @@ def unlink(tool_name):
     print(f"Found local wheels: {local_wheels}")
     if not tool_name in local_wheels:
         raise Exception(f"Tool {tool_name} not found in wheels directory")
-    if len(local_wheels[tool_name]) > 1:
-        raise Exception(
-            f"Tool {tool_name} matched multiple wheels across different tools"
-        )
     tool_wheels = local_wheels[tool_name]
     highest_version_wheel = max(tool_wheels, key=lambda x: x[0])
     print(f"Unlinked {tool_name} from {f"../ml/tools/{tool_name}"}")

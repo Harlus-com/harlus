@@ -51,7 +51,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 
   const handleForceSync = async (file: WorkspaceFile, e: React.MouseEvent) => {
     e.stopPropagation();
-    // TODO: Implement force sync functionality
+    await fileService.forceSyncFile(file);
   };
 
   return (
