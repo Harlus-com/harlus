@@ -307,7 +307,7 @@ def get_file_status(file_id: str) -> SyncStatus:
 
 
 class ReactPdfAnnotation(BaseModel):
-    id: str  # typically the text TODO: See if we can delete this
+    # id: str  # typically the text TODO: See if we can delete this
     page: int  # zero-based
     left: float
     top: float
@@ -315,10 +315,19 @@ class ReactPdfAnnotation(BaseModel):
     height: float
 
 
+class ContrastLinkCheck(BaseModel):
+    file_id: str = Field(alias="fileId")
+    annotations: list[ReactPdfAnnotation]
+    parent_id: str = Field(alias="parentId")
+
+
+# TODO claim comment can have multiple link comments
 class ContrastClaimCheck(BaseModel):
+    comment_id: str = Field(alias="commentId")
     annotations: list[ReactPdfAnnotation]
     verdict: str
     explanation: str
+    link: ContrastLinkCheck
 
 
 class ContrastResult(BaseModel):
@@ -337,7 +346,7 @@ class ContrastResult(BaseModel):
 def get_contrast_analyze(
     old_file_id: str = Query(..., alias="oldFileId"),
     new_file_id: str = Query(..., alias="newFileId"),
-):
+) -> ContrastResult:
     if os.path.exists("contrast_result.pkl"):
         with open("contrast_result.pkl", "rb") as f:
             contrast_result = pickle.load(f)
@@ -347,46 +356,73 @@ def get_contrast_analyze(
 
     old_file = file_store.get_file(old_file_id)
     new_file = file_store.get_file(new_file_id)
-    claim_query_tool = tool_library.get_tool(old_file.absolute_path, "claim_query_tool")
-    claim_retriever_tool = tool_library.get_tool(
-        old_file.absolute_path, "claim_retriever_tool"
-    )
-    claim_check_tool = tool_library.get_tool(new_file.absolute_path, "claim_check_tool")
-    contrast_result = ContrastTool().compare_documents(
+    claim_query_engine = tool_library.get_tool(old_file.absolute_path, "claim_query_engine_tool")
+    claim_sentence_retriever = tool_library.get_tool(old_file.absolute_path, "sentence_retriever_tool")
+    verdict_query_engine = tool_library.get_tool(new_file.absolute_path, "verdict_query_engine_tool")
+    verdict_sentence_retriever = tool_library.get_tool(new_file.absolute_path, "sentence_retriever_tool")
+
+    comments = ContrastTool().run(
         old_file.absolute_path,
-        claim_query_tool.get(),
-        claim_retriever_tool.get(),
-        claim_check_tool.get(),
+        claim_query_engine.get(),
+        claim_sentence_retriever.get(),
+        new_file,
+        verdict_query_engine.get(),
+        verdict_sentence_retriever.get(),
     )
-    claim_checks = []
-    for key, value in contrast_result.items():
-        bounding_box_converter = BoundingBoxConverter(
-            value["page_width"], value["page_height"]
-        )
-        react_annotations = []
-        for bbox in value["bbox"]:
-            react_bbox = bounding_box_converter.from_pymupdf_to_reactpdf(bbox)
-            react_annotations.append(
+
+    claim_checks: list[ContrastClaimCheck] = []
+    for idx, comment in enumerate(comments):
+        base_name = os.path.basename(comment.file_path)
+        comment_id = f"{base_name}-p{comment.highlight_area.jump_to_page}-c{idx}"
+
+        # annotations for claim
+        claim_annotations: list[ReactPdfAnnotation] = []
+        for bbox in comment.highlight_area.bounding_boxes:
+            claim_annotations.append(
                 ReactPdfAnnotation(
-                    id=key,
-                    page=value["page_num"] - 1,
-                    left=react_bbox["left"],
-                    top=react_bbox["top"],
-                    width=react_bbox["width"],
-                    height=react_bbox["height"],
+                    # id=comment.text,
+                    page=comment.highlight_area.jump_to_page - 1, # TODO settle globally whether use 0- or 1-based
+                    left=bbox.left,
+                    top=bbox.top,
+                    width=bbox.width,
+                    height=bbox.height,
                 )
             )
+        # annotations for evidence
+        link_annotations: list[ReactPdfAnnotation] = []
+        for link in comment.links:
+            for bbox in link.highlight_area.bounding_boxes:
+                link_annotations.append(
+                    ReactPdfAnnotation(
+                        page=link.highlight_area.jump_to_page - 1,
+                        left=bbox.left,
+                        top=bbox.top,
+                        width=bbox.width,
+                        height=bbox.height,
+                    )
+                )
+        
+        link_check = ContrastLinkCheck(
+            file_id=new_file_id,
+            annotations=link_annotations,
+            parent_id=comment_id,
+        )
+
         claim_checks.append(
             ContrastClaimCheck(
-                annotations=react_annotations,
-                verdict=value["verdict"],
-                explanation=value["explanation"],
+                comment_id=comment_id,
+                annotations=claim_annotations,
+                verdict=comment.verdict,
+                explanation=comment.text,
+                link=link_check,
             )
         )
+
     contrast_result = ContrastResult(
         file_id=old_file_id,
         claim_checks=claim_checks,
     )
+
     with open("contrast_result.pkl", "wb") as f:
         pickle.dump(contrast_result, f)
     return contrast_result
