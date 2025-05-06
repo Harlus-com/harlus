@@ -1,5 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor
-import json
 import pickle
 import time
 from fastapi import (
@@ -7,7 +5,6 @@ from fastapi import (
     Query,
     Response,
     WebSocket,
-    HTTPException,
 )
 import os
 import asyncio

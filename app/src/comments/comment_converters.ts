@@ -9,7 +9,7 @@ import {
 import { HighlightArea as ReactPdfHighlightArea } from "@react-pdf-viewer/highlight";
 import { fileService } from "@/api/fileService";
 import { Comment, CommentLink, CommentTag } from "./comment_ui_types";
-import { WorkspaceFile } from "@/api/types";
+import { WorkspaceFile } from "@/api/workspace_types";
 
 export async function convertClaimCommentToComments(
   claim: ClaimComment,

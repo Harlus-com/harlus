@@ -5,7 +5,7 @@ import React, {
   forwardRef,
   useMemo,
 } from "react";
-import { WorkspaceFile } from "@/api/types";
+import { WorkspaceFile } from "@/api/workspace_types";
 import { fileService } from "@/api/fileService";
 
 // react-pdf-viewer imports

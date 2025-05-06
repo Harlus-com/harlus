@@ -1,5 +1,5 @@
 import { WEBSOCKET_URL } from "@/api/client";
-import { SyncStatus } from "@/api/types";
+import { SyncStatus } from "@/api/workspace_types";
 import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 

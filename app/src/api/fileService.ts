@@ -1,5 +1,5 @@
 // Service to handle file operations and communication with the backend API
-import { WorkspaceFile, ChatMessage } from "./types";
+import { WorkspaceFile, ChatMessage } from "./workspace_types";
 import { client } from "./client";
 import { mockContrastAnalysisResponse } from "./mock_data";
 import { ClaimComment } from "./comment_types";
