@@ -5,6 +5,7 @@ import {
   CommentGroup,
   HighlightArea,
   LinkComment,
+  ChatSourceComment,
 } from "@/api/comment_types";
 import { HighlightArea as ReactPdfHighlightArea } from "@react-pdf-viewer/highlight";
 import { fileService } from "@/api/fileService";
@@ -79,6 +80,27 @@ async function convertLinkCommentToComment(
     ],
     jumpToPageNumber: comment.highlightArea.jumpToPageNumber,
   };
+}
+
+export async function convertChatSourceCommentToComments(
+  chatSourceComment: ChatSourceComment,
+  group: CommentGroup
+): Promise<Comment[]> {
+  const file = await fileService.getFileFromPath(chatSourceComment.filePath);
+  const comment: Comment = {
+    id: chatSourceComment.id,
+    fileId: file.id,
+    groupId: group.id,
+    body: chatSourceComment.text || "Source from AI Assistant",
+    author: "AI Assistant",
+    timestamp: new Date(),
+    annotations: convertHighlightAreaToAnnotations(chatSourceComment.highlightArea),
+    links: [],
+    jumpToPageNumber: chatSourceComment.highlightArea.jumpToPageNumber,
+    tag: CommentTag.SOURCE,
+  };
+  
+  return [comment];
 }
 
 function convertHighlightAreaToAnnotations(

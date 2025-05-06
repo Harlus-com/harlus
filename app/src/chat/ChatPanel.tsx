@@ -20,6 +20,9 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { ChatMessage, ChatSourceCommentGroup } from "./chat_types";
+import { useComments } from "@/comments/useComments";
+import { CommentGroup } from "@/api/comment_types";
+
 interface ChatPanelProps {
   onSourceClicked?: (file: WorkspaceFile) => void;
 }
@@ -403,6 +406,7 @@ AssistantMessage.displayName = "AssistantMessage";
 const MessagePairComponent: React.FC<MessagePairProps> = memo(
   ({ pair, isReading, toggleReadingMessages }) => {
     const { onSourceClicked } = useContext(SourceClickContext);
+    const { addChatSourceComments, addCommentGroup, setActiveCommentGroups } = useComments();
 
     // Handle source clicks
     const handleSourceClick = useCallback(
@@ -421,80 +425,30 @@ const MessagePairComponent: React.FC<MessagePairProps> = memo(
               );
               return;
             }
+            
+            // Create a comment group for this source
+            const commentGroup: CommentGroup = {
+              id: `chat-source-${Date.now()}`, // TODO: replace with thread ID
+              name: `Source from AI Assistant`,
+            };
+            
+            
+            addCommentGroup(commentGroup);
 
-            const annotations = [];
-
-            if (!chatSourceCommentGroup.chatSourceComments) {
-              console.error(
-                "[MessagePair] No comments found in source group:",
-                chatSourceCommentGroup
-              );
-              return;
+            setActiveCommentGroups(file.id, [commentGroup.id]);            
+            if (chatSourceCommentGroup.chatSourceComments) {
+              await addChatSourceComments(chatSourceCommentGroup.chatSourceComments, commentGroup);
             }
 
-            chatSourceCommentGroup.chatSourceComments.forEach(
-              (chatSourceComment) => {
-                if (!chatSourceComment?.highlightArea?.boundingBoxes) {
-                  console.warn(
-                    "[MessagePair] Missing highlight area or bounding boxes:",
-                    chatSourceComment
-                  );
-                  return;
-                }
+            // Call onSourceClicked with the file - the parent component will handle showing comments
+            onSourceClicked(file);
 
-                chatSourceComment.highlightArea.boundingBoxes.forEach(
-                  (bbox) => {
-                    try {
-                      if (!bbox?.page) {
-                        console.warn(
-                          "[MessagePair] Missing page in bounding box:",
-                          bbox
-                        );
-                        return;
-                      }
-
-                      annotations.push({
-                        id: "source-" + Math.random().toString(36).substr(2, 9),
-                        page: bbox.page - 1,
-                        left: bbox.left,
-                        top: bbox.top,
-                        width: bbox.width,
-                        height: bbox.height,
-                      });
-                    } catch (error) {
-                      console.error(
-                        "[MessagePair] Error processing bounding box:",
-                        error
-                      );
-                    }
-                  }
-                );
-              }
-            );
-
-            const claimChecks = [
-              {
-                annotations: annotations,
-                verdict: "Source",
-                explanation: "Source from chat",
-              },
-            ];
-
-            const updatedFile = {
-              ...file,
-              annotations: {
-                show: true,
-                data: claimChecks,
-              },
-            };
-
-            onSourceClicked(updatedFile);
           } catch (error) {
             console.error("[MessagePair] Error opening source:", error);
           }
         }
       },
-      [onSourceClicked]
+      [onSourceClicked, addChatSourceComments, addCommentGroup, setActiveCommentGroups]
     );
 
     const handleToggleReadingMessages = useCallback(() => {
