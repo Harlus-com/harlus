@@ -225,18 +225,20 @@ class ChatAgentGraph:
             if isinstance(tool, TavilySearch):
                 print(" - adding tavily search tool")
                 self.tools.append(tool)
-                self.tool_name_to_type[tool.name] = "tavily_search"
+                self.tool_name_to_type[sanitize_tool_name(tool.name)] = "tavily_search"
+
             # tool is a DocSearchToolWrapper
             elif hasattr(tool, 'tool_class') and tool.tool_class == "DocSearchToolWrapper":
                 print(" - adding doc search tool")
                 lctool = tool.tool.to_langchain_tool()
                 self.tools.append(lctool)
-                self.tool_name_to_type[tool.name] = "doc_search"
+                self.tool_name_to_type[sanitize_tool_name(lctool.name)] = "doc_search"
             else:
                 raise ValueError(f" - {tool} is not a recognized tool.")
     
         for tool in self.tools:
             tool.name = sanitize_tool_name(tool.name)
+        
         
         self.tools_descriptions_string = "\n - " + "\n -".join([f"{tool.name}: {tool.description}" for tool in tools])
         self.LLM = LLM

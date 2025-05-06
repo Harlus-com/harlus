@@ -5,9 +5,9 @@ with open("requirements.txt") as f:
     
 setup(
     name="doc_search",
-    version="0.1.2",
+    version="0.1.3",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=requirements,
-    description="Release note: include file path in node metadata",
+    description="Release note: added type checks",
 )

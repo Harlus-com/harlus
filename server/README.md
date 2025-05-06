@@ -111,3 +111,14 @@ or to go back to using the local wheel
 ```bash
 python scripts/package.py {tool_name} --unlink
 ```
+
+### Integrating Harlus_Chat and Doc_Search 
+
+Harlus Chat depends on Doc Search and specifies the version of doc_search it needs in its requirements.txt file. To install Harlus Chat, use:
+
+```
+python scripts/package.py {tool_name} --package doc_search
+python scripts/package.py {tool_name} --package harlus_chat
+```
+
+Note, sinde doc_search makes use of the on-disk cache, delete this cache by each version increase of doc_search.
