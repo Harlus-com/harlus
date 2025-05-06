@@ -1,15 +1,25 @@
+from .contrast_tool import ContrastTool
+from .claim_getter import ClaimQueryEnginePipeline
+from .claim_checker import VerdictQueryEnginePipeline
+from .sentence_retriever import SentenceRetrieverPipeline
+
 from .loader import (
     ToolWrapper,
-    ClaimQueryToolLoader,
-    ClaimRetrieverToolLoader,
-    ClaimCheckToolLaoder,
+    ClaimQueryEngineToolLoader,
+    VerdictQueryEngineToolLoader,
+    SentenceRetrieverToolLoader,
 )
-from .contrast_tool import ContrastTool
 
 __all__ = [
+    # building pipelines
+    "ClaimQueryEnginePipeline",
+    "VerdictQueryEnginePipeline",
+    "SentenceRetrieverPipeline",
+    # tool loaders
     "ToolWrapper",
-    "ClaimQueryToolLoader",
-    "ClaimRetrieverToolLoader",
-    "ClaimCheckToolLaoder",
+    "ClaimQueryEngineToolLoader",
+    "VerdictQueryEngineToolLoader",
+    "SentenceRetrieverToolLoader",
+    # contrast tool
     "ContrastTool",
 ]

@@ -1,94 +1,137 @@
-import os, json
-
-from llama_index.core.tools import QueryEngineTool
-
-from .claim_getter import ClaimGetter
-from .claim_checker import ClaimChecker
+from .claim_getter import CLAIM_PARSER, PROMPT_GET_CLAIMS_TEXT
 
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.base.base_query_engine import BaseQueryEngine
 
-from .utils import load_config
+from .utils import find_fuzzy_bounding_boxes
 
-DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.yaml")
+from typing import List
+
+from .api_interfaces import *
 
 
 class ContrastTool:
-    def __init__(self):
-
-        config = load_config(DEFAULT_CONFIG_PATH)
-
-        self.getter = ClaimGetter(
-            config["claim getter"],
-        )
-        self.checker = ClaimChecker(config["claim checker"])
 
     def get_name(self):
         return "contrast_tool"
 
-    def get_sources(claims: list[str], doc_retriever: BaseRetriever):
 
-        # TODO
+    @staticmethod
+    def get_highlight_area(
+        sentence: str,
+        file_path: str,
+        file_sentence_retriever: BaseRetriever,
+    ) -> HighlightArea:
+        # TODO can highlight on several pages
+        # TODO highlight several sentences related to the claim
+        # TODO move to utils
 
-        pass
+        # sentence that matches the claim
+        sentence = file_sentence_retriever.retrieve(sentence)
+        source = " ".join(sentence[0].get_content().split())
+        page_num = int(sentence[0].node.metadata.get("page_label"))
 
-    def compare_documents_from_path(self, old_file: str, new_file: str):
+        bbox = find_fuzzy_bounding_boxes(file_path, source, page_num) or []
 
-        print(f"\nExtracting claims from old document: {old_file}")
+        return HighlightArea(bounding_boxes=bbox, jump_to_page=page_num)
 
-        claims = self.getter.extract_from_path(old_file)
-        claims_text = [claim.text for claim in claims]
-        for claim in claims_text:
-            print(f"Claim: {claim}")
 
-        print(f"\nAnalyzing claims against new document: {new_file}")
-        verdict = self.checker.analyse_from_path(claims_text, new_file)
+    @staticmethod
+    def extract_claims(
+            file_path: str,
+            file_sentence_retriever: BaseRetriever,
+            file_qengine: BaseQueryEngine,
+        ) -> List[Claim]:
 
-        print("\nVerdict:")
-        print(json.dumps(verdict, indent=2))
+        # TODO integrate parser in query engine
+        claims = file_qengine.query(PROMPT_GET_CLAIMS_TEXT)
+        parsed_claims = CLAIM_PARSER.parse(claims.response).claims
 
-        output = {}
+        # TODO can run asynchronously
+        claim_list: List[Claim] =[]
+        for claim in parsed_claims:
+
+            hl_area = ContrastTool.get_highlight_area(
+                claim.text,
+                file_path,
+                file_sentence_retriever,
+            )
+
+            claim_list.append(
+                Claim(
+                    text=claim.text,
+                    file_path=file_path,
+                    highlight_area=hl_area,
+                )
+            )
+            
+        return claim_list
+
+
+    @staticmethod
+    def analyse_claims(
+            claims: List[Claim],
+            file_path: str,
+            file_sentence_retriever: BaseRetriever,
+            file_qengine: BaseQueryEngine,
+        ) -> List[ClaimComment]:
+
+        # TODO can run asynchronously
+        comments: List[ClaimComment] = []
         for claim in claims:
-            output[claim.text] = {
-                "page_num": claim.page_num,
-                "bbox": claim.bounding_box,
-                "verdict": verdict[claim.text]["verdict"],
-                "explanation": verdict[claim.text]["explanation"],
-            }
 
-        return output
+            verdict = file_qengine.query(claim.text)
+            # parsed_verdict = VERDICT_PARSER.parse(verdict.response)
+            
+            print(verdict)
 
-    def compare_documents(
+            if verdict.status != "unknown":
+        
+                hl_area = ContrastTool.get_highlight_area(
+                    verdict.explanation,
+                    file_path,
+                    file_sentence_retriever,
+                )
+
+                links = [LinkComment(
+                    file_path = file_path,
+                    highlight_area = hl_area
+                )]
+            else:
+                links = []
+
+            comments.append(
+                ClaimComment(
+                    file_path = claim.file_path,
+                    text = verdict.explanation,
+                    highlight_area = claim.highlight_area,
+                    links = links,
+                    verdict = verdict.status
+                )
+            )
+
+        return comments
+    
+
+    def run(
         self,
-        old_file_path: str,
-        old_doc_qengine: BaseQueryEngine,
-        old_doc_retriever: BaseRetriever,
-        new_doc_retriever: BaseRetriever,
-    ):
-        # print(f"\nExtracting claims from old document: {old_doc.get_tool_name()}")
-
-        claims = self.getter.extract(old_doc_qengine, old_doc_retriever, old_file_path)
-        claims_text = [claim.text for claim in claims]
-
-        # claims = self.extract_claims(old_doc)
-        for claim in claims_text:
-            print(f"Claim: {claim}")
-
-        # print(f"\nAnalyzing claims against new document: {new_doc.get_tool_name()}")
-        verdict = self.checker.analyse_from_retriever(claims_text, new_doc_retriever)
-
-        # print("\nVerdict:")
-        # print(json.dumps(verdict, indent=4))
-
-        output = {}
-        for claim in claims:
-            output[claim.text] = {
-                "page_num": claim.page_num,
-                "bbox": claim.bounding_box,
-                "verdict": verdict[claim.text]["verdict"],
-                "explanation": verdict[claim.text]["explanation"],
-                "page_width": claim.page_width,
-                "page_height": claim.page_height,
-            }
-
-        return output
+        thesis_path: str,
+        thesis_qengine: BaseQueryEngine,
+        thesis_sentence_retriever: BaseRetriever,
+        update_path: str,
+        update_qengine: BaseQueryEngine,
+        update_sentence_retriever: BaseRetriever,
+    ) -> List[ClaimComment]:
+        
+        claims = ContrastTool.extract_claims(
+            thesis_path,
+            thesis_sentence_retriever,
+            thesis_qengine,
+        )
+        
+        return ContrastTool.analyse_claims(
+            claims,
+            update_path,
+            update_sentence_retriever,
+            update_qengine
+        )

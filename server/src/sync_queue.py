@@ -9,17 +9,18 @@ from src.file_store import File, FileStore
 from src.sync_status import SyncStatus
 from doc_search import DocToolLoader
 from contrast_tool import (
-    ClaimQueryToolLoader,
-    ClaimRetrieverToolLoader,
-    ClaimCheckToolLaoder,
+    ClaimQueryEngineToolLoader,
+    VerdictQueryEngineToolLoader,
+    SentenceRetrieverToolLoader,
 )
 
 loaders = [
     DocToolLoader(),
-    ClaimQueryToolLoader(),
-    ClaimRetrieverToolLoader(),
-    ClaimCheckToolLaoder(),
+    ClaimQueryEngineToolLoader(),
+    VerdictQueryEngineToolLoader(),
+    SentenceRetrieverToolLoader(),
 ]
+
 
 loaders_by_name = {loader.get_tool_name(): loader for loader in loaders}
 

@@ -1,3 +1,5 @@
+import datetime
+import json
 import pickle
 import time
 from fastapi import (
@@ -343,58 +345,71 @@ def get_contrast_analyze(
     old_file_id: str = Query(..., alias="oldFileId"),
     new_file_id: str = Query(..., alias="newFileId"),
 ):
-    if os.path.exists("contrast_result.pkl"):
-        with open("contrast_result.pkl", "rb") as f:
-            contrast_result = pickle.load(f)
+    if os.path.exists("comments.json"):
+        with open("comments.json", "r") as f:
+            comments = json.load(f)
+            print("comments", comments)
             time.sleep(3)
-            return contrast_result
+            return comments
     """Analyze the contrast between two files"""
+    tool = ContrastTool()
 
     old_file = file_store.get_file(old_file_id)
     new_file = file_store.get_file(new_file_id)
-    claim_query_tool = tool_library.get_tool(old_file.absolute_path, "claim_query_tool")
-    claim_retriever_tool = tool_library.get_tool(
-        old_file.absolute_path, "claim_retriever_tool"
+    thesis_qengine = tool_library.get_tool(
+        old_file.absolute_path, "claim_query_engine_tool"
     )
-    claim_check_tool = tool_library.get_tool(new_file.absolute_path, "claim_check_tool")
-    contrast_result = ContrastTool().compare_documents(
+    thesis_sentence_retriever_tool = tool_library.get_tool(
+        old_file.absolute_path, "sentence_retriever_tool"
+    )
+    update_qengine = tool_library.get_tool(
+        new_file.absolute_path, "verdict_query_engine_tool"
+    )
+    update_sentence_retriever = tool_library.get_tool(
+        new_file.absolute_path, "sentence_retriever_tool"
+    )
+    comments = tool.run(
         old_file.absolute_path,
-        claim_query_tool.get(),
-        claim_retriever_tool.get(),
-        claim_check_tool.get(),
+        thesis_qengine.get(),
+        thesis_sentence_retriever_tool.get(),
+        new_file.absolute_path,
+        update_qengine.get(),
+        update_sentence_retriever.get(),
     )
-    claim_checks = []
-    for key, value in contrast_result.items():
-        bounding_box_converter = BoundingBoxConverter(
-            value["page_width"], value["page_height"]
+
+    response_comments = []
+    time_now = datetime.datetime.now().isoformat()
+    i = 1
+    for comment in comments:
+        i = i + 1
+        response_comments.append(
+            {
+                "id": f"{time_now}_{i}",
+                "filePath": comment.file_path,
+                "commentGroupId": f"{time_now}_{old_file.name}_{new_file.name}",
+                "text": comment.text,
+                "highlightArea": {
+                    # TODO: Make this zero-based
+                    "jumpToPageNumber": comment.highlight_area.jump_to_page,
+                    "boundingBoxes": [
+                        {
+                            "left": box.left,
+                            "top": box.top,
+                            "width": box.width,
+                            "height": box.height,
+                            "page": box.page - 1,
+                        }
+                        for box in comment.highlight_area.bounding_boxes
+                    ],
+                },
+                "links": [],  # TODO: Add links
+                "verdict": comment.verdict,
+            }
         )
-        react_annotations = []
-        for bbox in value["bbox"]:
-            react_bbox = bounding_box_converter.from_pymupdf_to_reactpdf(bbox)
-            react_annotations.append(
-                ReactPdfAnnotation(
-                    id=key,
-                    page=value["page_num"] - 1,
-                    left=react_bbox["left"],
-                    top=react_bbox["top"],
-                    width=react_bbox["width"],
-                    height=react_bbox["height"],
-                )
-            )
-        claim_checks.append(
-            ContrastClaimCheck(
-                annotations=react_annotations,
-                verdict=value["verdict"],
-                explanation=value["explanation"],
-            )
-        )
-    contrast_result = ContrastResult(
-        file_id=old_file_id,
-        claim_checks=claim_checks,
-    )
-    with open("contrast_result.pkl", "wb") as f:
-        pickle.dump(contrast_result, f)
-    return contrast_result
+
+    with open("comments.json", "w") as f:
+        json.dump(response_comments, f, indent=2)
+    return response_comments
 
 
 @app.get("/file/get_from_path")

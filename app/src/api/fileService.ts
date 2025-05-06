@@ -100,8 +100,13 @@ class FileService {
     file1Id: string,
     file2Id: string
   ): Promise<ClaimComment[]> {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return mockContrastAnalysisResponse.claimComments;
+    const params = new URLSearchParams({
+      oldFileId: file1Id,
+      newFileId: file2Id,
+    });
+    const comments = await client.get(`/contrast/analyze?${params.toString()}`);
+    console.log("[FileService] Comments:", comments);
+    return comments;
   }
 
   async getFileFromId(fileId: string): Promise<WorkspaceFile> {
