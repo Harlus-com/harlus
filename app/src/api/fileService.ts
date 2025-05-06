@@ -1,6 +1,8 @@
 // Service to handle file operations and communication with the backend API
 import { WorkspaceFile, ChatMessage } from "./types";
 import { client } from "./client";
+import { mockContrastAnalysisResponse } from "./mock_data";
+import { ClaimComment } from "./comment_types";
 // Mock API service for now - will be replaced with actual API calls
 class FileService {
   private chatHistory: ChatMessage[] = [];
@@ -43,7 +45,7 @@ class FileService {
 
   getFileData(file: WorkspaceFile): Promise<ArrayBuffer> {
     return client.getBuffer(
-      `/file/get/${file.id}?workspace_id=${file.workspaceId}`
+      `/file/handle/${file.id}?workspace_id=${file.workspaceId}`
     );
   }
 
@@ -93,10 +95,17 @@ class FileService {
   }
 
   // Run contrast analysis between two files
-  async runContrastAnalysis(file1Id: string, file2Id: string): Promise<any> {
-    return client.get(
-      `/contrast/analyze?oldFileId=${file1Id}&newFileId=${file2Id}`
-    );
+  async runContrastAnalysis(
+    file1Id: string,
+    file2Id: string
+  ): Promise<ClaimComment[]> {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    return mockContrastAnalysisResponse.claimComments;
+  }
+
+  async getFileFromId(fileId: string): Promise<WorkspaceFile> {
+    const file = await client.get(`/file/get/${fileId}`);
+    return file;
   }
 
   // Get file ID from path
@@ -115,12 +124,14 @@ class FileService {
       workspaceId: file.workspace_id,
       appDir: file.app_dir,
       status: file.status,
-      annotations: file.annotations ? {
-        show: false,
-        data: file.annotations
-      } : undefined
+      annotations: file.annotations
+        ? {
+            show: false,
+            data: file.annotations,
+          }
+        : undefined,
     };
-    
+
     return workspaceFile;
   }
 }

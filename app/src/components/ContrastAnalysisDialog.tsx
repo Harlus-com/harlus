@@ -10,6 +10,8 @@ import {
 import { FileSearch } from "lucide-react";
 import { WorkspaceFile } from "@/api/types";
 import { fileService } from "@/api/fileService";
+import { CommentGroup } from "@/api/comment_types";
+import { useComments } from "@/comments/useComments";
 
 export interface ContrastResult {
   fileId: string;
@@ -29,12 +31,12 @@ export interface ContrastResult {
 
 interface ContrastAnalysisDialogProps {
   files: WorkspaceFile[];
-  onContrastAnalysisResult: (result: ContrastResult) => void;
+  openFile: (file: WorkspaceFile, options: { showComments: boolean }) => void;
 }
 
 const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
   files,
-  onContrastAnalysisResult,
+  openFile,
 }) => {
   const [selectedFile1, setSelectedFile1] = useState<WorkspaceFile | null>(
     null
@@ -42,6 +44,8 @@ const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
   const [selectedFile2, setSelectedFile2] = useState<WorkspaceFile | null>(
     null
   );
+  const { addClaimComments, addCommentGroup, setActiveCommentGroups } =
+    useComments();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -53,7 +57,15 @@ const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
         selectedFile1.id,
         selectedFile2.id
       );
-      onContrastAnalysisResult(result);
+      const commentGroup: CommentGroup = {
+        name: `Compare ${selectedFile1.name} and ${selectedFile2.name}`,
+        id: `compare-${selectedFile1.id}-${selectedFile2.id}`,
+      };
+      addCommentGroup(commentGroup);
+      setActiveCommentGroups(selectedFile1.id, [commentGroup.id]);
+      setActiveCommentGroups(selectedFile2.id, [commentGroup.id]);
+      await addClaimComments(result, commentGroup);
+      openFile(selectedFile1, { showComments: true });
       setIsOpen(false);
     } catch (error) {
       console.error("Error running analysis:", error);
@@ -83,13 +95,14 @@ const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
           <div className="mb-6">
             <h3 className="text-lg font-medium mb-2">Compare Documents</h3>
             <p className="text-muted-foreground mb-4">
-              Select two documents to analyze and compare their content,
-              structure, and key points.
+              Select two documents to analyze and compare their content
             </p>
 
             <div className="grid grid-cols-2 gap-4 mt-6">
               <div>
-                <div className="text-sm font-medium mb-2">First Document</div>
+                <div className="text-sm font-medium mb-2">
+                  Projection Document
+                </div>
                 <div className="border rounded-md overflow-hidden">
                   <div className="max-h-[200px] overflow-y-auto">
                     {files.map((file) => (
@@ -110,7 +123,9 @@ const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
               </div>
 
               <div>
-                <div className="text-sm font-medium mb-2">Second Document</div>
+                <div className="text-sm font-medium mb-2">
+                  Evidence Document
+                </div>
                 <div className="border rounded-md overflow-hidden">
                   <div className="max-h-[200px] overflow-y-auto">
                     {files.map((file) => (
@@ -138,7 +153,22 @@ const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
               disabled={!selectedFile1 || !selectedFile2 || isAnalyzing}
               className="w-full max-w-xs"
             >
-              {isAnalyzing ? "Analyzing..." : "Run Analysis"}
+              {isAnalyzing ? (
+                <span className="flex items-center gap-1">
+                  Analyzing
+                  <span className="flex gap-1">
+                    <span className="animate-[bounce_1s_infinite_0ms]">.</span>
+                    <span className="animate-[bounce_1s_infinite_200ms]">
+                      .
+                    </span>
+                    <span className="animate-[bounce_1s_infinite_400ms]">
+                      .
+                    </span>
+                  </span>
+                </span>
+              ) : (
+                "Run Analysis"
+              )}
             </Button>
           </div>
         </div>

@@ -4,16 +4,38 @@ export class OpenFileGroup {
   constructor(
     readonly files: { [key: string]: WorkspaceFile },
     readonly fileOrder: Set<string>,
-    readonly selectedFile: WorkspaceFile | null
+    readonly selectedFile: WorkspaceFile | null,
+    readonly showComments: { [key: string]: boolean }
   ) {}
 
-  addFile(file: WorkspaceFile, options: { select: boolean }) {
+  toggleShowComments(fileId: string) {
+    const newShowComments = { ...this.showComments };
+    newShowComments[fileId] = !newShowComments[fileId];
+    return new OpenFileGroup(
+      this.files,
+      this.fileOrder,
+      this.selectedFile,
+      newShowComments
+    );
+  }
+
+  addFile(
+    file: WorkspaceFile,
+    options: { select: boolean; showComments?: boolean }
+  ) {
     const newFiles = this.shallowCopyFiles();
     newFiles[file.id] = file;
     const newFileOrder = this.shallowCopyFileOrder();
     newFileOrder.add(file.id);
     const newSelectedFile = options.select ? file : this.selectedFile;
-    return new OpenFileGroup(newFiles, newFileOrder, newSelectedFile);
+    const newShowComments = { ...this.showComments };
+    newShowComments[file.id] = !!options.showComments;
+    return new OpenFileGroup(
+      newFiles,
+      newFileOrder,
+      newSelectedFile,
+      newShowComments
+    );
   }
 
   removeFile(fileId: string) {
@@ -27,7 +49,12 @@ export class OpenFileGroup {
       currentSelectedFile?.id || OpenFileGroup.firstOrNull(newFileOrder);
     const newSelectedFile =
       newSelectedFileId === null ? null : newFiles[newSelectedFileId] || null;
-    return new OpenFileGroup(newFiles, newFileOrder, newSelectedFile);
+    return new OpenFileGroup(
+      newFiles,
+      newFileOrder,
+      newSelectedFile,
+      this.showComments
+    );
   }
 
   setSelectedFile(file: WorkspaceFile) {
@@ -44,7 +71,8 @@ export class OpenFileGroup {
     return new OpenFileGroup(
       this.shallowCopyFiles(),
       this.shallowCopyFileOrder(),
-      file
+      file,
+      this.showComments
     );
   }
 
@@ -63,6 +91,6 @@ export class OpenFileGroup {
   }
 
   static empty() {
-    return new OpenFileGroup({}, new Set(), null);
+    return new OpenFileGroup({}, new Set(), null, {});
   }
 }

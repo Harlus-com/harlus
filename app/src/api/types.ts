@@ -5,7 +5,6 @@ export interface Workspace {
 }
 export type SyncStatus = "SYNC_IN_PROGRESS" | "OUT_OF_DATE" | "SYNC_COMPLETE";
 
-
 // REMEMBER THIS HAS TO BE FOR ReactPdfVieiwer, which uses percentages
 export interface BoundingBox {
   left: number;
@@ -38,16 +37,14 @@ export interface ChatSourceComment {
   messageId: string; // Could be used to scroll back in the thread to the original message with the source
   text: string; // In original version something generic like "Response source"
   highlightArea: HighlightArea;
-  nextChatCommentId: string; // Links to the next source comment associated with the chat 
+  nextChatCommentId: string; // Links to the next source comment associated with the chat
 }
-
 
 export interface ChatSourceCommentGroup {
   fileId: string;
   chatSourceComments: ChatSourceComment[];
   workspace_file?: WorkspaceFile; // for development purposes, to be removed
 }
-
 
 /*
  * Higlights a specific area of text in a file, and links back to the "origin comment".
@@ -81,14 +78,21 @@ export interface ChatMessage {
   content: string;
   timestamp?: Date;
   chatSourceCommentGroups: ChatSourceCommentGroup[];
-  messageType?: 'reading_message' | 'answer_message';
+  messageType?: "reading_message" | "answer_message";
 }
 
-export interface ReactPdfAnnotation {
-  id: string; // typically the text
-  page: number; // zero-based
-  left: number;
-  top: number;
-  width: number;
-  height: number;
+export interface CommentLink {
+  text: string;
+  linkToCommentId: string;
+}
+
+export interface Comment {
+  id: string;
+  fileId: string;
+  header: string;
+  body: string;
+  author: string;
+  timestamp: Date;
+  links: CommentLink[];
+  color: string; // This could be styles in the future
 }

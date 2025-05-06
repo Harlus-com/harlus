@@ -25,8 +25,8 @@ export type WorkSpaceHeaderProps = {
   files: WorkspaceFile[];
   onFileGroupCountChange: (fileGroupCount: FileGroupCount) => void;
   togglePanelVisibility: (panelId: TopLevelPanelId) => void;
-  onContrastAnalysisResult: (result: any) => void;
   refreshFiles: () => void;
+  openFile: (file: WorkspaceFile, options: { showComments: boolean }) => void;
 };
 
 export default function WorkspaceHeader({
@@ -34,8 +34,8 @@ export default function WorkspaceHeader({
   files,
   onFileGroupCountChange,
   togglePanelVisibility,
-  onContrastAnalysisResult,
   refreshFiles,
+  openFile,
 }: WorkSpaceHeaderProps) {
   const navigate = useNavigate();
 
@@ -70,10 +70,7 @@ export default function WorkspaceHeader({
             </div>
           </Button>
 
-          <ContrastAnalysisDialog
-            files={files}
-            onContrastAnalysisResult={onContrastAnalysisResult}
-          />
+          <ContrastAnalysisDialog files={files} openFile={openFile} />
         </div>
 
         <div className="flex items-center space-x-2 pl-4">

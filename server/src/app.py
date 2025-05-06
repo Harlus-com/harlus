@@ -1,4 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
+import json
+import pickle
+import time
 from fastapi import (
     FastAPI,
     Query,
@@ -20,7 +23,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from src.util import BoundingBoxConverter, snake_to_camel
 from src.tool_library import ToolLibrary
 from src.sync_workspace import get_workspace_sync_manager
-#from src.stream_response import stream_generator_v2 # TODO: Delete this file
+
+# from src.stream_response import stream_generator_v2 # TODO: Delete this file
 from src.file_store import FileStore, Workspace, File
 from src.sync_queue import SyncQueue
 from src.stream_manager import StreamManager
@@ -92,7 +96,7 @@ async def close_workspace_events(workspace_id: str):
     await workspace_sync_manager.close()
 
 
-@app.get("/file/get/{file_id}")
+@app.get("/file/handle/{file_id}")
 def get_file(
     file_id: str,
     workspace_id: str = Query(..., description="The id of the workspace"),
@@ -258,21 +262,26 @@ async def stream_chat(
 ):
     # TODO: persist the GraphPipeline Instance in memory.
     # The instance can store all memory related to a thread ID
-    # This can be used to show historical threads and use previous chat context in replies 
-    # 
+    # This can be used to show historical threads and use previous chat context in replies
+    #
     # Example:
-    # 
+    #
     # ...
     # gp = get_graph_pipeline_from_workspace_id(workspace_id)
     # ...
     # gp.event_stream_generator(query, thread_id=thread_id)
     # ...
-    # 
-    # Another method could also extract the chat history, 
-    # 
+    #
+    # Another method could also extract the chat history,
+    #
     # gp.get_chat_history(thread_id=thread_id)
 
-    agent_graph = ChatAgentGraph([tool.get().to_langchain_tool() for tool in tool_library.get_tool_for_all_files("doc_search")])
+    agent_graph = ChatAgentGraph(
+        [
+            tool.get().to_langchain_tool()
+            for tool in tool_library.get_tool_for_all_files("doc_search")
+        ]
+    )
     agent_graph.build()
     response = StreamingResponse(
         agent_graph.stream(query),
@@ -285,7 +294,6 @@ async def stream_chat(
     return response
 
 
-
 @app.get("/file/model/status/{file_id}")
 def get_file_model_status(file_id: str) -> SyncStatus:
     """Get the sync status of a file's model"""
@@ -296,9 +304,6 @@ def get_file_model_status(file_id: str) -> SyncStatus:
 def get_file_status(file_id: str) -> SyncStatus:
     """Get the current sync status of a file"""
     return sync_queue.get_sync_status(file_id)
-
-
-contrast_result = None
 
 
 class ReactPdfAnnotation(BaseModel):
@@ -333,10 +338,12 @@ def get_contrast_analyze(
     old_file_id: str = Query(..., alias="oldFileId"),
     new_file_id: str = Query(..., alias="newFileId"),
 ):
+    if os.path.exists("contrast_result.pkl"):
+        with open("contrast_result.pkl", "rb") as f:
+            contrast_result = pickle.load(f)
+            time.sleep(3)
+            return contrast_result
     """Analyze the contrast between two files"""
-    global contrast_result
-    if contrast_result is not None:
-        return contrast_result
 
     old_file = file_store.get_file(old_file_id)
     new_file = file_store.get_file(new_file_id)
@@ -380,6 +387,8 @@ def get_contrast_analyze(
         file_id=old_file_id,
         claim_checks=claim_checks,
     )
+    with open("contrast_result.pkl", "wb") as f:
+        pickle.dump(contrast_result, f)
     return contrast_result
 
 
@@ -389,26 +398,10 @@ def get_file_from_path(
 ):
     print("Getting file from path", file_path)
     """Get file object from file path by searching through all workspaces"""
-    try:
-        # Get all workspaces
-        workspaces = file_store.get_workspaces()
-        
-        # Search through each workspace
-        for workspace in workspaces.values():
-            try:
-                file = file_store.get_file_by_path(file_path, workspace.id)
-                return {
-                    "id": file.id,
-                    "name": file.name,
-                    "absolute_path": file.absolute_path,
-                    "workspace_id": file.workspace_id,
-                    "app_dir": file.app_dir,
-                    "status": sync_queue.get_sync_status(file.id)
-                }
-            except ValueError:
-                continue
-                
-        # If we get here, the file wasn't found in any workspace
-        raise HTTPException(status_code=404, detail=f"File not found in any workspace: {file_path}")
-    except Exception as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    return file_store.get_file_by_path(file_path)
+
+
+@app.get("/file/get/{file_id}")
+def get_file_from_id(file_id: str):
+    print("Getting file from id", file_id)
+    return file_store.get_file(file_id)

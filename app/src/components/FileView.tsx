@@ -7,8 +7,8 @@ import PdfViewer, { PdfViewerRef } from "@/components/ReactPdfViewer";
 import { OpenFileGroup } from "./OpenFileGroup";
 import { MessageSquareQuote } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import CommentsThread, { Comment } from "./CommentsThread";
-import { ContrastClaimCheck } from "./ContrastAnalysisPanel";
+import CommentsThread from "../comments/CommentsThread";
+import { fileService } from "@/api/fileService";
 
 export interface FileViewProps {
   openFiles: Record<FileGroupCount, OpenFileGroup | null>;
@@ -43,6 +43,40 @@ export default function FileView({ openFiles, setOpenFiles }: FileViewProps) {
     });
   };
 
+  const handleToggleComments = (groupIndex: FileGroupCount, fileId: string) => {
+    const group = openFiles[groupIndex] || OpenFileGroup.empty();
+    setOpenFiles((prev) => {
+      return { ...prev, [groupIndex]: group.toggleShowComments(fileId) };
+    });
+  };
+
+  const openFile = async (
+    fileId: string,
+    options: {
+      showComments: boolean;
+      fileGroup: FileGroupCount;
+    }
+  ) => {
+    const current = openFiles[options.fileGroup] || OpenFileGroup.empty();
+    const file = await fileService.getFileFromId(fileId);
+    const updates = {};
+    if (current == null) {
+      updates[options.fileGroup] = OpenFileGroup.empty().addFile(file, {
+        select: true,
+        showComments: options.showComments,
+      });
+    } else {
+      updates[options.fileGroup] = current.addFile(file, {
+        select: true,
+        showComments: options.showComments,
+      });
+    }
+    setOpenFiles((prev) => ({
+      ...prev,
+      ...updates,
+    }));
+  };
+
   const makeFileGroup = (
     groupIndex: FileGroupCount,
     options: { panelDivider: boolean } = { panelDivider: true }
@@ -58,6 +92,8 @@ export default function FileView({ openFiles, setOpenFiles }: FileViewProps) {
           groupIndex={groupIndex}
           onSelectFile={handleSelectFile}
           onCloseFile={handleCloseFile}
+          onToggleComments={handleToggleComments}
+          openFile={openFile}
         />
       </>
     );
@@ -83,6 +119,15 @@ interface FileGroupPanelProps {
   groupIndex: FileGroupCount;
   onSelectFile: (group: FileGroupCount, file: WorkspaceFile) => void;
   onCloseFile: (group: FileGroupCount, fileId: string) => void;
+  onToggleComments: (group: FileGroupCount, fileId: string) => void;
+  openFile: (
+    fileId: string,
+    options: {
+      showComments: boolean;
+      jumpToSelectedComment: boolean;
+      fileGroup: FileGroupCount;
+    }
+  ) => void;
 }
 
 function FileGroupPanel({
@@ -90,24 +135,11 @@ function FileGroupPanel({
   groupIndex,
   onSelectFile,
   onCloseFile,
+  onToggleComments,
+  openFile,
 }: FileGroupPanelProps) {
   const viewerRef = useRef<PdfViewerRef>(null);
-  const { files, selectedFile } = openFileGroup;
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [showComments, setShowComments] = useState(false);
-  useEffect(() => {
-    const claimChecks: ContrastClaimCheck[] =
-      selectedFile?.annotations?.data || [];
-    const newComments: Comment[] = claimChecks.map((check) => ({
-      id: check.annotations[0].id,
-      text: check.explanation,
-      author: "Harlus",
-      timestamp: new Date(),
-      reactPdfAnnotation: check.annotations[0],
-    }));
-    setComments(newComments);
-    setShowComments(newComments.length > 0);
-  }, [selectedFile]);
+  const { files, selectedFile, showComments } = openFileGroup;
 
   return (
     <Panel
@@ -152,7 +184,7 @@ function FileGroupPanel({
               })}
             </div>
             <Button
-              onClick={() => setShowComments(!showComments)}
+              onClick={() => onToggleComments(groupIndex, selectedFile.id)}
               variant="ghost"
               size="sm"
               className="group relative"
@@ -187,7 +219,7 @@ function FileGroupPanel({
             </div>
           )}
         </Panel>
-        {selectedFile != null && showComments && (
+        {selectedFile != null && showComments[selectedFile.id] && (
           <>
             <PanelDivider invisible={true} />
             <Panel
@@ -195,7 +227,11 @@ function FileGroupPanel({
               order={2}
               defaultSize={20}
             >
-              <CommentsThread pdfViewerRef={viewerRef} comments={comments} />
+              <CommentsThread
+                pdfViewerRef={viewerRef}
+                fileId={selectedFile.id}
+                openFile={openFile}
+              />
             </Panel>
           </>
         )}

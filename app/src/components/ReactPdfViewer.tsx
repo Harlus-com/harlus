@@ -1,9 +1,9 @@
 import React, {
   useState,
   useEffect,
-  useRef,
   useImperativeHandle,
   forwardRef,
+  useMemo,
 } from "react";
 import { WorkspaceFile } from "@/api/types";
 import { fileService } from "@/api/fileService";
@@ -23,67 +23,42 @@ import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 
 // pdfjs worker for the Viewer
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
-import {
-  ContrastClaimCheck,
-  ReactPdfAnnotation,
-} from "./ContrastAnalysisPanel";
+import { useComments } from "@/comments/useComments";
 
 interface PdfViewerProps {
-  file: WorkspaceFile | null;
+  file: WorkspaceFile;
 }
+
+type Highlight = HighlightArea & { color: string };
 
 // Define the ref interface
 export interface PdfViewerRef {
-  jumpToPage: (pageIndex: number) => void;
-  setHighlightColor: (
-    reactPdfAnnotation: ReactPdfAnnotation,
-    color: string
-  ) => void;
+  jumpToPage: (zeroBasedPageIndex: number) => void;
 }
 
 const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
+  const { getActiveComments, getSelectedComment } = useComments();
   const [fileUrl, setFileUrl] = useState<string | null>(null);
-  const areas = [];
-  const claimChecks: ContrastClaimCheck[] = file?.annotations?.data || [];
-  const annotations: ReactPdfAnnotation[] = claimChecks.flatMap(
-    (check) => check.annotations
-  );
-  for (const annotation of annotations) {
-    areas.push({
-      id: annotation.id,
-      pageIndex: annotation.page,
-      left: annotation.left,
-      top: annotation.top,
-      width: annotation.width,
-      height: annotation.height,
-      color: "yellow",
-    });
-  }
-  const [highlightAreas, setHighlightAreas] =
-    useState<(HighlightArea & { id: string; color: string })[]>(areas);
+  const activeComments = getActiveComments(file.id);
+  const selectedComment = getSelectedComment(file.id);
+  const initialPage = selectedComment?.jumpToPageNumber;
 
-  // Expose methods via ref
+  const highlightAreas: Highlight[] = useMemo(() => {
+    const areas: Highlight[] = [];
+    for (const comment of activeComments) {
+      for (const annotation of comment.annotations) {
+        areas.push({
+          ...annotation,
+          color: comment.highlightColor,
+        });
+      }
+    }
+    return areas;
+  }, [activeComments]);
+
   useImperativeHandle(ref, () => ({
-    jumpToPage: (pageIndex: number) => {
-      console.log("jumping to page", pageIndex);
-      pageNavigationPluginInstance.jumpToPage(pageIndex);
-    },
-    setHighlightColor: (
-      reactPdfAnnotation: ReactPdfAnnotation,
-      color: string
-    ) => {
-      setHighlightAreas((prev) => [
-        ...prev,
-        {
-          id: reactPdfAnnotation.id,
-          pageIndex: reactPdfAnnotation.page,
-          left: reactPdfAnnotation.left,
-          top: reactPdfAnnotation.top,
-          width: reactPdfAnnotation.width,
-          height: reactPdfAnnotation.height,
-          color: color,
-        },
-      ]);
+    jumpToPage: (zeroBasedPageIndex: number) => {
+      pageNavigationPluginInstance.jumpToPage(zeroBasedPageIndex);
     },
   }));
 
@@ -104,9 +79,6 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
                 background: area.color,
                 opacity: 0.4,
               },
-              // Calculate the position
-              // to make the highlight area displayed at the desired position
-              // when users zoom or rotate the document
               props.getCssProperties(area, props.rotation)
             )}
           />
@@ -132,6 +104,9 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
           const blob = new Blob([data], { type: "application/pdf" });
           const url = URL.createObjectURL(blob);
           setFileUrl(url);
+          if (initialPage) {
+            pageNavigationPluginInstance.jumpToPage(initialPage);
+          }
         })
         .catch((err) => {
           console.error("Failed to load PDF data", err);
@@ -173,6 +148,7 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
               highlightPluginInstance,
               pageNavigationPluginInstance,
             ]}
+            defaultScale={1}
             onPageChange={(e) => {
               // This is just for tracking the current page
               // The actual page change is handled by initialPage prop
