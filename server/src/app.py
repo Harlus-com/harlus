@@ -398,17 +398,10 @@ def get_file_from_path(
 ):
     print("Getting file from path", file_path)
     """Get file object from file path by searching through all workspaces"""
-    file = file_store.get_file_by_path(file_path)
-    return {
-        "id": file.id,
-        "name": file.name,
-        "absolute_path": file.absolute_path,
-        "workspace_id": file.workspace_id,
-        "app_dir": file.app_dir,
-        "status": sync_queue.get_sync_status(file.id),
-    }
+    return file_store.get_file_by_path(file_path)
 
 
 @app.get("/file/get/{file_id}")
 def get_file_from_id(file_id: str):
+    print("Getting file from id", file_id)
     return file_store.get_file(file_id)
