@@ -271,8 +271,9 @@ async def stream_chat(
     # Another method could also extract the chat history, 
     # 
     # gp.get_chat_history(thread_id=thread_id)
-
-    agent_graph = ChatAgentGraph([tool.get() for tool in tool_library.get_tool_for_all_files("doc_search")])
+    tools = [tool.get() for tool in tool_library.get_tool_for_all_files("doc_search")]
+    print("tools", tools)
+    agent_graph = ChatAgentGraph(tools)
     agent_graph.build()
     response = StreamingResponse(
         agent_graph.stream(query),
