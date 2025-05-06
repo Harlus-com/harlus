@@ -64,7 +64,7 @@ class NodePipeline:
         json_ = LlamaParse(api_key=LLAMA_CLOUD_API_KEY).get_json_result(self.file_path)
 
         print(" - creating nodes from JSON...")
-        nodes = create_nodes_from_llamaparse_json(json_)
+        nodes = create_nodes_from_llamaparse_json(json_, self.file_path)
 
         print(" - adding node relationships...")
         nodes = add_node_relationships(nodes)

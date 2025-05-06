@@ -87,6 +87,7 @@ class BasicToolNode:
                     tool_result = tool.invoke(tool_call["args"])
                     
                     for retrieved_node in tool_result.raw_output.source_nodes:
+
                         
                         # assert that the retrieved node is a NodeWithScore
                         assert isinstance(retrieved_node, NodeWithScore), "[Harlus_chat] Retreived node is not a NodeWithScore"
