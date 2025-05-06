@@ -5,19 +5,40 @@ from langchain_core.messages import (
     HumanMessage,
     AIMessageChunk,
 )
-from langgraph.graph import StateGraph, END, START
+from langgraph.graph import (
+    StateGraph, 
+    END, 
+    START
+)
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.tools import BaseTool
 from langgraph.graph.message import add_messages
 from llama_index.core.tools import QueryEngineTool
-from typing import Annotated, TypedDict, List, Iterator, AsyncIterator
+from typing import (
+    List, 
+    AsyncIterator, 
+)
 from .config import LLM, TAVILY_TOOL
 import re
 import json 
 from rapidfuzz.fuzz import partial_ratio
-from .boundig_boxes import get_standard_rects_from_pdf, prune_overlapping_rects, get_llamaparse_rects
-from .custom_types import GraphState, ToolRetrievedNode, BoundingBox, HighlightArea, ChatSourceComment
+from .boundig_boxes import (
+    get_standard_rects_from_pdf, 
+    prune_overlapping_rects, 
+    get_llamaparse_rects
+)
+from .custom_types import (
+    GraphState, 
+    BoundingBox, 
+    HighlightArea, 
+    ChatSourceComment, 
+    DocSearchRetrievedNode, 
+    TavilyToolRetrievedWebsite,
+    DocSearchNodeMetadata
+)
 import uuid
+from llama_index.core.schema import NodeWithScore
+from langchain_tavily import TavilySearch
 
 
 class BasicToolNode:
@@ -28,10 +49,17 @@ class BasicToolNode:
     
     """
 
-    def __init__(self, tools: list) -> None:
+    def __init__(self, tools: list, tool_name_to_type: dict) -> None:
         self.tools_by_name = {tool.name: tool for tool in tools}
+        self.tool_name_to_type = tool_name_to_type
 
     def __call__(self, inputs: dict):
+        """
+        inputs (GraphState), currently corresponding to:
+            messages: list[tuple[str, str]]
+            retrieved_nodes: list[list[any]]
+            full_answer: str
+        """
 
         # Get the last message
         if messages := inputs.get("messages", []):
@@ -41,65 +69,102 @@ class BasicToolNode:
         outputs = []
 
         # Get the tool calls
+
         for tool_call in message.tool_calls:
 
-            # Invoke the tool
-            tool_result = self.tools_by_name[tool_call["name"]].invoke(tool_call["args"])
+            # get the current tool (DocSearchToolWrapper or TavilySearchTool)
+            tool = self.tools_by_name[tool_call["name"]]
+            sources_list = []
 
-            # Try to get sources from the tool result
-            has_retrieved_nodes = False
-            try:
-                # result from doc_search tool
-                if hasattr(tool_result, "raw_output"):
-                    retrieved_nodes_list = []
+            
+            print("[harlus_chat] processing tool calls")
+
+            # tool is a DocSearchToolWrapper
+            if self.tool_name_to_type[tool_call["name"]] == "doc_search":
+                print("- executing doc search tool call: ", tool_call["name"])
+                try:
+
+                    tool_result = tool.invoke(tool_call["args"])
+                    
                     for retrieved_node in tool_result.raw_output.source_nodes:
-                        retrieved_nodes_list.append(ToolRetrievedNode(
-                            metadata=retrieved_node.metadata,
-                            text=retrieved_node.text
+                        
+                        # assert that the retrieved node is a NodeWithScore
+                        assert isinstance(retrieved_node, NodeWithScore), "[Harlus_chat] Retreived node is not a NodeWithScore"
+
+                        # convert from NodeWithScore to DocSearchRetrievedNode
+                        page_nb = retrieved_node.metadata.get("page_nb", None)
+                        bounding_boxes = [
+                            {
+                                "left": rect['x'],
+                                "top": rect['y'],
+                                "width": rect['w'],
+                                "height": rect['h'],
+                                "page": page_nb,
+                                "type": "absolute"
+                            }
+                            for rect in retrieved_node.metadata.get("bounding_boxes", [])
+                        ]
+                        metadata = DocSearchNodeMetadata(
+                            raw_metadata=retrieved_node.metadata,
+                            page_nb=page_nb,
+                            file_path=retrieved_node.metadata.get("file_path", None),
+                            bounding_boxes=bounding_boxes
+                        )
+                        sources_list.append(DocSearchRetrievedNode(
+                            metadata=metadata,
+                            text=retrieved_node.text,
                         ))
                     content = json.dumps(tool_result.content)
-                    has_retrieved_nodes = True
-                # result from tavily tool
-                if hasattr(tool_result, "results"):
-                    pass 
-            except:
-                content = json.dumps(tool_result)
-
-            # Add the tool message to the outputs
-            outputs.append(ToolMessage(
-                content=content,
-                name=tool_call["name"],
-                tool_call_id=tool_call["id"],
-            ))
+                    outputs.append(ToolMessage(
+                        content=content,
+                        name=tool_call["name"],
+                        tool_call_id=tool_call["id"],
+                    ))
+                except:
+                    raise ValueError(f"[Harlus_chat] Failed to extract retrieved nodes from {tool_call['name']} failed")
+            
+            # Tool is TavilySearchTool
+            elif tool_call.get("name", "") == "tavily_search":
+                print("- executing tavily search tool call: ", tool_call["name"])
+                try:
+                    tool_result = tool.invoke(tool_call["args"])
+                    content = json.dumps(tool_result)
+                    for result in tool_result.get("results", []):
+                        tavily_tool_metadata = TavilyToolRetrievedWebsite(
+                            title=result.get("title", ""),
+                            url=result.get("url", ""),
+                            content=result.get("content", ""),
+                        )
+                        sources_list.append(tavily_tool_metadata)
+                    outputs.append(ToolMessage(
+                        content=content,
+                        name=tool_call["name"],
+                        tool_call_id=tool_call["id"],
+                    ))
+                except:
+                    raise ValueError(f"[Harlus_chat] Failed to extract retrieved nodes from {tool_call['name']} failed")
         
-        # if there are retrieved nodes, add them to the state
-        if has_retrieved_nodes:
-            return {
-                "messages": outputs,
-                "retrieved_nodes": retrieved_nodes_list,
-                "execution_plan_steps": inputs.get("execution_plan_steps", []),
-                "current_step": inputs.get("current_step", "")
-            }
+            
         return {
             "messages": outputs,
-            "retrieved_nodes": inputs.get("retrieved_nodes", []),
-            "execution_plan_steps": inputs.get("execution_plan_steps", []),
-            "current_step": inputs.get("current_step", "")
+            "sources": inputs.get("sources", []) + sources_list,
+            "full_answer": inputs.get("full_answer", "")
         }
 
 
 
 
-
 class AsyncToolNode:
-    def __init__(self, tools):
-        self.tools = BasicToolNode(tools)
+    def __init__(self, tools, tool_name_to_type):
+        self.tools = BasicToolNode(tools, tool_name_to_type)
 
     async def __call__(self, state: GraphState) -> dict:
         return self.tools(state)
 
 def sanitize_tool_name(name):
     return re.sub(r"[^a-zA-Z0-9_-]", "_", name)
+
+
 
 
 class ChatAgentGraph:
@@ -151,21 +216,28 @@ class ChatAgentGraph:
 
     """
     def __init__(self, tools: List[any]):
-        self.default_tools = [TAVILY_TOOL]
         self.tools = []
-        self.tools.extend(self.default_tools)
+        self.tool_name_to_type = {}
+        print("[harlus_chat] adding tools")
         for tool in tools:
-            if isinstance(tool, BaseTool):
+
+            # tool is a Langgraph BaseTool
+            if isinstance(tool, TavilySearch):
+                print(" - adding tavily search tool")
                 self.tools.append(tool)
-            elif isinstance(tool, QueryEngineTool):
-                self.tools.append(tool.to_langchain_tool())
+                self.tool_name_to_type[tool.name] = "tavily_search"
+            # tool is a DocSearchToolWrapper
+            elif hasattr(tool, 'tool_class') and tool.tool_class == "DocSearchToolWrapper":
+                print(" - adding doc search tool")
+                lctool = tool.tool.to_langchain_tool()
+                self.tools.append(lctool)
+                self.tool_name_to_type[tool.name] = "doc_search"
             else:
-                try:
-                    self.tools.append(tool.to_langchain_tool())
-                except:
-                    raise ValueError(f"Tool {tool} is not a recognized tool.")
+                raise ValueError(f" - {tool} is not a recognized tool.")
+    
         for tool in self.tools:
             tool.name = sanitize_tool_name(tool.name)
+        
         self.tools_descriptions_string = "\n - " + "\n -".join([f"{tool.name}: {tool.description}" for tool in tools])
         self.LLM = LLM
         self.TOOL_LLM = LLM.bind_tools(self.tools)
@@ -196,7 +268,7 @@ class ChatAgentGraph:
             final += delta
         yield {
             "messages": state["messages"] + [AIMessage(content=final)],
-            "retrieved_nodes": state.get("retrieved_nodes", []),
+            "sources": state.get("sources", []),
             "full_answer": state.get("full_answer", ""),
         }
         
@@ -215,7 +287,7 @@ class ChatAgentGraph:
         ]
         return {
             "messages": [await self.TOOL_LLM.ainvoke(prompt)],
-            "retrieved_nodes": state["retrieved_nodes"],
+            "sources": state["sources"],
             "full_answer": state["full_answer"],
         }
 
@@ -242,7 +314,7 @@ class ChatAgentGraph:
 
         yield {
             "messages": state["messages"] + [AIMessage(content=final)],
-            "retrieved_nodes": state.get("retrieved_nodes", []),
+            "sources": state.get("sources", []),
             "full_answer": state.get("full_answer", "") + final,
         }
 
@@ -255,7 +327,7 @@ class ChatAgentGraph:
         # nodes
         graph_builder.add_node("communicate_plan", self._communicate_plan, metadata={"name": "communicate_plan"})
         graph_builder.add_node("call_tools", self._call_tools, metadata={"name": "call_tools"})
-        graph_builder.add_node("tools", AsyncToolNode(tools=self.tools), metadata={"name": "tools"})
+        graph_builder.add_node("tools", AsyncToolNode(tools=self.tools, tool_name_to_type=self.tool_name_to_type), metadata={"name": "tools"})
 
         # fixed edges
         graph_builder.add_edge(START, "communicate_plan")
@@ -276,10 +348,14 @@ class ChatAgentGraph:
         return graph
     
 
+    def _get_sources(self):
+        return self.graph.get_state(self.config).values.get("sources", [])
+
     def _get_retrieved_nodes(self):
 
         # extract nodes which were retrieved during the last run through the graph
-        retrieved_nodes = self.graph.get_state(self.config).values.get("retrieved_nodes", [])
+        sources = self._get_sources()
+        retrieved_nodes = [source for source in sources if isinstance(source, DocSearchRetrievedNode)]
 
         # prune nodes which have similar text
         pruned_retrieved_nodes = []
@@ -305,12 +381,16 @@ class ChatAgentGraph:
         # convert the retrieved nodes to source annotations
         last_unique_id = ""
         for retrieved_node in retrieved_nodes:
-            file_path = retrieved_node.metadata.get("file_path")
+
+            file_path = retrieved_node.metadata.file_path
             text = retrieved_node.text
-            page_nb = retrieved_node.metadata.get("page_nb")
+            page_nb = retrieved_node.metadata.page_nb
+
+           
 
             # get the rects from the llama parse tool (course)
-            backup_standard_rects = get_llamaparse_rects(file_path, retrieved_node, page_nb)
+            bounding_boxes = retrieved_node.metadata.bounding_boxes
+            backup_standard_rects = get_llamaparse_rects(file_path, bounding_boxes, page_nb)
 
             # get the rects based on text from the pdf (fine-grained)
             standard_rects = get_standard_rects_from_pdf(file_path, text, page_nb)
@@ -318,9 +398,7 @@ class ChatAgentGraph:
 
             # if no fine-grained rects are found, use the course rects
             if len(standard_rects) == 0:
-                print("[harlus_chat] No fine-grained rects found, using course rects")
                 standard_rects = backup_standard_rects
-                standard_rects = prune_overlapping_rects(standard_rects)
 
             # convert to ChatSourceComment framework
             unique_id = str(uuid.uuid4())

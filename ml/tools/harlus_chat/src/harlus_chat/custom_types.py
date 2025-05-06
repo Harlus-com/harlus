@@ -1,17 +1,45 @@
 
 from pydantic import BaseModel
-from typing import Annotated, TypedDict
+from typing import Annotated, TypedDict, Union
 from langgraph.graph.message import add_messages
 
 
-class ToolRetrievedNode(BaseModel):
-    metadata: dict
+class BoundingBox(BaseModel):
+    left: float
+    top: float
+    width: float
+    height: float
+    page: int
+    type: str 
+
+class DocSearchNodeMetadata(BaseModel):
+    raw_metadata: dict
+    page_nb: int
+    file_path: str
+    bounding_boxes: list[BoundingBox]
+
+class DocSearchToolMetadata(BaseModel):
+    date: str
+    ticker: str
+    keywords: str
+    source_name: str
+    title: str
+    company_name: str
+    summary: str
+    file_path: str
+
+class DocSearchRetrievedNode(BaseModel):
+    metadata: DocSearchNodeMetadata
     text: str
 
+class TavilyToolRetrievedWebsite(BaseModel):
+    title: str
+    url: str
+    content: str
 
 class GraphState(TypedDict):
     messages: Annotated[list, add_messages]
-    retrieved_nodes: list[list[any]]
+    sources: list[Union[DocSearchRetrievedNode, TavilyToolRetrievedWebsite]]
     full_answer: str
 
 

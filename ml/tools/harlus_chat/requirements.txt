@@ -199,4 +199,4 @@ wsproto==1.2.0
 xxhash==3.5.0
 yarl==1.20.0
 zstandard==0.23.0
-doc_search==0.1.2
+-e ../doc_search
