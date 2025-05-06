@@ -2,12 +2,13 @@ from llama_index.core.tools import QueryEngineTool
 from llama_index.core.base.base_query_engine import BaseQueryEngine
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.schema import Node
-from .claim_getter import ClaimGetter
-from .claim_checker import ClaimChecker
-from .utils import load_config
+from .claim_getter import ClaimQueryEnginePipeline
+from .claim_checker import VerdictQueryEnginePipeline
+from .sentence_retriever import SentenceRetrieverPipeline
 from typing import Union, Optional
 import os
 
+from .utils import load_config
 DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.yaml")
 config = load_config(DEFAULT_CONFIG_PATH)
 
@@ -34,14 +35,17 @@ class ToolWrapper:
         return self.name
 
 
-class ClaimQueryToolLoader:
-    # In the future, this will take the LLM dependency as a parameter
+# Qengine to extract claims from document
+class ClaimQueryEngineToolLoader:
+    # TODO In the future, this will take the LLM dependency as a parameter
 
     def get_tool_name(self) -> str:
-        return "claim_query_tool"
+        return "claim_query_engine_tool"
 
     async def load(
-        self, file_path: str, unused_file_name: Optional[str] = None
+        self, 
+        file_path: str, 
+        unused_file_name: Optional[str] = None
     ) -> ToolWrapper:
         """
         Loads the doctool, using the given file path
@@ -49,7 +53,10 @@ class ClaimQueryToolLoader:
 
         # TODO confirm file path exists
 
-        query_engine = ClaimGetter(config["claim getter"]).build_query_engine(file_path)
+        query_engine = ClaimQueryEnginePipeline.build(
+            file_path=file_path,
+            model_config=config["claim getter"],
+        )
         return ToolWrapper(
             query_engine,
             self.get_tool_name(),
@@ -57,24 +64,47 @@ class ClaimQueryToolLoader:
         )
 
 
-class ClaimRetrieverToolLoader:
-    # In the future, this will take the LLM dependency as a parameter
+# Qengine to verify claims against document content
+class VerdictQueryEngineToolLoader:
+    # TODO In the future, this will take the LLM dependency as a parameter
 
     def get_tool_name(self) -> str:
-        return "claim_retriever_tool"
+        return "verdict_query_engine_tool"
+
+    async def load(
+        self,
+        file_path: str, 
+        unused_file_name: Optional[str] = None
+    ) -> ToolWrapper:
+
+        # TODO confirm file path exists
+
+        query_engine = VerdictQueryEnginePipeline.build(
+            file_path=file_path,
+            models_config=config["claim checker"],
+            num_questions=5,
+        )
+        return ToolWrapper(
+            query_engine,
+            self.get_tool_name(),
+            {},  # TODO: Populate this with debug info: parsed_text.json and json_nodes.json
+        )
+
+
+# Retriever to find relevant sentences of a document, for annotation purposes
+class SentenceRetrieverToolLoader:
+    # TODO In the future, this will take the LLM dependency as a parameter
+
+    def get_tool_name(self) -> str:
+        return "sentence_retriever_tool"
 
     async def load(
         self, file_path: str, unused_file_name: Optional[str] = None
     ) -> ToolWrapper:
-        """
-        Loads the doctool, using the given file path
-        """
 
         # TODO confirm file path exists
 
-        retriever = ClaimGetter(config["claim getter"]).build_sentence_retriever(
-            file_path
-        )
+        retriever = SentenceRetrieverPipeline.build(file_path)
         return ToolWrapper(
             retriever,
             self.get_tool_name(),
@@ -82,20 +112,21 @@ class ClaimRetrieverToolLoader:
         )
 
 
-class ClaimCheckToolLaoder:
+# class ClaimCheckToolLaoder:
+#     # TODO In the future, this will take the LLM dependency as a parameter
 
-    def get_tool_name(self) -> str:
-        return "claim_check_tool"
+#     def get_tool_name(self) -> str:
+#         return "claim_check_tool"
 
-    async def load(
-        self, file_path: str, unused_file_name: Optional[str] = None
-    ) -> ToolWrapper:
+#     async def load(
+#         self, file_path: str, unused_file_name: Optional[str] = None
+#     ) -> ToolWrapper:
 
-        # TODO confirm file path exists
+#         # TODO confirm file path exists
 
-        retriever = ClaimChecker(config["claim checker"]).build_retriever(file_path)
-        return ToolWrapper(
-            retriever,
-            self.get_tool_name(),
-            {},  # TODO: Populate this with debug info: parsed_text.json and json_nodes.json
-        )
+#         retriever = ClaimChecker(config["claim checker"]).build_retriever(file_path)
+#         return ToolWrapper(
+#             retriever,
+#             self.get_tool_name(),
+#             {},  # TODO: Populate this with debug info: parsed_text.json and json_nodes.json
+#         )
