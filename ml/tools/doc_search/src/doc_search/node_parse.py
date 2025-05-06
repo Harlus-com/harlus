@@ -195,109 +195,45 @@ def add_node_relationships(nodes_in: List[Node]) -> List[Node]:
     return nodes_out
 
 
-# Move this function outside split_table_nodes to make it picklable
-def process_table_batch(batch, markdown_parser):
-    """Process a batch of nodes, handling tables appropriately."""
-    results = []
-    for node in batch:
-        
-        try:
-            if node.metadata["type"] == "table":
-                table_base_nodes = markdown_parser.get_nodes_from_node(node)
-                base_nodes, objects = markdown_parser.get_nodes_and_objects(table_base_nodes)
-                for base_node in base_nodes:
-                    base_node.metadata["file_path"] = node.metadata["file_path"]
-                results.extend(base_nodes + objects)
-            else:
-                results.append(node)
-        except Exception as e:
-            # Avoid silent failures by logging and preserving the original node
-            print(f"Error processing node: {e}")
-            results.append(node)
-    return results
+async def process_table_node(node, markdown_parser):
 
-def split_table_nodes_sync(nodes_in, markdown_parser):
-    """
-    Synchronous version that processes tables in batches using multiprocessing.
-    """
-    import multiprocessing as mp
-    from functools import partial
-    from tqdm import tqdm
-
-    # Optimize batch size based on available cores and number of nodes
-    num_cores = max(1, mp.cpu_count() - 1)  # Leave one core free
-    batch_size = max(1, min(100, len(nodes_in) // (num_cores * 2)))
+    if node.metadata["type"] == "table":
+        table_base_nodes = await markdown_parser.aget_nodes_from_node(node)
+        text_text_nodes, table_index_nodes = markdown_parser.get_nodes_and_objects(table_base_nodes)
+        for table_text_node in text_text_nodes:
+            table_text_node.metadata["file_path"] = node.metadata["file_path"]
+        return text_text_nodes + table_index_nodes
+    else:
+        return [node]
     
-    # Create batches
-    batches = [nodes_in[i:i + batch_size] for i in range(0, len(nodes_in), batch_size)]
-    
-    # Process batches in parallel
-    process_func = partial(process_table_batch, markdown_parser=markdown_parser)
-    
-    nodes_out = []
-    
-    # Use regular multiprocessing pool (not inside an async function)
-    with mp.Pool(num_cores) as pool:
-        # Process each batch and collect results with progress tracking
-        for batch_result in tqdm(
-            pool.imap(process_func, batches),
-            total=len(batches),
-            desc="  > splitting tables in batches: "
-        ):
-            nodes_out.extend(batch_result)
-    
-    return nodes_out
 
 async def split_table_nodes(nodes_in, markdown_parser):
     """
-    Async wrapper that delegates to the synchronous implementation in a separate thread.
+    Use the markdown parser (expected to be MarkdownElementNodeParser) to process markdown tables.
+
+    MarkdownElementNodeParser will create a summary text node of the table and index nodes for the rows/columns.
+
+    TODO: Evaluate if we can use MarkdownElementNodeParser to process all nodes (with downside that we lose bounding box and page number information)
+    
     """
-    import asyncio
-    
-    # Run the synchronous function in a thread to avoid blocking the event loop
-    return await asyncio.to_thread(split_table_nodes_sync, nodes_in, markdown_parser)
 
-# async def split_table_nodes(nodes_in: List[Node], markdown_parser: MarkdownElementNodeParser) -> List[Node]:
-#     """
-#     Split table nodes from LlamaParse JSON.
-    
-#     Args:
-#         nodes_in (List[Node]): Input nodes from LlamaParse JSON 
-#         markdown_parser (MarkdownParser): Parser for handling markdown/table content conversion
-#     Returns:
-#         List[Node]: Processed nodes including:
-#             - Original block nodes with relationships
-#             - Extended nodes from metadata
-#             - Fine-grained sentence nodes for text blocks
-#             - Structured nodes and objects for tables
-#     """
+    NUM_WORKERS = max(1, (len(nodes_in) // 10) or 1)
+    semaphore = asyncio.Semaphore(NUM_WORKERS)
 
-#     print(":::current version:::")
-#     def process_node_base(current_node, markdown_parser):
-#         if current_node.metadata["type"] == "table":
-#             table_base_nodes = markdown_parser.get_nodes_from_node(current_node)
-#             base_nodes, objects = markdown_parser.get_nodes_and_objects(table_base_nodes)
-#             return base_nodes + objects
-#         else:
-#             return [current_node]
+    async def process_with_semaphore(node):
+        async with semaphore:
+            return await process_table_node(node, markdown_parser)
 
-#     async def process_node(current_node, markdown_parser):
-#         return await asyncio.to_thread(process_node_base, current_node, markdown_parser)
+    tasks = [process_with_semaphore(node) for node in nodes_in]
+    nodes_out = []
+    for task in tqdm(asyncio.as_completed(tasks), total=len(tasks), desc="  > splitting tables: "):
+        result = await task
+        nodes_out.extend(result)
+
+    return nodes_out
 
 
-#     semaphore = asyncio.Semaphore(NUM_WORKERS / 2)
-    
-#     async def process_with_semaphore(node):
-#         async with semaphore:
-#             return await process_node(node, markdown_parser)
 
-#     tasks = [process_with_semaphore(node) for node in nodes_in]
-#     nodes_out = []
-#     for task in tqdm(asyncio.as_completed(tasks), total=len(tasks), desc="  > splitting tables: "):
-#         result = await task
-#         nodes_out.extend(result)
-
-#     return nodes_out
 
 
 def split_text_nodes(nodes_in: List[Node], sentence_window_parser: SentenceWindowNodeParser) -> List[Node]:
