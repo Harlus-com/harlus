@@ -1,10 +1,13 @@
 import { ClaimComment } from "@/api/comment_types";
 import { fileService } from "@/api/fileService";
 import { modelService } from "@/api/model_service";
-import { WorkspaceFile, Workspace as WorkspaceType } from "@/api/types";
+import {
+  WorkspaceFile,
+  Workspace as WorkspaceType,
+} from "@/api/workspace_types";
 import { workspaceService } from "@/api/workspaceService";
 import { CommentsProvider } from "@/comments/CommentsProvider";
-import ChatPanel from "@/components/ChatPanel";
+import ChatPanel from "@/chat/ChatPanel";
 import FileExplorer from "@/components/FileExplorer";
 import FileView from "@/components/FileView";
 import { OpenFileGroup } from "@/components/OpenFileGroup";

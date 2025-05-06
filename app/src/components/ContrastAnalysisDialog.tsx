@@ -8,7 +8,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { FileSearch } from "lucide-react";
-import { WorkspaceFile } from "@/api/types";
+import { WorkspaceFile } from "@/api/workspace_types";
 import { fileService } from "@/api/fileService";
 import { CommentGroup } from "@/api/comment_types";
 import { useComments } from "@/comments/useComments";

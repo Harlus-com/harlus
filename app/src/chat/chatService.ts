@@ -1,7 +1,7 @@
-import { ChatMessage, ChatSourceComment, BoundingBox, HighlightArea, ChatSourceCommentGroup } from "./types";
-import { BASE_URL } from "./client";
-import { fileService } from "./fileService";
-
+import { BASE_URL } from "../api/client";
+import { fileService } from "../api/fileService";
+import { ChatSourceCommentGroup } from "./chat_types";
+import { ChatSourceComment } from "@/api/comment_types";
 // Utility function to convert snake_case to camelCase
 function snakeToCamel(str: string): string {
   return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
@@ -12,16 +12,16 @@ function convertKeysToCamelCase(obj: any): any {
   if (Array.isArray(obj)) {
     return obj.map(convertKeysToCamelCase);
   }
-  
-  if (obj !== null && typeof obj === 'object') {
+
+  if (obj !== null && typeof obj === "object") {
     const newObj: any = {};
-    Object.keys(obj).forEach(key => {
+    Object.keys(obj).forEach((key) => {
       const camelKey = snakeToCamel(key);
       newObj[camelKey] = convertKeysToCamelCase(obj[key]);
     });
     return newObj;
   }
-  
+
   return obj;
 }
 
@@ -35,14 +35,17 @@ export class ChatService {
   async streamChat(
     userQuery: string,
     workspaceId: string,
-    onMessage: (content: string, messageType: 'reading_message' | 'answer_message') => void,
+    onMessage: (
+      content: string,
+      messageType: "reading_message" | "answer_message"
+    ) => void,
     onSources: (sources: ChatSourceCommentGroup[]) => void,
     onComplete: () => void,
     onError: (error: any) => void
   ) {
     console.log("[ChatService] Initializing", {
       userQueryLength: userQuery.length,
-      workspaceId
+      workspaceId,
     });
 
     // Close any existing event source connection
@@ -59,13 +62,13 @@ export class ChatService {
       // 2. listen for reading messages
       this.eventSource.addEventListener("reading_message", (event) => {
         const newContent = JSON.parse(event.data).text;
-        onMessage(newContent, 'reading_message');
+        onMessage(newContent, "reading_message");
       });
 
       // 3. listen for answer messages
       this.eventSource.addEventListener("answer_message", (event) => {
         const newContent = JSON.parse(event.data).text;
-        onMessage(newContent, 'answer_message');
+        onMessage(newContent, "answer_message");
       });
 
       // 4. listen for source information
@@ -74,53 +77,47 @@ export class ChatService {
           // Parse and convert the raw data from snake_case to camelCase
           const rawData = JSON.parse(event.data);
           console.log("[ChatService] Received raw source data:", rawData);
-          
+
           const convertedData = convertKeysToCamelCase(rawData);
 
           // Parse source comments with converted data
-          const chatSourceComments = convertedData.map((item: any) => ({
-            id: item.id,
-            fileId: item.fileId,
-            threadId: item.threadId,
-            messageId: item.messageId,
-            text: item.text,
-            highlightArea: {
-              boundingBoxes: item.highlightArea.boundingBoxes.map((bbox: any) => ({
-                left: bbox.left,
-                top: bbox.top,
-                width: bbox.width,
-                height: bbox.height,
-                page: bbox.page
-              })),
-              jumpToPageNumber: item.highlightArea.jumpToPageNumber
-            },
-            nextChatCommentId: item.nextChatCommentId
-          })) as ChatSourceComment[];
+          const chatSourceComments: ChatSourceComment[] = convertedData.map(
+            createChatSourceComment
+          );
 
-          console.log("[ChatService] Parsed raw data to source comments:", chatSourceComments);
+          console.log(
+            "[ChatService] Parsed raw data to source comments:",
+            chatSourceComments
+          );
 
           // Group source comments by file
           const chatSourceCommentGroups: ChatSourceCommentGroup[] = [];
-          const fileIdToGroupMap: { [key: string]: ChatSourceCommentGroup } = {};
-          
+          const filePathToGroupMap: { [key: string]: ChatSourceCommentGroup } =
+            {};
+
           chatSourceComments.forEach((cscomment) => {
-            const fileId = cscomment.fileId;
-            if (!fileIdToGroupMap[fileId]) {
-              fileIdToGroupMap[fileId] = {
-                fileId: fileId,
+            const filePath = cscomment.filePath;
+            if (!filePathToGroupMap[filePath]) {
+              filePathToGroupMap[filePath] = {
+                filePath: filePath,
                 chatSourceComments: [],
               };
-              chatSourceCommentGroups.push(fileIdToGroupMap[fileId]);
+              chatSourceCommentGroups.push(filePathToGroupMap[filePath]);
             }
-            fileIdToGroupMap[fileId].chatSourceComments.push(cscomment);
+            filePathToGroupMap[filePath].chatSourceComments.push(cscomment);
           });
 
-          console.log("[ChatService] Grouped source comments by file:", chatSourceCommentGroups);
+          console.log(
+            "[ChatService] Grouped source comments by file:",
+            chatSourceCommentGroups
+          );
 
           // Get workspace files for each source comment
           const updatedChatSourceCommentGroups = await Promise.all(
             chatSourceCommentGroups.map(async (cscommentGroup) => {
-              const workspaceFile = await fileService.getFileFromPath(cscommentGroup.fileId);
+              const workspaceFile = await fileService.getFileFromPath(
+                cscommentGroup.filePath
+              );
               return {
                 ...cscommentGroup,
                 workspace_file: workspaceFile,
@@ -128,7 +125,10 @@ export class ChatService {
             })
           );
 
-          console.log("[ChatService] Updated sources with workspace files:", updatedChatSourceCommentGroups);
+          console.log(
+            "[ChatService] Updated sources with workspace files:",
+            updatedChatSourceCommentGroups
+          );
           onSources(updatedChatSourceCommentGroups);
         } catch (error) {
           console.error("[ChatService] Error processing sources:", error);
@@ -167,5 +167,27 @@ export class ChatService {
   }
 }
 
+function createChatSourceComment(item: any): ChatSourceComment {
+  return {
+    id: item.id,
+    filePath: item.filePath,
+    threadId: item.threadId,
+    messageId: item.messageId,
+    text: item.text,
+    highlightArea: {
+      boundingBoxes: item.highlightArea.boundingBoxes.map((bbox: any) => ({
+        left: bbox.left,
+        top: bbox.top,
+        width: bbox.width,
+        height: bbox.height,
+        page: bbox.page,
+      })),
+      jumpToPageNumber: item.highlightArea.jumpToPageNumber,
+    },
+    commentGroupId: item.threadId,
+    nextChatCommentId: item.nextChatCommentId,
+  };
+}
+
 // Export a singleton instance of ChatService
-export const chatService = new ChatService(); 
+export const chatService = new ChatService();

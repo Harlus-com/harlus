@@ -1,4 +1,4 @@
-import { Workspace } from "./types";
+import { Workspace } from "./workspace_types";
 import { client } from "./client";
 
 class WorkspaceService {

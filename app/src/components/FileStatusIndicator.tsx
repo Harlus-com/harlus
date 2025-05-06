@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { WorkspaceFile, SyncStatus } from "@/api/types";
+import { WorkspaceFile, SyncStatus } from "@/api/workspace_types";
 
 interface FileStatusIndicatorProps {
   file: WorkspaceFile;

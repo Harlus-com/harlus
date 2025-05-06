@@ -7,25 +7,19 @@ import React, {
   useContext,
   useMemo,
 } from "react";
-import { Send, Search, FileText, Book, ExternalLink, X, BookOpen, User, Loader2 } from "lucide-react";
+import { Send, FileText, X, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { fileService } from "@/api/fileService";
-import { ChatMessage, WorkspaceFile, ChatSourceCommentGroup, ChatSourceComment } from "@/api/types";
+import { WorkspaceFile } from "@/api/workspace_types";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useParams } from "react-router-dom";
-import { BASE_URL } from "@/api/client";
-import { FileGroupCount } from "./panels";
-import { chatService } from "@/api/chatService";
+import { chatService } from "@/chat/chatService";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
-
+import { ChatMessage, ChatSourceCommentGroup } from "./chat_types";
 interface ChatPanelProps {
   onSourceClicked?: (file: WorkspaceFile) => void;
 }
@@ -68,41 +62,49 @@ interface ReadingMessageProps {
   enoughAnswersToStop: boolean;
 }
 
-const ReadingMessage: React.FC<ReadingMessageProps> = ({ message, enoughAnswersToStop }) => {
+const ReadingMessage: React.FC<ReadingMessageProps> = ({
+  message,
+  enoughAnswersToStop,
+}) => {
   // Make sure spinning circle only stops when there are enough answers
   return (
-    <div 
+    <div
       className={`flex items-center gap-1.5 text-xs py-1 px-2.5 rounded-full border reading-message-transition w-full ${
-        enoughAnswersToStop 
-          ? 'bg-gray-50/50 text-gray-400/70 border-gray-100/70' 
-          : 'bg-gray-50 text-gray-400 border-gray-100 animate-pulse-soft'
+        enoughAnswersToStop
+          ? "bg-gray-50/50 text-gray-400/70 border-gray-100/70"
+          : "bg-gray-50 text-gray-400 border-gray-100 animate-pulse-soft"
       }`}
     >
       <div className="relative flex items-center justify-center h-3.5 w-3.5 shrink-0">
         {enoughAnswersToStop ? (
-          <div className="h-2 w-2 rounded-full bg-green-300/50"></div> 
+          <div className="h-2 w-2 rounded-full bg-green-300/50"></div>
         ) : (
-          <svg className="h-3.5 w-3.5 animate-spin text-gray-400" viewBox="0 0 24 24">
-            <circle 
-              className="opacity-25" 
-              cx="12" 
-              cy="12" 
-              r="10" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              fill="none" 
+          <svg
+            className="h-3.5 w-3.5 animate-spin text-gray-400"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="2"
+              fill="none"
             />
-            <path 
-              className="opacity-75" 
-              fill="currentColor" 
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" 
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
         )}
       </div>
-      <span className={`text-[11px] italic truncate ${
-        enoughAnswersToStop ? 'text-gray-500/70' : 'text-gray-500'
-      }`}>
+      <span
+        className={`text-[11px] italic truncate ${
+          enoughAnswersToStop ? "text-gray-500/70" : "text-gray-500"
+        }`}
+      >
         {message.content}
       </span>
     </div>
@@ -116,10 +118,14 @@ interface ReadingMessagesToggleProps {
   onClick: () => void;
 }
 
-const ReadingMessagesToggle: React.FC<ReadingMessagesToggleProps> = ({ count, isExpanded, onClick }) => (
-  <Button 
-    variant="ghost" 
-    size="sm" 
+const ReadingMessagesToggle: React.FC<ReadingMessagesToggleProps> = ({
+  count,
+  isExpanded,
+  onClick,
+}) => (
+  <Button
+    variant="ghost"
+    size="sm"
     className="h-6 px-2.5 text-[10px] text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full flex items-center gap-1 transition-colors"
     onClick={onClick}
   >
@@ -137,7 +143,8 @@ const ReadingMessagesToggle: React.FC<ReadingMessagesToggleProps> = ({ count, is
           Show
         </span>
       </>
-    )} {count} document{count !== 1 ? "s" : ""} read
+    )}{" "}
+    {count} document{count !== 1 ? "s" : ""} read
   </Button>
 );
 
@@ -148,30 +155,36 @@ interface SourceBadgeProps {
 }
 
 const SourceBadge: React.FC<SourceBadgeProps> = ({ source, onClick }) => {
-  const fileName = source.workspace_file?.name || source.fileId.split("/").pop() || "Unknown";
-  
+  // TODO: Get the Actual File Name
+  const fileName = source.filePath.split("/").pop() || "Unknown";
+
   // Extract page numbers if available
   const pageNumbers = useMemo(() => {
     if (!source.chatSourceComments) return [];
-    
-    return [...new Set(
-      source.chatSourceComments
-        .filter(comment => comment?.highlightArea?.jumpToPageNumber)
-        .map(comment => comment.highlightArea.jumpToPageNumber)
-    )];
+
+    return [
+      ...new Set(
+        source.chatSourceComments
+          .filter((comment) => comment?.highlightArea?.jumpToPageNumber)
+          .map((comment) => comment.highlightArea.jumpToPageNumber)
+      ),
+    ];
   }, [source.chatSourceComments]);
-  
+
   return (
-    <Button 
-      variant="outline" 
-      size="sm" 
+    <Button
+      variant="outline"
+      size="sm"
       className="h-auto py-1 px-2.5 text-[11px] gap-1 mr-0 mb-1.5 inline-flex items-center bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 rounded-full grow basis-full sm:basis-[48%] sm:mr-0 sm:max-w-[49%]"
       onClick={onClick}
     >
       <FileText size={10} className="shrink-0" />
       <span className="truncate">{fileName}</span>
       {pageNumbers.length > 0 && (
-        <Badge variant="secondary" className="h-4 px-1 text-[9px] bg-blue-200 rounded-full ml-0.5 shrink-0">
+        <Badge
+          variant="secondary"
+          className="h-4 px-1 text-[9px] bg-blue-200 rounded-full ml-0.5 shrink-0"
+        >
           p.{pageNumbers.join(",")}
         </Badge>
       )}
@@ -201,239 +214,343 @@ const UserMessage: React.FC<{ message: ChatMessage }> = memo(({ message }) => {
 UserMessage.displayName = "UserMessage";
 
 // Component to display sources with improved UI
-const ChatSources: React.FC<ChatSourceProps> = memo(({ chatSourceCommentGroups, onSourceClick }) => {
-  // Don't render if no valid sources
-  if (!chatSourceCommentGroups || chatSourceCommentGroups.length === 0) return null;
+const ChatSources: React.FC<ChatSourceProps> = memo(
+  ({ chatSourceCommentGroups, onSourceClick }) => {
+    // Don't render if no valid sources
+    if (!chatSourceCommentGroups || chatSourceCommentGroups.length === 0)
+      return null;
 
-  // Filter out invalid source groups
-  const validSources = chatSourceCommentGroups.filter(group => 
-    group?.chatSourceComments && group.chatSourceComments.length > 0
-  );
+    // Filter out invalid source groups
+    const validSources = chatSourceCommentGroups.filter(
+      (group) =>
+        group?.chatSourceComments && group.chatSourceComments.length > 0
+    );
 
-  if (validSources.length === 0) return null;
+    if (validSources.length === 0) return null;
 
-  return (
-    <div className="mt-2 pt-2 border-t border-gray-100">
-      <div className="flex flex-wrap gap-1.5">
-        {validSources.map((source, index) => (
-          <SourceBadge 
-            key={index} 
-            source={source} 
-            onClick={() => onSourceClick(source)} 
-          />
-        ))}
+    return (
+      <div className="mt-2 pt-2 border-t border-gray-100">
+        <div className="flex flex-wrap gap-1.5">
+          {validSources.map((source, index) => (
+            <SourceBadge
+              key={index}
+              source={source}
+              onClick={() => onSourceClick(source)}
+            />
+          ))}
+        </div>
       </div>
-    </div>
-  );
-});
+    );
+  }
+);
 
 ChatSources.displayName = "ChatSources";
 
 // Assistant message with improved styling
-const AssistantMessage: React.FC<{ 
-  message: ChatMessage, 
-  readingMessages: ChatMessage[],
-  showReadingMessages: boolean,
-  answerCount: number,
-  handleSourceClick: (source: ChatSourceCommentGroup) => void,
-  toggleReadingMessages: () => void,
-  isReading: boolean
-}> = memo(({ 
-  message, 
-  readingMessages, 
-  showReadingMessages, 
-  answerCount, 
-  handleSourceClick, 
-  toggleReadingMessages,
-  isReading 
-}) => {
-  return (
-    <div className="flex flex-col mt-4">
-      {/* AI Response */}
-      <div className="px-0.5">
-        <div className={cn(
-          "prose prose-sm max-w-none text-[13px]",
-          "prose-headings:font-medium prose-headings:text-gray-800",
-          "prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-1.5",
-          "prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline",
-          "prose-strong:font-medium prose-strong:text-gray-800",
-          "prose-code:text-xs prose-code:bg-gray-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded",
-          "prose-pre:bg-gray-50 prose-pre:p-2 prose-pre:rounded",
-          "prose-ol:pl-5 prose-ol:my-1.5 prose-ul:pl-5 prose-ol:my-1.5",
-          "prose-li:my-0.5 prose-li:text-gray-700"
-        )}>
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              h1: ({node, ...props}) => <h1 className="text-base font-medium mt-5 mb-2" {...props} />,
-              h2: ({node, ...props}) => <h2 className="text-[15px] font-medium mt-4 mb-1.5" {...props} />,
-              h3: ({node, ...props}) => <h3 className="text-[14px] font-medium mt-3 mb-1.5" {...props} />,
-              p: ({node, ...props}) => <p className="text-gray-700 my-1.5 text-[13px] leading-relaxed" {...props} />,
-              ul: ({node, ...props}) => <ul className="list-disc pl-4 my-1.5 text-[13px]" {...props} />,
-              ol: ({node, ...props}) => <ol className="list-decimal pl-4 my-1.5 text-[13px]" {...props} />,
-              li: ({node, ...props}) => <li className="my-0.5 text-[13px]" {...props} />,
-              code: ({inline, className, children, ...props}: {inline?: boolean, className?: string, children?: React.ReactNode}) => (
-                inline ? 
-                  <code className="bg-gray-50 px-1 py-0.5 rounded text-xs font-mono text-gray-800" {...props}>{children}</code> : 
-                  <pre className="bg-gray-50 p-2 rounded-md overflow-x-auto my-2 text-xs">
-                    <code className="text-xs font-mono text-gray-800" {...props}>{children}</code>
-                  </pre>
-              ),
-              table: ({node, ...props}) => (
-                <div className="overflow-x-auto my-3 text-xs">
-                  <table className="min-w-full divide-y divide-gray-200 text-xs" {...props} />
-                </div>
-              ),
-              thead: ({node, ...props}) => <thead className="bg-gray-50" {...props} />,
-              th: ({node, ...props}) => <th className="px-2 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" {...props} />,
-              td: ({node, ...props}) => <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-500 border-t border-gray-100" {...props} />,
-              blockquote: ({node, ...props}) => (
-                <blockquote className="border-l-2 border-gray-200 pl-3 py-1 my-3 text-gray-600 italic text-[12px]" {...props} />
-              ),
-            }}
+const AssistantMessage: React.FC<{
+  message: ChatMessage;
+  readingMessages: ChatMessage[];
+  showReadingMessages: boolean;
+  answerCount: number;
+  handleSourceClick: (source: ChatSourceCommentGroup) => void;
+  toggleReadingMessages: () => void;
+  isReading: boolean;
+}> = memo(
+  ({
+    message,
+    readingMessages,
+    showReadingMessages,
+    answerCount,
+    handleSourceClick,
+    toggleReadingMessages,
+    isReading,
+  }) => {
+    return (
+      <div className="flex flex-col mt-4">
+        {/* AI Response */}
+        <div className="px-0.5">
+          <div
+            className={cn(
+              "prose prose-sm max-w-none text-[13px]",
+              "prose-headings:font-medium prose-headings:text-gray-800",
+              "prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-1.5",
+              "prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline",
+              "prose-strong:font-medium prose-strong:text-gray-800",
+              "prose-code:text-xs prose-code:bg-gray-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded",
+              "prose-pre:bg-gray-50 prose-pre:p-2 prose-pre:rounded",
+              "prose-ol:pl-5 prose-ol:my-1.5 prose-ul:pl-5 prose-ol:my-1.5",
+              "prose-li:my-0.5 prose-li:text-gray-700"
+            )}
           >
-            {message.content}
-          </ReactMarkdown>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                h1: ({ node, ...props }) => (
+                  <h1 className="text-base font-medium mt-5 mb-2" {...props} />
+                ),
+                h2: ({ node, ...props }) => (
+                  <h2
+                    className="text-[15px] font-medium mt-4 mb-1.5"
+                    {...props}
+                  />
+                ),
+                h3: ({ node, ...props }) => (
+                  <h3
+                    className="text-[14px] font-medium mt-3 mb-1.5"
+                    {...props}
+                  />
+                ),
+                p: ({ node, ...props }) => (
+                  <p
+                    className="text-gray-700 my-1.5 text-[13px] leading-relaxed"
+                    {...props}
+                  />
+                ),
+                ul: ({ node, ...props }) => (
+                  <ul
+                    className="list-disc pl-4 my-1.5 text-[13px]"
+                    {...props}
+                  />
+                ),
+                ol: ({ node, ...props }) => (
+                  <ol
+                    className="list-decimal pl-4 my-1.5 text-[13px]"
+                    {...props}
+                  />
+                ),
+                li: ({ node, ...props }) => (
+                  <li className="my-0.5 text-[13px]" {...props} />
+                ),
+                code: ({
+                  inline,
+                  className,
+                  children,
+                  ...props
+                }: {
+                  inline?: boolean;
+                  className?: string;
+                  children?: React.ReactNode;
+                }) =>
+                  inline ? (
+                    <code
+                      className="bg-gray-50 px-1 py-0.5 rounded text-xs font-mono text-gray-800"
+                      {...props}
+                    >
+                      {children}
+                    </code>
+                  ) : (
+                    <pre className="bg-gray-50 p-2 rounded-md overflow-x-auto my-2 text-xs">
+                      <code
+                        className="text-xs font-mono text-gray-800"
+                        {...props}
+                      >
+                        {children}
+                      </code>
+                    </pre>
+                  ),
+                table: ({ node, ...props }) => (
+                  <div className="overflow-x-auto my-3 text-xs">
+                    <table
+                      className="min-w-full divide-y divide-gray-200 text-xs"
+                      {...props}
+                    />
+                  </div>
+                ),
+                thead: ({ node, ...props }) => (
+                  <thead className="bg-gray-50" {...props} />
+                ),
+                th: ({ node, ...props }) => (
+                  <th
+                    className="px-2 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    {...props}
+                  />
+                ),
+                td: ({ node, ...props }) => (
+                  <td
+                    className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-500 border-t border-gray-100"
+                    {...props}
+                  />
+                ),
+                blockquote: ({ node, ...props }) => (
+                  <blockquote
+                    className="border-l-2 border-gray-200 pl-3 py-1 my-3 text-gray-600 italic text-[12px]"
+                    {...props}
+                  />
+                ),
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+          </div>
         </div>
+
+        {/* Sources at bottom of message */}
+        {message.chatSourceCommentGroups &&
+          message.chatSourceCommentGroups.length > 0 && (
+            <ChatSources
+              chatSourceCommentGroups={message.chatSourceCommentGroups}
+              onSourceClick={handleSourceClick}
+            />
+          )}
       </div>
-      
-      {/* Sources at bottom of message */}
-      {message.chatSourceCommentGroups && message.chatSourceCommentGroups.length > 0 && (
-        <ChatSources 
-          chatSourceCommentGroups={message.chatSourceCommentGroups} 
-          onSourceClick={handleSourceClick} 
-        />
-      )}
-    </div>
-  );
-});
+    );
+  }
+);
 
 AssistantMessage.displayName = "AssistantMessage";
 
 // Message pair component
-const MessagePairComponent: React.FC<MessagePairProps> = memo(({ pair, isReading, toggleReadingMessages }) => {
-  const { onSourceClicked } = useContext(SourceClickContext);
-  
-  // Handle source clicks
-  const handleSourceClick = useCallback(async (chatSourceCommentGroup: ChatSourceCommentGroup) => {
-    console.log("[MessagePair] Source clicked:", chatSourceCommentGroup);
+const MessagePairComponent: React.FC<MessagePairProps> = memo(
+  ({ pair, isReading, toggleReadingMessages }) => {
+    const { onSourceClicked } = useContext(SourceClickContext);
 
-    if (onSourceClicked) {
-      try {
-        const file = chatSourceCommentGroup.workspace_file;
-        if (!file) {
-          console.error("[MessagePair] No workspace file found:", chatSourceCommentGroup);
-          return;
-        }
-        
-        const annotations = [];
+    // Handle source clicks
+    const handleSourceClick = useCallback(
+      async (chatSourceCommentGroup: ChatSourceCommentGroup) => {
+        console.log("[MessagePair] Source clicked:", chatSourceCommentGroup);
 
-        if (!chatSourceCommentGroup.chatSourceComments) {
-          console.error("[MessagePair] No comments found in source group:", chatSourceCommentGroup);
-          return;
-        }
-
-        chatSourceCommentGroup.chatSourceComments.forEach((chatSourceComment) => {
-          if (!chatSourceComment?.highlightArea?.boundingBoxes) {
-            console.warn("[MessagePair] Missing highlight area or bounding boxes:", chatSourceComment);
-            return;
-          }
-
-          chatSourceComment.highlightArea.boundingBoxes.forEach((bbox) => {
-            try {
-              if (!bbox?.page) {
-                console.warn("[MessagePair] Missing page in bounding box:", bbox);
-                return;
-              }
-              
-              annotations.push({
-                id: "source-" + Math.random().toString(36).substr(2, 9),
-                page: bbox.page - 1, 
-                left: bbox.left,
-                top: bbox.top,
-                width: bbox.width,
-                height: bbox.height
-              });
-            } catch (error) {
-              console.error("[MessagePair] Error processing bounding box:", error);
+        if (onSourceClicked) {
+          try {
+            const file = await fileService.getFileFromPath(
+              chatSourceCommentGroup.filePath
+            );
+            if (!file) {
+              console.error(
+                "[MessagePair] No workspace file found:",
+                chatSourceCommentGroup
+              );
+              return;
             }
-          });
-        });
 
-        const claimChecks = [{
-          annotations: annotations,
-          verdict: "Source", 
-          explanation: "Source from chat" 
-        }];
+            const annotations = [];
 
-        const updatedFile = {
-          ...file,
-          annotations: {
-            show: true,
-            data: claimChecks
+            if (!chatSourceCommentGroup.chatSourceComments) {
+              console.error(
+                "[MessagePair] No comments found in source group:",
+                chatSourceCommentGroup
+              );
+              return;
+            }
+
+            chatSourceCommentGroup.chatSourceComments.forEach(
+              (chatSourceComment) => {
+                if (!chatSourceComment?.highlightArea?.boundingBoxes) {
+                  console.warn(
+                    "[MessagePair] Missing highlight area or bounding boxes:",
+                    chatSourceComment
+                  );
+                  return;
+                }
+
+                chatSourceComment.highlightArea.boundingBoxes.forEach(
+                  (bbox) => {
+                    try {
+                      if (!bbox?.page) {
+                        console.warn(
+                          "[MessagePair] Missing page in bounding box:",
+                          bbox
+                        );
+                        return;
+                      }
+
+                      annotations.push({
+                        id: "source-" + Math.random().toString(36).substr(2, 9),
+                        page: bbox.page - 1,
+                        left: bbox.left,
+                        top: bbox.top,
+                        width: bbox.width,
+                        height: bbox.height,
+                      });
+                    } catch (error) {
+                      console.error(
+                        "[MessagePair] Error processing bounding box:",
+                        error
+                      );
+                    }
+                  }
+                );
+              }
+            );
+
+            const claimChecks = [
+              {
+                annotations: annotations,
+                verdict: "Source",
+                explanation: "Source from chat",
+              },
+            ];
+
+            const updatedFile = {
+              ...file,
+              annotations: {
+                show: true,
+                data: claimChecks,
+              },
+            };
+
+            onSourceClicked(updatedFile);
+          } catch (error) {
+            console.error("[MessagePair] Error opening source:", error);
           }
-        };
+        }
+      },
+      [onSourceClicked]
+    );
 
-        onSourceClicked(updatedFile);
-      } catch (error) {
-        console.error("[MessagePair] Error opening source:", error);
-      }
-    }
-  }, [onSourceClicked]);
+    const handleToggleReadingMessages = useCallback(() => {
+      toggleReadingMessages(pair.id);
+    }, [toggleReadingMessages, pair.id]);
 
-  const handleToggleReadingMessages = useCallback(() => {
-    toggleReadingMessages(pair.id);
-  }, [toggleReadingMessages, pair.id]);
+    return (
+      <div className="space-y-1">
+        {/* User message */}
+        <UserMessage message={pair.userMessage} />
 
-  return (
-    <div className="space-y-1">
-      {/* User message */}
-      <UserMessage message={pair.userMessage} />
-      
-      {/* Reading messages section - show immediately after user message */}
-      {pair.readingMessages.length > 0 && (
-        <div className="mt-3 mb-3">
-          {/* Toggle for reading messages when we have enough answers */}
-          <div className="flex flex-col space-y-1.5">
-            {pair.answerCount >= 5 && (
-              <ReadingMessagesToggle 
-                count={pair.readingMessages.length} 
-                isExpanded={pair.showReadingMessages} 
-                onClick={handleToggleReadingMessages} 
-              />
-            )}
-            
-            {/* Show reading messages if expanded or we don't have enough answers yet */}
-            {(pair.showReadingMessages || pair.answerCount < 5) && (
-              <div className="flex flex-row flex-wrap gap-2 text-gray-400 mt-1">
-                {pair.readingMessages.map((readingMsg, index) => (
-                  <ReadingMessage 
-                    key={index} 
-                    message={readingMsg} 
-                    enoughAnswersToStop={pair.answerCount >= 12} 
-                  />
-                ))}
-              </div>
-            )}
+        {/* Reading messages section - show immediately after user message */}
+        {pair.readingMessages.length > 0 && (
+          <div className="mt-3 mb-3">
+            {/* Toggle for reading messages when we have enough answers */}
+            <div className="flex flex-col space-y-1.5">
+              {pair.answerCount >= 5 && (
+                <ReadingMessagesToggle
+                  count={pair.readingMessages.length}
+                  isExpanded={pair.showReadingMessages}
+                  onClick={handleToggleReadingMessages}
+                />
+              )}
+
+              {/* Show reading messages if expanded or we don't have enough answers yet */}
+              {(pair.showReadingMessages || pair.answerCount < 5) && (
+                <div className="flex flex-row flex-wrap gap-2 text-gray-400 mt-1">
+                  {pair.readingMessages.map((readingMsg, index) => (
+                    <ReadingMessage
+                      key={index}
+                      message={readingMsg}
+                      enoughAnswersToStop={pair.answerCount >= 12}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-      
-      {/* AI response */}
-      {pair.assistantMessage && (
-        <AssistantMessage 
-          message={pair.assistantMessage}
-          readingMessages={[]} // Don't pass reading messages to AssistantMessage since we're showing them above
-          showReadingMessages={pair.showReadingMessages}
-          answerCount={pair.answerCount}
-          handleSourceClick={handleSourceClick}
-          toggleReadingMessages={handleToggleReadingMessages}
-          isReading={isReading}
-        />
-      )}
-    </div>
-  );
-});
+        )}
+
+        {/* AI response */}
+        {pair.assistantMessage && (
+          <AssistantMessage
+            message={pair.assistantMessage}
+            readingMessages={[]} // Don't pass reading messages to AssistantMessage since we're showing them above
+            showReadingMessages={pair.showReadingMessages}
+            answerCount={pair.answerCount}
+            handleSourceClick={handleSourceClick}
+            toggleReadingMessages={handleToggleReadingMessages}
+            isReading={isReading}
+          />
+        )}
+      </div>
+    );
+  }
+);
 
 MessagePairComponent.displayName = "MessagePairComponent";
 
@@ -477,13 +594,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
             assistantMessage: assistantMessage
               ? {
                   ...assistantMessage,
-                  chatSourceCommentGroups: assistantMessage.chatSourceCommentGroups || [],
+                  chatSourceCommentGroups:
+                    assistantMessage.chatSourceCommentGroups || [],
                 }
               : null,
             readingMessages: [],
             answerCount: assistantMessage ? 1 : 0,
             showReadingMessages: true,
-            readingMessageBuffer: ""
+            readingMessageBuffer: "",
           });
         }
       }
@@ -507,10 +625,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
 
   // Toggle reading messages visibility for a specific pair
   const toggleReadingMessages = useCallback((pairId: string) => {
-    setMessagePairs(prev => 
-      prev.map(pair => 
-        pair.id === pairId 
-          ? { ...pair, showReadingMessages: !pair.showReadingMessages } 
+    setMessagePairs((prev) =>
+      prev.map((pair) =>
+        pair.id === pairId
+          ? { ...pair, showReadingMessages: !pair.showReadingMessages }
           : pair
       )
     );
@@ -544,12 +662,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           content: "",
           timestamp: new Date(),
           chatSourceCommentGroups: [],
-          messageType: 'answer_message'
+          messageType: "answer_message",
         },
         readingMessages: [],
         answerCount: 0,
         showReadingMessages: true,
-        readingMessageBuffer: ""
+        readingMessageBuffer: "",
       },
     ]);
     setInput("");
@@ -566,53 +684,65 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           setMessagePairs((prev) => {
             const newPairs = [...prev];
             const currentPair = newPairs.find((pair) => pair.id === pairId);
-            
+
             if (currentPair) {
-              if (messageType === 'reading_message') {
+              if (messageType === "reading_message") {
                 // Add to the buffer and process the updated content
                 currentPair.readingMessageBuffer += newContent;
-                
+
                 // Split by newlines and process
-                if (currentPair.readingMessageBuffer.includes('\n')) {
-                  const lines = currentPair.readingMessageBuffer.split('\n');
-                  
+                if (currentPair.readingMessageBuffer.includes("\n")) {
+                  const lines = currentPair.readingMessageBuffer.split("\n");
+
                   // Last item might be incomplete (no newline yet)
-                  const incompleteLine = lines.pop() || '';
-                  
+                  const incompleteLine = lines.pop() || "";
+
                   // Process all complete lines (with newlines)
-                  const existingReadingIds = new Set(currentPair.readingMessages.map(m => m.content.trim()));
-                  
+                  const existingReadingIds = new Set(
+                    currentPair.readingMessages.map((m) => m.content.trim())
+                  );
+
                   // Add new complete reading messages
-                  lines.forEach(line => {
+                  lines.forEach((line) => {
                     const trimmedLine = line.trim();
                     if (trimmedLine && !existingReadingIds.has(trimmedLine)) {
                       currentPair.readingMessages.push({
-                        id: `${pairId}.reading.${Date.now()}.${Math.random().toString(36).substring(2,8)}`,
+                        id: `${pairId}.reading.${Date.now()}.${Math.random()
+                          .toString(36)
+                          .substring(2, 8)}`,
                         sender: "assistant",
                         content: trimmedLine,
                         timestamp: new Date(),
                         chatSourceCommentGroups: [],
-                        messageType: 'reading_message'
+                        messageType: "reading_message",
                       });
                     }
                   });
-                  
+
                   // Update buffer with incomplete line
                   currentPair.readingMessageBuffer = incompleteLine;
                 }
-                
+
                 // Always ensure the current buffer content is visible if it's not empty
                 // and doesn't duplicate an existing reading message
                 const bufferContent = currentPair.readingMessageBuffer.trim();
-                if (bufferContent && !currentPair.readingMessages.some(m => m.content === bufferContent)) {
+                if (
+                  bufferContent &&
+                  !currentPair.readingMessages.some(
+                    (m) => m.content === bufferContent
+                  )
+                ) {
                   const tempId = `${pairId}.reading.buffer`;
-                  
+
                   // Check if we already have a buffer message
-                  const bufferMsgIndex = currentPair.readingMessages.findIndex(m => m.id.includes('.buffer'));
-                  
+                  const bufferMsgIndex = currentPair.readingMessages.findIndex(
+                    (m) => m.id.includes(".buffer")
+                  );
+
                   if (bufferMsgIndex >= 0) {
                     // Update existing buffer message
-                    currentPair.readingMessages[bufferMsgIndex].content = bufferContent;
+                    currentPair.readingMessages[bufferMsgIndex].content =
+                      bufferContent;
                   } else {
                     // Add a new buffer message
                     currentPair.readingMessages.push({
@@ -621,22 +751,22 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                       content: bufferContent,
                       timestamp: new Date(),
                       chatSourceCommentGroups: [],
-                      messageType: 'reading_message'
+                      messageType: "reading_message",
                     });
                   }
                 }
-              } else if (messageType === 'answer_message') {
+              } else if (messageType === "answer_message") {
                 // Add to main answer
                 currentPair.assistantMessage = {
                   ...currentPair.assistantMessage!,
                   content: currentPair.assistantMessage!.content + newContent,
-                  messageType: 'answer_message'
+                  messageType: "answer_message",
                 };
-                
+
                 // Only increment answer count when content is meaningful (length > 2)
                 if (newContent.trim().length > 2) {
                   currentPair.answerCount += 1;
-                  
+
                   // If we just reached 5 answers, change reading message appearance
                   if (currentPair.answerCount === 5) {
                     setTimeout(() => {
@@ -668,22 +798,22 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           setIsLoading(false);
           setIsEventSourceActive(false);
           setCurrentPairId(null);
-          
+
           // Process any remaining content in the reading message buffer
           setMessagePairs((prev) => {
             const newPairs = [...prev];
             const lastPair = newPairs[newPairs.length - 1];
-            
+
             if (lastPair) {
               // Process any remaining content in the buffer as a final reading message
               if (lastPair.readingMessageBuffer.trim()) {
                 const bufferContent = lastPair.readingMessageBuffer.trim();
-                
+
                 // Check if this content is already in our reading messages
-                const existingMatch = lastPair.readingMessages.find(m => 
-                  m.content === bufferContent || m.id.includes('.buffer')
+                const existingMatch = lastPair.readingMessages.find(
+                  (m) => m.content === bufferContent || m.id.includes(".buffer")
                 );
-                
+
                 if (existingMatch) {
                   // Update the existing buffer message to be a permanent message
                   existingMatch.id = `${lastPair.id}.reading.${lastPair.readingMessages.length}`;
@@ -695,30 +825,32 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                     content: bufferContent,
                     timestamp: new Date(),
                     chatSourceCommentGroups: [],
-                    messageType: 'reading_message'
+                    messageType: "reading_message",
                   });
                 }
-                
+
                 // Clear the buffer
                 lastPair.readingMessageBuffer = "";
               }
-              
+
               // Remove any duplicate reading messages
               const uniqueContents = new Set<string>();
-              lastPair.readingMessages = lastPair.readingMessages.filter(msg => {
-                if (uniqueContents.has(msg.content)) {
-                  return false;
+              lastPair.readingMessages = lastPair.readingMessages.filter(
+                (msg) => {
+                  if (uniqueContents.has(msg.content)) {
+                    return false;
+                  }
+                  uniqueContents.add(msg.content);
+                  return true;
                 }
-                uniqueContents.add(msg.content);
-                return true;
-              });
-              
+              );
+
               // Automatically collapse reading messages if we have enough answer content
               if (lastPair.answerCount >= 12) {
                 lastPair.showReadingMessages = false;
               }
             }
-            
+
             return newPairs;
           });
         },
@@ -783,17 +915,20 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                 <div className="inline-flex rounded-full bg-blue-50 p-2 mb-3">
                   <BookOpen className="h-5 w-5 text-blue-500" />
                 </div>
-                <h3 className="text-base font-medium text-gray-800 mb-1">Welcome to Harlus</h3>
+                <h3 className="text-base font-medium text-gray-800 mb-1">
+                  Welcome to Harlus
+                </h3>
                 <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                  Ask questions about your documents. The AI will analyze the content and provide relevant answers.
+                  Ask questions about your documents. The AI will analyze the
+                  content and provide relevant answers.
                 </p>
               </div>
             ) : (
               <>
                 {messagePairs.map((pair) => (
-                  <MessagePairComponent 
-                    key={pair.id} 
-                    pair={pair} 
+                  <MessagePairComponent
+                    key={pair.id}
+                    pair={pair}
                     isReading={isEventSourceActive && pair.id === currentPairId}
                     toggleReadingMessages={toggleReadingMessages}
                   />
@@ -833,7 +968,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                 <Send size={18} />
               </Button>
             </div>
-            
+
             {isEventSourceActive && (
               <div className="text-[10px] text-gray-400 text-center">
                 Processing your request...

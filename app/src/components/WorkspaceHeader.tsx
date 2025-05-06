@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { FileGroupCount } from "./panels";
 import { TopLevelPanelId } from "./panels";
-import { Workspace, WorkspaceFile } from "@/api/types";
+import { Workspace, WorkspaceFile } from "@/api/workspace_types";
 import { useNavigate } from "react-router-dom";
 import ContrastAnalysisDialog from "./ContrastAnalysisDialog";
 

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { PanelGroup, Panel } from "react-resizable-panels";
 import { FileGroupCount } from "./panels";
 import PanelDivider from "./PanelDivider";
-import { WorkspaceFile } from "@/api/types";
+import { WorkspaceFile } from "@/api/workspace_types";
 import PdfViewer, { PdfViewerRef } from "@/components/ReactPdfViewer";
 import { OpenFileGroup } from "./OpenFileGroup";
 import { MessageSquareQuote } from "lucide-react";

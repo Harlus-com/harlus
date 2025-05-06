@@ -1,4 +1,4 @@
-import { WorkspaceFile } from "@/api/types";
+import { WorkspaceFile } from "@/api/workspace_types";
 
 export class OpenFileGroup {
   constructor(

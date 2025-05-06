@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { File, Trash2, MoreVertical, Columns2, RefreshCw } from "lucide-react";
-import { WorkspaceFile } from "@/api/types";
+import { WorkspaceFile } from "@/api/workspace_types";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
