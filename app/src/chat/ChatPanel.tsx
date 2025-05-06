@@ -426,7 +426,6 @@ const MessagePairComponent: React.FC<MessagePairProps> = memo(
               return;
             }
             
-            // Create a comment group for this source
             const commentGroup: CommentGroup = {
               id: `chat-source-${Date.now()}`, // TODO: replace with thread ID
               name: `Source from AI Assistant`,
@@ -440,7 +439,6 @@ const MessagePairComponent: React.FC<MessagePairProps> = memo(
               await addChatSourceComments(chatSourceCommentGroup.chatSourceComments, commentGroup);
             }
 
-            // Call onSourceClicked with the file - the parent component will handle showing comments
             onSourceClicked(file);
 
           } catch (error) {
