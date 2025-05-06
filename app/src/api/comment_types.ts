@@ -5,21 +5,20 @@ export interface CommentGroup {
   readonly name: string;
 }
 
-// ASSUME THAT ALL REFERENCE TO filePath means filePath when returned from the API
-
 // REMEMBER THIS HAS TO BE FOR ReactPdfVieiwer, which uses percentages
 export interface BoundingBox {
   readonly left: number;
   readonly top: number;
   readonly width: number;
   readonly height: number;
-  readonly page: number; // Page where this bounding box get's rendered. Helpful when a highligh area spans multiple pages.
+  // Page where this bounding box get's rendered. Helpful when a highligh area spans multiple pages.
+  readonly page: number; // This is 0-based
 }
 
 export interface HighlightArea {
   readonly boundingBoxes: BoundingBox[]; // Array of bounding boxes that make up the highlight area
   // Page number to jump to when the highlight is clicked note: the comment could span multiplage pages hence "jumpTo"
-  readonly jumpToPageNumber: number;
+  readonly jumpToPageNumber: number; // This is 1-based -- TODO: Make this 0-based for consistency
 }
 
 export interface ClaimComment {
