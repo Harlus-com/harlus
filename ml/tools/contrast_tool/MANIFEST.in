@@ -1,2 +1,1 @@
-include requirements.txt
-include contrast_tool/config.yaml
+include harlus_contrast_tool/config.yaml

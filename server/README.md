@@ -1,72 +1,8 @@
-### Firs Time Setup
+### First Time Setup
 
-### Create python Environmet
+### Create python Environment
 
-Create a python environment for consistency, consider creating it with the specified python version python3.13
-
-```
-python3.13 -m venv .venv --prompt=server-env
-```
-
-Note: you could use a different python version e.g `python3 -m venv .venv` which would use whatever python version is currently setup on your path. (You can see this exactly by runnign `which python3`).
-
-The prompt command just controls the name shown on the command line when the environment is active.
-
-### Activate the Environment
-
-Mac
-
-```
-source .venv/bin/activate
-```
-
-Pro Top: Add `alias activate="source .venv/bin/activate"` to your shell startup file (e.g `~/.bashrc`, `~/.zprofile` etc.) so that you can run `activate` in any directory with a .venv folder to activate the env.
-
-Windows
-
-```
-.venv\Scripts\activate
-```
-
-Activating the environment ensures that the python dependency manager installs all the dependencies in the active environment.
-
-### Install requirements.txt
-
-
-```
-pip install -r requirements.txt --find-links wheels
-```
-**note** the `find-links wheels` flag tells `pip` to look in the local wheels directory for pacakges in `requirements.txt` which it does not find on its standard `PyPi` index.
-
-
-## How to install new packages
-
-```
-pip install <package-name>
-```
-
-```
-pip freeze > requirements.txt
-```
-
-TODO: We need a way to prune unused dependenices from requirements.txt
-TODO: We need a way to drop dependenices not specifified (but that were previously specified or otherwise eneded up in site-packages) from site packages.
-
-## Setting up VS Code with Python
-
-You can optionally create a .vscode folder with /settings.json inside (in the root dir of the project)
-
-Then add the default python interpreter:
-
-```
-{
-  "python.defaultInterpreterPath": ".venv/bin/python3.13"
-}
-```
-
-Note: You may also need to use the absolute path
-
-Note: You may also have to run the "Python: Select Interpreter" VS Code command afterwards (it should appear as an option in the dropdown).
+See python/env/README.md
 
 ## Run the server
 
@@ -112,13 +48,6 @@ or to go back to using the local wheel
 python scripts/package.py {tool_name} --unlink
 ```
 
-### Integrating Harlus_Chat and Doc_Search 
+### Integrating Tools
 
-Harlus Chat depends on Doc Search and specifies the version of doc_search it needs in its requirements.txt file. To install Harlus Chat, use:
-
-```
-python scripts/package.py {tool_name} --package doc_search
-python scripts/package.py {tool_name} --package harlus_chat
-```
-
-Note, sinde doc_search makes use of the on-disk cache, delete this cache by each version increase of doc_search.
+Note: since tools makes use of the on-disk cache, when making changes to a tool dir, you might need to delete the server on disk cache (found under app_data_path)

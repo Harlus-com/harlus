@@ -7,8 +7,8 @@ from src.stream_manager import StreamManager
 
 from src.file_store import File, FileStore
 from src.sync_status import SyncStatus
-from doc_search import DocToolLoader
-from contrast_tool import (
+from harlus_doc_search import DocToolLoader
+from harlus_contrast_tool import (
     ClaimQueryEngineToolLoader,
     VerdictQueryEngineToolLoader,
     SentenceRetrieverToolLoader,
