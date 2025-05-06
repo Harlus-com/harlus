@@ -135,21 +135,20 @@ def prune_overlapping_rects(standard_rects: list[Dict[str, Union[float, int]]], 
 
 
 
-def get_llamaparse_rects(file_path, retrieved_node, page_nb):
-    page_nb = page_nb - 1
+def get_llamaparse_rects(file_path, bounding_boxes, page_nb):
     doc = fitz.open(file_path)
     page = doc[page_nb]
     page_width = page.rect.width
     page_height = page.rect.height
-    llamaparse_rects = retrieved_node.metadata.get("bounding_boxes")
     standard_rects = []
-    for rect in llamaparse_rects:
+    for bounding_box in bounding_boxes:
         standard_rects.append({
-                    "left": float(rect.get("x") / page_width) * 100,
-                    "top": float(rect.get("y") / page_height) * 100,
-                    "width": float(rect.get("w") / page_width) * 100,
-                    "height": float(rect.get("h") / page_height) * 100,
-                    "page": page_nb + 1 # 1-indexed convention 
+                    "left": float(bounding_box.left / page_width) * 100,
+                    "top": float(bounding_box.top / page_height) * 100,
+                    "width": float(bounding_box.width / page_width) * 100,
+                    "height": float(bounding_box.height / page_height) * 100,
+                    "page": page_nb + 1, # 1-indexed convention 
+                    "type": "relative"
                 } )
     return standard_rects
 
