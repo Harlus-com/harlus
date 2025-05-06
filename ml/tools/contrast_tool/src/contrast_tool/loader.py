@@ -110,23 +110,3 @@ class SentenceRetrieverToolLoader:
             self.get_tool_name(),
             {},  # TODO: Populate this with debug info: parsed_text.json and json_nodes.json
         )
-
-
-# class ClaimCheckToolLaoder:
-#     # TODO In the future, this will take the LLM dependency as a parameter
-
-#     def get_tool_name(self) -> str:
-#         return "claim_check_tool"
-
-#     async def load(
-#         self, file_path: str, unused_file_name: Optional[str] = None
-#     ) -> ToolWrapper:
-
-#         # TODO confirm file path exists
-
-#         retriever = ClaimChecker(config["claim checker"]).build_retriever(file_path)
-#         return ToolWrapper(
-#             retriever,
-#             self.get_tool_name(),
-#             {},  # TODO: Populate this with debug info: parsed_text.json and json_nodes.json
-#         )

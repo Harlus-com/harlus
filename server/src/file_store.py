@@ -133,7 +133,11 @@ class FileStore:
                     f"Workspace directory name is the same as {workspace.name}"
                 )
         workspace = Workspace(id=str(uuid.uuid4()), name=name, dir_name=dir_name)
-        os.makedirs(self.app_data_path.joinpath(workspace.dir_name), exist_ok=True)
+
+        temp = self.app_data_path.joinpath(workspace.dir_name)
+        print("TEMP: ", temp)
+
+        os.makedirs(temp, exist_ok=True)
         with open(
             self.app_data_path.joinpath(workspace.dir_name, "files.json"), "w"
         ) as f:

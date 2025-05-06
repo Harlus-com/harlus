@@ -33,6 +33,7 @@ from contrast_tool import ContrastTool
 from harlus_chat import ChatAgentGraph
 
 
+
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -66,6 +67,9 @@ else:
     APP_DATA_PATH = Path(APP_DATA_PATH_STRING)
 
 print("APP_DATA_PATH", APP_DATA_PATH)
+
+with open("C:/Users/info/AppData/Local/Electron/Electron/Harlus/file2.txt", "w") as f:
+    f.write("Hello World")
 
 file_store = FileStore(APP_DATA_PATH)
 
@@ -403,7 +407,7 @@ def get_contrast_analyze(
                 )
         
         link_check = ContrastLinkCheck(
-            file_id=new_file_id,
+            file_path=new_file_id,
             annotations=link_annotations,
             parent_id=comment_id,
         )

@@ -28,7 +28,7 @@ class HighlightArea(BaseCamelModel):
 
 class LinkComment(BaseCamelModel):
     id: str
-    file_id: str = Field(alias="fileId")
+    file_path: str = Field(alias="filePath")
     text: str
     highlight_area: HighlightArea = Field(alias="highlightArea")
     parent_comment_id: str = Field(alias="parentCommentId")
@@ -36,7 +36,7 @@ class LinkComment(BaseCamelModel):
 
 class ClaimComment(BaseCamelModel):
     id: str
-    file_id: str = Field(alias="fileId")
+    file_path: str = Field(alias="filePath")
     text: str
     highlight_area: HighlightArea = Field(alias="highlightArea")
     links: list[LinkComment]
@@ -45,7 +45,7 @@ class ClaimComment(BaseCamelModel):
 
 class ChatSourceComment(BaseCamelModel):
     id: str
-    file_id: str = Field(alias="fileId")
+    file_path: str = Field(alias="filePath")
     thread_id: str = Field(alias="threadId")
     message_id: str = Field(alias="messageId")
     text: str

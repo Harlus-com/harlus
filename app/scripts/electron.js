@@ -33,7 +33,7 @@ function createWindow() {
     },
   });
 
-  mainWindow.loadURL("http://localhost:8080");
+  mainWindow.loadURL("http://localhost:8081");
   mainWindow.webContents.openDevTools();
 }
 
