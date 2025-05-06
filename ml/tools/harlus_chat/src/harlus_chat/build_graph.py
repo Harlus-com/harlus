@@ -409,7 +409,7 @@ class ChatAgentGraph:
             chat_source_comment = ChatSourceComment(
                 highlight_area=highlight_area,
                 id=unique_id,
-                file_id=file_path,
+                file_path=file_path,
                 thread_id=self.config["configurable"].get("thread_id"),
                 message_id=str(nb_messages),
                 text="Response source",

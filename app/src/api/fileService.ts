@@ -1,5 +1,6 @@
 // Service to handle file operations and communication with the backend API
-import { WorkspaceFile, ChatMessage } from "./workspace_types";
+import { WorkspaceFile } from "./workspace_types";
+import { ChatMessage } from "../chat/chat_types";
 import { client } from "./client";
 import { mockContrastAnalysisResponse } from "./mock_data";
 import { ClaimComment } from "./comment_types";
@@ -116,9 +117,9 @@ class FileService {
     console.log("[FileService] Getting file from path:", params.toString());
     const file = await client.get(`/file/get_from_path?${params.toString()}`);
     console.log("[FileService] File:", file);
-    // Convert backend file to WorkspaceFile type
+    /* Convert backend file to WorkspaceFile type
     const workspaceFile: WorkspaceFile = {
-      id: file.id,
+      id: file.Id,
       name: file.name,
       absolutePath: file.absolute_path,
       workspaceId: file.workspace_id,
@@ -131,8 +132,8 @@ class FileService {
           }
         : undefined,
     };
-
-    return workspaceFile;
+    */
+    return file;
   }
 }
 

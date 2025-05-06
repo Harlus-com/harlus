@@ -56,7 +56,7 @@ class HighlightArea(BaseModel):
 
 class ChatSourceComment(BaseModel):
     id: str
-    file_id: str
+    file_path: str
     thread_id: str
     message_id: str
     text: str

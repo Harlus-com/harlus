@@ -118,6 +118,7 @@ export class ChatService {
               const workspaceFile = await fileService.getFileFromPath(
                 cscommentGroup.filePath
               );
+              console.log("checkpoint 1:", workspaceFile);
               return {
                 ...cscommentGroup,
                 workspace_file: workspaceFile,
