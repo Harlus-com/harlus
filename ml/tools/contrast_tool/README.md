@@ -95,7 +95,7 @@ pip install build
 ```
 
 ```
-python -m build
+python -m build --wheel
 ```
 
 This uses setup.py to create a "wheel" in in `/dist` with the latest version. This wheel includes the source code and required deps (it does not pakcage the deps).
