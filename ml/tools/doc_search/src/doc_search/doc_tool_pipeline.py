@@ -71,11 +71,11 @@ class DocumentPipeline:
         self.metadata = {}
         self.metadata_queries = {
             "date": "Find the date of the document. This should be the date the document was filed, for example if the document is a 10-K, the date should be the date of the 10-K. Format it as YYYY-MM-DD. ",
-            "ticker": "Find the ticker of the stock discussed in this document (if any).",
+            "ticker": "Find the ticker of the stock discussed in this document (if any). The format should be like this: 'AAPL'.",
             "keywords": "Give 5-10 keywords that describe the document.",
             "source_name": "Find the source of this document. This should be one of the following: sec_filings, earning_call, investor_relations_release, other_third_party, internal",
             "title": "Provide a title for this document.",
-            "company_name": "Find the name of the company which is the subject of this document.",
+            "company_name": "Find the name of the company which is the subject of this document. The format should be like this: 'Apple Inc.'.",
         }
         self.metadata_summary_query = "Extract a 3-5 line summary of the document."
 
