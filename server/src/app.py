@@ -23,7 +23,7 @@ from src.sync_workspace import get_workspace_sync_manager
 
 # from src.stream_response import stream_generator_v2 # TODO: Delete this file
 from src.file_store import FileStore, Workspace, File
-from src.sync_queue import SyncQueue
+from src.sync_queue import SyncQueue, SyncType
 from src.stream_manager import StreamManager
 from src.sync_status import SyncStatus
 from contrast_tool import ContrastTool
@@ -161,6 +161,18 @@ async def load_file(request: LoadFileRequest):
     file = file_store.copy_file_to_workspace(path, workspace_id)
     await sync_queue.queue_model_sync(file)
     return file
+
+
+class ForceSyncFileRequest(BaseModel):
+    file_id: str = Field(alias="fileId")
+
+
+@app.post("/file/force_sync")
+async def force_file_sync(request: ForceSyncFileRequest):
+    print("Force syncing file", request.file_id)
+    file = file_store.get_file(request.file_id)
+    await sync_queue.queue_model_sync(file, sync_type=SyncType.FORCE)
+    return True
 
 
 @app.delete("/file/delete/{file_id}")

@@ -135,6 +135,10 @@ class FileService {
     */
     return file;
   }
+
+  forceSyncFile(file: WorkspaceFile): Promise<boolean> {
+    return client.post(`/file/force_sync`, { fileId: file.id });
+  }
 }
 
 export const fileService = new FileService();
