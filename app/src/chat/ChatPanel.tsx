@@ -156,7 +156,7 @@ interface SourceBadgeProps {
 
 const SourceBadge: React.FC<SourceBadgeProps> = ({ source, onClick }) => {
   // TODO: Get the Actual File Name
-  const fileName = source.filePath.split("/").pop() || "Unknown";
+  const fileName = source.filePath.split("/").slice(-2, -1)[0] || "Unknown";
 
   // Extract page numbers if available
   const pageNumbers = useMemo(() => {

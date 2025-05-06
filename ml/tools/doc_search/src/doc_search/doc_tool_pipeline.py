@@ -22,11 +22,36 @@ from llama_index.core.schema import Node
 from .config import LLM, EMBEDDING_MODEL, FASTLLM
 from .mixed_retriever import MixKeywordVectorRetriever
 
+from pydantic import BaseModel
 
 import asyncio
 from tqdm import tqdm
 
 
+
+class DocSearchToolMetadata(BaseModel):
+    date: str
+    ticker: str
+    keywords: str
+    source_name: str
+    title: str
+    company_name: str
+    summary: str
+    file_path: str
+
+
+
+class DocSearchToolWrapper(BaseModel):
+    tool: QueryEngineTool
+    metadata: DocSearchToolMetadata
+    name: str
+    tool_class: str
+    description: str
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    
 class DocumentPipeline:
 
     def __init__(
@@ -52,6 +77,7 @@ class DocumentPipeline:
             "title": "Provide a title for this document.",
             "company_name": "Find the name of the company which is the subject of this document.",
         }
+        self.metadata_summary_query = "Extract a 3-5 line summary of the document."
 
     async def execute(self) -> QueryEngineTool:
 
@@ -114,7 +140,7 @@ class DocumentPipeline:
         print(" - extracting metadata from query engines...")
         # Create a mapping of queries to their corresponding metadata names
         query_to_metadata = {
-            "Extract a 3-5 line summary of the document.": "summary",
+            self.metadata_summary_query: "summary",
             **{query: name for name, query in self.metadata_queries.items()}
         }
 
@@ -122,7 +148,7 @@ class DocumentPipeline:
         tasks = {
             query: query_engine.aquery(query)
             for query, query_engine in [
-                ("Extract a 3-5 line summary of the document.", summary_query_engine),
+                (self.metadata_summary_query, summary_query_engine),
                 *[(query, mix_query_engine) for query in self.metadata_queries.values()]
             ]
         }
@@ -132,16 +158,19 @@ class DocumentPipeline:
             tasks.items(), total=len(tasks), desc="Extracting metadata"
         ):
             response = await task
-            self.metadata[query_to_metadata[query]] = response
+            self.metadata[query_to_metadata[query]] = response.response
 
         print(" - building mix retriever query engine tool...")
         metadata_description = "\n".join(
             [f"{key}: {value}" for key, value in self.metadata.items()]
         )
+
+
+        print("this is metadata", self.metadata)
         mix_query_engine_tool = QueryEngineTool(
             query_engine=mix_query_engine,
             metadata=ToolMetadata(
-                name=f"{self.file_name}_mix",
+                name=f"doc_search_{self.file_name}",
                 description=f"""Use this tool to answer specific questions about the document.
 
                 This document has the following metadata:
@@ -150,6 +179,21 @@ class DocumentPipeline:
                 """,
             ),
         )
+
+        doc_tool_metadata = DocSearchToolMetadata(
+            **self.metadata,
+            file_path=self.file_path,
+        )
+
+        doc_search_tool_wrapper = DocSearchToolWrapper(
+            tool=mix_query_engine_tool,
+            metadata=doc_tool_metadata,
+            name=mix_query_engine_tool.metadata.name,
+            tool_class="DocSearchToolWrapper",
+            description=mix_query_engine_tool.metadata.description
+        )
+
+        return doc_search_tool_wrapper 
 
         # print(" - building summary query engine tool...")
         # summary_query_engine_tool = QueryEngineTool(
@@ -207,4 +251,4 @@ class DocumentPipeline:
         # )
         # self.doctool = doctool
 
-        return mix_query_engine_tool 
+        

@@ -9,4 +9,4 @@ os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 os.environ["TAVILY_API_KEY"] = TAVILY_API_KEY
 
 LLM = ChatOpenAI(model="gpt-4o-mini", temperature=0, api_key=OPENAI_API_KEY)
-TAVILY_TOOL = TavilySearch(max_results=2)
+TAVILY_TOOL = TavilySearch(max_results=5)
