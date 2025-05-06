@@ -217,7 +217,6 @@ async def split_table_nodes(nodes_in, markdown_parser):
     
     """
 
-    NUM_WORKERS = max(1, (len(nodes_in) // 10) or 1)
     semaphore = asyncio.Semaphore(NUM_WORKERS)
 
     async def process_with_semaphore(node):
