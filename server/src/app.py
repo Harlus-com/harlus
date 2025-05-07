@@ -1,6 +1,5 @@
 import datetime
 import json
-import pickle
 import time
 from fastapi import (
     FastAPI,
@@ -29,8 +28,7 @@ from src.sync_queue import SyncQueue, SyncType
 from src.stream_manager import StreamManager
 from src.sync_status import SyncStatus
 from src.chat_library import ChatLibrary
-from harlus_contrast_tool import ContrastTool
-from harlus_chat import ChatAgentGraph
+from harlus_contrast_tool import ContrastTool, ClaimComment
 
 
 app = FastAPI()
@@ -74,12 +72,12 @@ tool_library.load_tools()
 
 
 # TODO: chat_library should call update_chat_tools when new tools
-# are added to the tool_library to ensure chat has access to all tools 
-# within the workspace. 
+# are added to the tool_library to ensure chat has access to all tools
+# within the workspace.
 # TODO: (also mentioned in chat/stream). We should integrate the frontend to start new threads.
 # TODO: Once we start having longer conversations, we should summarize the history regularly.
 chat_library = ChatLibrary(file_store, tool_library)
-chat_library.load() # initialize a chat for each workspace, load from disk to memory
+chat_library.load()  # initialize a chat for each workspace, load from disk to memory
 
 stream_manager = StreamManager(file_store)
 
@@ -317,35 +315,11 @@ class ReactPdfAnnotation(BaseModel):
     height: float
 
 
-class ContrastClaimCheck(BaseModel):
-    annotations: list[ReactPdfAnnotation]
-    verdict: str
-    explanation: str
-
-
-class ContrastResult(BaseModel):
-    file_id: str = Field(alias="fileId")
-    claim_checks: list[ContrastClaimCheck] = Field(alias="claimChecks")
-
-    model_config = ConfigDict(
-        populate_by_name=True,
-        alias_generator=snake_to_camel,
-        from_attributes=True,
-        frozen=True,
-    )
-
-
 @app.get("/contrast/analyze")
 def get_contrast_analyze(
     old_file_id: str = Query(..., alias="oldFileId"),
     new_file_id: str = Query(..., alias="newFileId"),
 ):
-    if os.path.exists("comments.json"):
-        with open("comments.json", "r") as f:
-            comments = json.load(f)
-            print("comments", comments)
-            time.sleep(3)
-            return comments
     """Analyze the contrast between two files"""
     tool = ContrastTool()
 
@@ -363,14 +337,22 @@ def get_contrast_analyze(
     update_sentence_retriever = tool_library.get_tool(
         new_file.absolute_path, "sentence_retriever_tool"
     )
-    comments = tool.run(
-        old_file.absolute_path,
-        thesis_qengine.get(),
-        thesis_sentence_retriever_tool.get(),
-        new_file.absolute_path,
-        update_qengine.get(),
-        update_sentence_retriever.get(),
-    )
+    if os.path.exists("original_comments.json"):
+        time.sleep(3)
+        with open("original_comments.json", "r") as f:
+            comments = json.load(f)
+            comments = [ClaimComment(**comment) for comment in comments]
+    else:
+        comments = tool.run(
+            old_file.absolute_path,
+            thesis_qengine.get(),
+            thesis_sentence_retriever_tool.get(),
+            new_file.absolute_path,
+            update_qengine.get(),
+            update_sentence_retriever.get(),
+        )
+        with open("original_comments.json", "w") as f:
+            json.dump([comment.model_dump() for comment in comments], f, indent=2)
 
     response_comments = []
     time_now = datetime.datetime.now().isoformat()
@@ -379,7 +361,7 @@ def get_contrast_analyze(
         i = i + 1
         response_comments.append(
             {
-                "id": f"{time_now}_{i}",
+                "id": f"{time_now}_claim_comment_{i}",
                 "filePath": comment.file_path,
                 "commentGroupId": f"{time_now}_{old_file.name}_{new_file.name}",
                 "text": comment.text,
@@ -392,12 +374,35 @@ def get_contrast_analyze(
                             "top": box.top,
                             "width": box.width,
                             "height": box.height,
-                            "page": box.page - 1,
+                            "page": box.page - 1,  # Zero Based
                         }
                         for box in comment.highlight_area.bounding_boxes
                     ],
                 },
-                "links": [],  # TODO: Add links
+                "links": [
+                    {
+                        "id": f"{time_now}_link_comment_{i}_{j}",
+                        "filePath": link.file_path,
+                        "commentGroupId": f"{time_now}_{old_file.name}_{new_file.name}",
+                        "text": "",
+                        "highlightArea": {
+                            "boundingBoxes": [
+                                {
+                                    "left": box.left,
+                                    "top": box.top,
+                                    "width": box.width,
+                                    "height": box.height,
+                                    "page": box.page - 1,  # Zero Based
+                                }
+                                for box in link.highlight_area.bounding_boxes
+                            ],
+                            "jumpToPageNumber": link.highlight_area.jump_to_page,
+                        },
+                        "parentCommentId": f"{time_now}_claim_comment_{i}",
+                    }
+                    for j, link in enumerate(comment.links)
+                    if len(link.highlight_area.bounding_boxes) > 0
+                ],
                 "verdict": comment.verdict,
             }
         )

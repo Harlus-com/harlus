@@ -2,6 +2,7 @@ from .contrast_tool import ContrastTool
 from .claim_getter import ClaimQueryEnginePipeline
 from .claim_checker import VerdictQueryEnginePipeline
 from .sentence_retriever import SentenceRetrieverPipeline
+from .api_interfaces import ClaimComment
 
 from .loader import (
     ToolWrapper,
@@ -22,4 +23,5 @@ __all__ = [
     "SentenceRetrieverToolLoader",
     # contrast tool
     "ContrastTool",
+    "ClaimComment",
 ]
