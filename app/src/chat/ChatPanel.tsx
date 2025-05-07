@@ -147,7 +147,7 @@ const ReadingMessagesToggle: React.FC<ReadingMessagesToggleProps> = ({
         </span>
       </>
     )}{" "}
-    {count} document{count !== 1 ? "s" : ""} read
+    {count} step{count !== 1 ? "s" : ""}
   </Button>
 );
 
@@ -430,7 +430,7 @@ const MessagePairComponent: React.FC<MessagePairProps> = memo(
             const commentGroupId = `chat-source-${chatSourceCommentGroup.filePath.replace(/\//g, "-")}`;
             const commentGroup: CommentGroup = {
               id: commentGroupId,
-              name: `Source from AI Assistant`,
+              name: `Harlus chat source`,
             };
             
             // Get existing comments for this file
@@ -880,7 +880,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
         <div className="py-2.5 px-3.5 font-medium border-b border-gray-100 bg-white flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <BookOpen className="w-4 h-4 text-blue-500" />
-            <span className="text-sm text-gray-800">AI Assistant</span>
+            <span className="text-sm text-gray-800">Harlus</span>
           </div>
         </div>
 
