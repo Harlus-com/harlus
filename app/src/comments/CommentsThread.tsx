@@ -1,10 +1,9 @@
-import React, { useState, useContext } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PdfViewerRef } from "../components/ReactPdfViewer";
 import { useComments } from "./useComments";
 import { CommentLink, ReadonlyComment, CommentColor } from "./comment_ui_types";
 import { cn } from "@/lib/utils";
@@ -13,7 +12,6 @@ import { FileGroupCount } from "@/components/panels";
 import CommentTagChip from "./ComentTagChip";
 
 interface CommentsThreadProps {
-  pdfViewerRef: React.RefObject<PdfViewerRef>;
   fileId: string;
   openFile: (
     fileId: string,
@@ -26,14 +24,11 @@ interface CommentsThreadProps {
 
 const CommentsThread: React.FC<CommentsThreadProps> = ({
   fileId,
-  pdfViewerRef,
   openFile,
 }) => {
-  const { getActiveComments, setSelectedComment } = useComments();
-  const [newComment, setNewComment] = useState("");
-  const [selectedCommentId, setSelectedCommentId] = useState<string | null>(
-    null
-  );
+  const { getActiveComments, setSelectedComment, getSelectedComment } =
+    useComments();
+  const selectedComment = getSelectedComment(fileId);
 
   const comments: ReadonlyComment[] = getActiveComments(fileId).filter(
     (c) => !c.isHidden
@@ -45,13 +40,10 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
 
   const handleCommentClick = (comment: ReadonlyComment) => {
     setSelectedComment(comment.id);
-    setSelectedCommentId(comment.id);
-    pdfViewerRef.current?.jumpToPage(comment.jumpToPageNumber - 1);
   };
 
   const handleLinkClick = (link: CommentLink) => {
     setSelectedComment(link.linkToCommentId);
-    setSelectedCommentId(link.linkToCommentId);
     openFile(link.likeToFileId, {
       showComments: true,
       fileGroup: FileGroupCount.ONE, // TODO: Maybe have this open a new file group?
@@ -80,7 +72,7 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
                 key={comment.id}
                 className={cn(
                   "transition-all duration-200",
-                  selectedCommentId === comment.id
+                  selectedComment?.id === comment.id
                     ? "-translate-x-4"
                     : "cursor-pointer"
                 )}
@@ -89,7 +81,7 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
                   onClick={() => handleCommentClick(comment)}
                   className={cn(
                     "w-full",
-                    selectedCommentId === comment.id
+                    selectedComment?.id === comment.id
                       ? "bg-white shadow-lg"
                       : "hover:bg-gray-100 bg-gray-50",
                     "border-l-4 border-gray-200"
@@ -159,21 +151,6 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
           </div>
         )}
       </ScrollArea>
-
-      <div className="p-4 border-t border-gray-100 bg-white">
-        <Textarea
-          placeholder="Add a comment..."
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          className="min-h-[52px] max-h-[120px] resize-none text-sm border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-300 py-2 px-2.5 rounded-md mb-2"
-        />
-        <Button
-          onClick={handleAddComment}
-          className="w-full bg-blue-600 hover:bg-blue-700"
-        >
-          Add Comment
-        </Button>
-      </div>
     </div>
   );
 };

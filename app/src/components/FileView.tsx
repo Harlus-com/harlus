@@ -3,7 +3,7 @@ import { PanelGroup, Panel } from "react-resizable-panels";
 import { FileGroupCount } from "./panels";
 import PanelDivider from "./PanelDivider";
 import { WorkspaceFile } from "@/api/workspace_types";
-import PdfViewer, { PdfViewerRef } from "@/components/ReactPdfViewer";
+import PdfViewer from "@/components/ReactPdfViewer";
 import { OpenFileGroup } from "./OpenFileGroup";
 import { MessageSquareQuote } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -138,7 +138,6 @@ function FileGroupPanel({
   onToggleComments,
   openFile,
 }: FileGroupPanelProps) {
-  const viewerRef = useRef<PdfViewerRef>(null);
   const { files, selectedFile, showComments } = openFileGroup;
 
   return (
@@ -207,11 +206,7 @@ function FileGroupPanel({
         >
           {selectedFile != null ? (
             <div className="flex-1 min-h-0">
-              <PdfViewer
-                file={selectedFile}
-                key={selectedFile.id}
-                ref={viewerRef}
-              />
+              <PdfViewer file={selectedFile} key={selectedFile.id} />
             </div>
           ) : (
             <div className="flex-1 bg-white h-full flex items-center justify-center">
@@ -227,11 +222,7 @@ function FileGroupPanel({
               order={2}
               defaultSize={20}
             >
-              <CommentsThread
-                pdfViewerRef={viewerRef}
-                fileId={selectedFile.id}
-                openFile={openFile}
-              />
+              <CommentsThread fileId={selectedFile.id} openFile={openFile} />
             </Panel>
           </>
         )}
