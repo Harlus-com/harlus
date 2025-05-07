@@ -35,14 +35,16 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
 
   const updateComments = (
     updates: { [key: string]: CommentComponentData },
-    options: { expectAllNew?: boolean; expectReplace?: boolean } = {}
+    options: { expectAllNew?: boolean; expectReplace?: boolean; upsert?: boolean } = {}
   ) => {
-    // TODO: could we add an option to create comments if they don't exist for a commentgroupid and update them if they exist? 
-    // This would simplify adding chat source comments (the source button can be clicked multiple times).
-    // In the current state, the second click on the same source throws an error.
-    //
-    // ChatSourceComments could also have a property which only adds the comment on open and does not persist them (in session or on disk).
+    // With upsert option, we can add new comments and update existing ones without errors
+    // This simplifies adding chat source comments (the source button can be clicked multiple times)
     setComments((prevComments) => {
+      if (options.upsert) {
+        // Just merge updates without throwing errors for duplicates or missing comments
+        return { ...prevComments, ...updates };
+      }
+      
       if (options.expectAllNew) {
         Object.keys(updates).forEach((key) => {
           if (prevComments[key]) {
@@ -168,7 +170,8 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
       updates[comment.apiData.id] = comment;
     }
     
-    updateComments(updates, { expectAllNew: true });
+    // Apply updates
+    updateComments(updates, { upsert: true });
   };
 
   const addCommentGroup = (commentGroup: CommentGroup) => {
