@@ -1,10 +1,27 @@
 import os
 import json
 import asyncio
+from datetime import datetime
 from typing import Dict, Optional, Any
+
+from pydantic import BaseModel, ConfigDict, Field
+from src.util import snake_to_camel
 from src.file_store import FileStore
 
 JsonType = Dict[str, Any]
+
+
+class ChatThread(BaseModel):
+    id: str
+    title: str
+    last_message_at: str = Field(alias="lastMessageAt")
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        alias_generator=snake_to_camel,
+        from_attributes=True,
+        frozen=True,
+    )
 
 
 class ChatStore:
@@ -13,6 +30,78 @@ class ChatStore:
         self.last_save: Dict[str, JsonType] = {}  # thread_id -> json
         self.save_task: Optional[asyncio.Task] = None
         self.lock = asyncio.Lock()
+
+        for workspace in self.file_store.get_workspaces().values():
+            chat_dir = os.path.join(workspace.absolute_path, "chat")
+            if not os.path.exists(chat_dir):
+                os.makedirs(chat_dir)
+            threads_file = os.path.join(chat_dir, "threads.json")
+            if not os.path.exists(threads_file):
+                with open(threads_file, "w") as f:
+                    json.dump({}, f, indent=2)
+
+    def get_thread_ids(self, workspace_id: str) -> list[str]:
+        threads_file = self._get_chat_file_path(workspace_id, "threads.json")
+        with open(threads_file, "r") as f:
+            threads = json.load(f)
+        return list(threads.keys())
+
+    def create_thread(self, workspace_id: str, thread_id: str):
+        """Create a new thread and save it to threads.json"""
+        thread = {
+            "id": thread_id,
+            "title": f"New Chat {thread_id[:8]}",
+            "lastMessageAt": datetime.now().strftime("%I:%M %p"),
+        }
+        threads_file = self._get_chat_file_path(workspace_id, "threads.json")
+        with open(threads_file, "r") as f:
+            threads = json.load(f)
+        threads[thread_id] = thread
+        with open(threads_file, "w") as f:
+            json.dump(threads, f, indent=2)
+
+    def delete_thread(self, workspace_id: str, thread_id: str):
+        """Delete the thread from threads.json and its chat history from disk"""
+        threads_file = self._get_chat_file_path(workspace_id, "threads.json")
+        with open(threads_file, "r") as f:
+            threads = json.load(f)
+        if thread_id in threads:
+            del threads[thread_id]
+            with open(threads_file, "w") as f:
+                json.dump(threads, f, indent=2)
+
+        chat_file = self._get_chat_file_path(workspace_id, thread_id)
+        if os.path.exists(chat_file):
+            os.remove(chat_file)
+
+    def rename_thread(self, workspace_id: str, thread_id: str, title: str):
+        """Rename a thread in threads.json"""
+        threads_file = self._get_chat_file_path(workspace_id, "threads.json")
+        with open(threads_file, "r") as f:
+            threads = json.load(f)
+        if not thread_id in threads:
+            raise ValueError(f"Thread {thread_id} not found")
+        threads[thread_id]["title"] = title
+        with open(threads_file, "w") as f:
+            json.dump(threads, f, indent=2)
+
+    def get_threads(self, workspace_id: str) -> list[ChatThread]:
+        """Get all threads for a workspace"""
+        threads_file = self._get_chat_file_path(workspace_id, "threads.json")
+        with open(threads_file, "r") as f:
+            threads = json.load(f)
+        return [ChatThread.model_validate(thread) for thread in threads.values()]
+
+    def get_thread(self, workspace_id: str, thread_id: str) -> Optional[ChatThread]:
+        """Get thread information from threads.json"""
+        threads_file = self._get_chat_file_path(workspace_id, "threads.json")
+        with open(threads_file, "r") as f:
+            threads = json.load(f)
+        if thread_id not in threads:
+            return None
+        thread = threads[thread_id]
+        print("Thread", thread)
+        return ChatThread.model_validate(thread)
 
     async def save_chat_history(
         self, workspace_id: str, thread_id: str, blob: JsonType

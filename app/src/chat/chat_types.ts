@@ -23,3 +23,9 @@ export interface MessagePair {
   showReadingMessages: boolean;
   readingMessageBuffer: string; // Buffer to accumulate reading message content
 }
+
+export interface Thread {
+  id: string;
+  title: string;
+  lastMessageAt: string;
+}

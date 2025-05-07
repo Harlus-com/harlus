@@ -1,6 +1,6 @@
 import { BASE_URL, client } from "../api/client";
 import { fileService } from "../api/fileService";
-import { ChatSourceCommentGroup, MessagePair } from "./chat_types";
+import { ChatSourceCommentGroup, MessagePair, Thread } from "./chat_types";
 import { ChatSourceComment } from "@/api/comment_types";
 
 // Utility function to convert snake_case to camelCase
@@ -219,11 +219,11 @@ export class ChatService {
    * @param workspaceId The ID of the workspace
    * @returns Promise<string[]> Array of thread IDs
    */
-  async getThreads(workspaceId: string): Promise<string[]> {
+  async getThreads(workspaceId: string): Promise<Thread[]> {
     const response = await client.get(
       `/chat/threads?workspaceId=${workspaceId}`
     );
-    return response.threadIds;
+    return response.threads;
   }
 
   /**
@@ -235,6 +235,34 @@ export class ChatService {
   async getChatHistory(threadId: string, workspaceId: string) {
     return client.get(
       `/chat/get_history?threadId=${threadId}&workspaceId=${workspaceId}`
+    );
+  }
+
+  /**
+   * Deletes a chat thread
+   * @param threadId The ID of the thread to delete
+   * @param workspaceId The ID of the workspace
+   */
+  async deleteThread(threadId: string, workspaceId: string): Promise<void> {
+    await client.delete(
+      `/chat/thread?threadId=${threadId}&workspaceId=${workspaceId}`
+    );
+  }
+
+  /**
+   * Renames a chat thread
+   * @param threadId The ID of the thread to rename
+   * @param newTitle The new title for the thread
+   * @param workspaceId The ID of the workspace
+   */
+  async renameThread(
+    threadId: string,
+    newTitle: string,
+    workspaceId: string
+  ): Promise<void> {
+    await client.post(
+      `/chat/thread/rename?threadId=${threadId}&workspaceId=${workspaceId}`,
+      { title: newTitle }
     );
   }
 }

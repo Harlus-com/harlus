@@ -4,9 +4,10 @@ import os
 import dill
 from collections import defaultdict
 
-from src.file_store import FileStore, File
+from src.file_store import FileStore
 from harlus_chat import ChatModelWrapper, ChatAgentGraph
 from src.tool_library import ToolLibrary
+from src.chat_store import ChatStore
 
 
 class ChatLibrary:
@@ -20,11 +21,14 @@ class ChatLibrary:
 
     """
 
-    def __init__(self, file_store: FileStore, tool_library: ToolLibrary):
-
+    def __init__(
+        self, file_store: FileStore, tool_library: ToolLibrary, chat_store: ChatStore
+    ):
+        self.chat_store = chat_store
         self.chat_models: dict[str, list[ChatModelWrapper]] = defaultdict(list)
         self.file_store = file_store
         self.tool_library = tool_library
+        self.chat_store = chat_store
 
     def create_chat_models(self):
         """
@@ -49,21 +53,8 @@ class ChatLibrary:
         chat_model = self._get(workspace_id=workspace_id)
         chat_model.start_new_thread()
         thread_id = chat_model.get_current_thread_id()
-        self._save_thread_id(workspace_id, thread_id)
+        self.chat_store.create_thread(workspace_id, thread_id)
         return thread_id
-
-    def _save_thread_id(self, workspace_id: str, thread_id: str):
-        workspace = self.file_store.get_workspaces()[workspace_id]
-        chat_dir = os.path.join(workspace.absolute_path, "chat")
-        os.makedirs(chat_dir, exist_ok=True)
-        with open(os.path.join(chat_dir, "thread_ids.txt"), "a") as f:
-            f.write(thread_id + "\n")
-
-    def load_thread_ids(self, workspace_id: str) -> list[str]:
-        workspace = self.file_store.get_workspaces()[workspace_id]
-        thread_id_path = os.path.join(workspace.absolute_path, "chat", "thread_ids.txt")
-        with open(thread_id_path, "r") as f:
-            return [line.strip() for line in f.readlines()]
 
     def update_chat_tools(self):
         for workspace_id in self.file_store.get_workspaces().keys():
@@ -86,7 +77,8 @@ class ChatLibrary:
     def get_and_resume_thread(
         self, workspace_id: str, thread_id: str
     ) -> ChatAgentGraph:
-        if not thread_id in self.load_thread_ids(workspace_id):
+        thread = self.chat_store.get_thread(workspace_id, thread_id)
+        if not thread:
             raise ValueError(f"Thread {thread_id} not found")
         chat_model = self._get(workspace_id)
         if chat_model.get_current_thread_id() != thread_id:

@@ -72,13 +72,15 @@ file_store = FileStore(APP_DATA_PATH)
 tool_library = ToolLibrary(file_store)
 tool_library.load_tools()
 
+chat_store = ChatStore(file_store)
+
 
 # TODO: chat_library should call update_chat_tools when new tools
 # are added to the tool_library to ensure chat has access to all tools
 # within the workspace.
 # TODO: (also mentioned in chat/stream). We should integrate the frontend to start new threads.
 # TODO: Once we start having longer conversations, we should summarize the history regularly.
-chat_library = ChatLibrary(file_store, tool_library)
+chat_library = ChatLibrary(file_store, tool_library, chat_store)
 chat_library.load()  # initialize a chat for each workspace, load from disk to memory
 
 stream_manager = StreamManager(file_store)
@@ -283,13 +285,14 @@ class StartThreadRequest(BaseModel):
 @app.post("/chat/start_thread")
 def start_thread(request: StartThreadRequest):
     print("Starting thread", request.workspace_id)
-    return {"threadId": chat_library.start_thread(request.workspace_id)}
+    thread_id = chat_library.start_thread(request.workspace_id)
+    return {"threadId": thread_id}
 
 
 @app.get("/chat/threads")
 def get_threads(workspace_id: str = Query(..., alias="workspaceId")):
     print("Getting threads", workspace_id)
-    return {"threadIds": chat_library.load_thread_ids(workspace_id)}
+    return {"threads": chat_store.get_threads(workspace_id)}
 
 
 @app.get("/chat/stream")
@@ -456,9 +459,6 @@ def get_file_from_id(file_id: str):
     return file_store.get_file(file_id)
 
 
-chat_store = ChatStore(file_store)
-
-
 @app.post("/chat/save_history")
 async def save_chat_history(
     message_pairs=Body(...),
@@ -476,3 +476,35 @@ def get_chat_history(
 ):
     print("Getting chat history", thread_id, workspace_id)
     return chat_store.get_chat_history(workspace_id, thread_id)
+
+
+class RenameThreadRequest(BaseModel):
+    title: str
+
+
+@app.post("/chat/thread/rename")
+def rename_thread(
+    thread_id: str = Query(..., alias="threadId"),
+    workspace_id: str = Query(..., alias="workspaceId"),
+    request: RenameThreadRequest = Body(...),
+):
+    print("Renaming thread", thread_id, workspace_id, request.title)
+    return chat_store.rename_thread(workspace_id, thread_id, request.title)
+
+
+@app.delete("/chat/thread")
+def delete_thread(
+    thread_id: str = Query(..., alias="threadId"),
+    workspace_id: str = Query(..., alias="workspaceId"),
+):
+    print("Deleting thread", thread_id, workspace_id)
+    return chat_store.delete_thread(workspace_id, thread_id)
+
+
+@app.get("/chat/thread")
+def get_thread(
+    thread_id: str = Query(..., alias="threadId"),
+    workspace_id: str = Query(..., alias="workspaceId"),
+):
+    print("Getting thread", thread_id, workspace_id)
+    return chat_store.get_thread(workspace_id, thread_id)
