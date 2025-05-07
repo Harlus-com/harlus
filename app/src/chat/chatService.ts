@@ -1,6 +1,6 @@
-import { BASE_URL } from "../api/client";
+import { BASE_URL, client } from "../api/client";
 import { fileService } from "../api/fileService";
-import { ChatSourceCommentGroup } from "./chat_types";
+import { ChatSourceCommentGroup, MessagePair } from "./chat_types";
 import { ChatSourceComment } from "@/api/comment_types";
 
 // Utility function to convert snake_case to camelCase
@@ -166,6 +166,16 @@ export class ChatService {
       this.eventSource.close();
       this.eventSource = null;
     }
+  }
+
+  saveChatHistory(messagePairs: MessagePair[]) {
+    client.post("/chat/save_history", {
+      messagePairs,
+    });
+  }
+
+  getChatHistory() {
+    return client.get("/chat/get_history");
   }
 }
 

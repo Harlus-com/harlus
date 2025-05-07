@@ -19,7 +19,7 @@ import { chatService } from "@/chat/chatService";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { ChatMessage, ChatSourceCommentGroup } from "./chat_types";
+import { ChatMessage, ChatSourceCommentGroup, MessagePair } from "./chat_types";
 import { useComments } from "@/comments/useComments";
 import { CommentGroup } from "@/api/comment_types";
 import { getHighestZeroIndexedPageNumber } from "@/comments/comment_util";
@@ -32,16 +32,6 @@ interface ChatPanelProps {
 interface MessageProps {
   message: ChatMessage;
   isUser: boolean;
-}
-
-interface MessagePair {
-  id: string;
-  userMessage: ChatMessage;
-  assistantMessage: ChatMessage | null;
-  readingMessages: ChatMessage[];
-  answerCount: number;
-  showReadingMessages: boolean;
-  readingMessageBuffer: string; // Buffer to accumulate reading message content
 }
 
 interface MessagePairProps {
@@ -210,10 +200,7 @@ const UserMessage: React.FC<{ message: ChatMessage }> = memo(({ message }) => {
       </div>
       {message.timestamp && (
         <div className="text-[9px] text-gray-400 mt-1 ml-1">
-          {message.timestamp.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+          {message.timestamp}
         </div>
       )}
     </div>
@@ -580,34 +567,22 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const [currentPairId, setCurrentPairId] = useState<string | null>(null);
+  const updateAndSaveMessages = (
+    fn: (prev: MessagePair[]) => MessagePair[]
+  ) => {
+    setMessagePairs((prev) => {
+      const newMessages = fn(prev);
+      chatService.saveChatHistory(newMessages);
+      return newMessages;
+    });
+  };
 
   // load previous chat messages
   const loadChatHistory = useCallback(async () => {
     try {
-      const history = await fileService.getChatHistory();
-      const pairs: MessagePair[] = [];
-      for (let i = 0; i < history.length; i += 2) {
-        const userMessage = history[i];
-        const assistantMessage = history[i + 1] || null;
-        if (userMessage.sender === "user") {
-          pairs.push({
-            id: userMessage.id,
-            userMessage,
-            assistantMessage: assistantMessage
-              ? {
-                  ...assistantMessage,
-                  chatSourceCommentGroups:
-                    assistantMessage.chatSourceCommentGroups || [],
-                }
-              : null,
-            readingMessages: [],
-            answerCount: assistantMessage ? 1 : 0,
-            showReadingMessages: true,
-            readingMessageBuffer: "",
-          });
-        }
-      }
-      setMessagePairs(pairs);
+      const history = await chatService.getChatHistory();
+      console.log("[ChatPanel] Chat history:", history.messagePairs);
+      setMessagePairs(history.messagePairs);
     } catch (error) {
       console.error("Error loading chat history:", error);
     }
@@ -627,7 +602,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
 
   // Toggle reading messages visibility for a specific pair
   const toggleReadingMessages = useCallback((pairId: string) => {
-    setMessagePairs((prev) =>
+    updateAndSaveMessages((prev) =>
       prev.map((pair) =>
         pair.id === pairId
           ? { ...pair, showReadingMessages: !pair.showReadingMessages }
@@ -648,12 +623,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
       id: `${pairId}.user`,
       sender: "user",
       content: input.trim(),
-      timestamp: new Date(),
+      timestamp: now(),
       chatSourceCommentGroups: [],
     };
 
     // add message pair to the list
-    setMessagePairs((prev) => [
+    updateAndSaveMessages((prev) => [
       ...prev,
       {
         id: pairId,
@@ -662,7 +637,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           id: `${pairId}.assistant`,
           sender: "assistant",
           content: "",
-          timestamp: new Date(),
+          timestamp: now(),
           chatSourceCommentGroups: [],
           messageType: "answer_message",
         },
@@ -683,7 +658,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
         workspaceId!,
         // onMessage handler - for all types of messages
         (newContent, messageType) => {
-          setMessagePairs((prev) => {
+          updateAndSaveMessages((prev) => {
             const newPairs = [...prev];
             const currentPair = newPairs.find((pair) => pair.id === pairId);
 
@@ -714,7 +689,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                           .substring(2, 8)}`,
                         sender: "assistant",
                         content: trimmedLine,
-                        timestamp: new Date(),
+                        timestamp: now(),
                         chatSourceCommentGroups: [],
                         messageType: "reading_message",
                       });
@@ -751,7 +726,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                       id: tempId,
                       sender: "assistant",
                       content: bufferContent,
-                      timestamp: new Date(),
+                      timestamp: now(),
                       chatSourceCommentGroups: [],
                       messageType: "reading_message",
                     });
@@ -772,7 +747,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                   // If we just reached 5 answers, change reading message appearance
                   if (currentPair.answerCount === 5) {
                     setTimeout(() => {
-                      setMessagePairs((prev) => [...prev]);
+                      updateAndSaveMessages((prev) => [...prev]);
                     }, 0);
                   }
                 }
@@ -783,7 +758,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
         },
         // onSources handler - for document sources
         (chatSourceCommentGroups: ChatSourceCommentGroup[]) => {
-          setMessagePairs((prev) => {
+          updateAndSaveMessages((prev) => {
             const newPairs = [...prev];
             const lastPair = newPairs[newPairs.length - 1];
             if (lastPair && lastPair.assistantMessage) {
@@ -802,7 +777,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           setCurrentPairId(null);
 
           // Process any remaining content in the reading message buffer
-          setMessagePairs((prev) => {
+          updateAndSaveMessages((prev) => {
             const newPairs = [...prev];
             const lastPair = newPairs[newPairs.length - 1];
 
@@ -825,7 +800,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                     id: `${lastPair.id}.reading.${lastPair.readingMessages.length}`,
                     sender: "assistant",
                     content: bufferContent,
-                    timestamp: new Date(),
+                    timestamp: now(),
                     chatSourceCommentGroups: [],
                     messageType: "reading_message",
                   });
@@ -862,7 +837,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           setIsLoading(false);
           setIsEventSourceActive(false);
           setCurrentPairId(null);
-          setMessagePairs((prev) => {
+          updateAndSaveMessages((prev) => {
             const newPairs = [...prev];
             const currentPair = newPairs.find((pair) => pair.id === pairId);
             if (currentPair && currentPair.assistantMessage) {
@@ -982,5 +957,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
     </SourceClickContext.Provider>
   );
 };
+
+function now(): string {
+  return new Date().toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export default memo(ChatPanel);

@@ -2,6 +2,7 @@ import datetime
 import json
 import time
 from fastapi import (
+    Body,
     FastAPI,
     Query,
     Response,
@@ -433,3 +434,16 @@ def get_file_from_path(
 def get_file_from_id(file_id: str):
     print("Getting file from id", file_id)
     return file_store.get_file(file_id)
+
+
+@app.post("/chat/save_history")
+def save_chat_history(message_pairs=Body(...)):
+    with open("chat_history.json", "w") as f:
+        json.dump(message_pairs, f, indent=2)
+    return True
+
+
+@app.get("/chat/get_history")
+def get_chat_history():
+    with open("chat_history.json", "r") as f:
+        return json.load(f)

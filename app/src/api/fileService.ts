@@ -56,7 +56,10 @@ class FileService {
       id: Date.now().toString(),
       sender: "user",
       content,
-      timestamp: new Date(),
+      timestamp: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
       chatSourceCommentGroups: [],
     };
 

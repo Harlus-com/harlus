@@ -1,0 +1,264 @@
+{
+  "messagePairs": [
+    {
+      "id": "1746643205507.95",
+      "userMessage": {
+        "id": "1746643205507.95.user",
+        "sender": "user",
+        "content": "hello",
+        "timestamp": "02:40 PM",
+        "chatSourceCommentGroups": []
+      },
+      "assistantMessage": {
+        "id": "1746643205507.95.assistant",
+        "sender": "assistant",
+        "content": "Hello! How can I assist you today? If you have any questions or topics you'd like to discuss, feel free to let me know!",
+        "timestamp": "02:40 PM",
+        "chatSourceCommentGroups": [
+          {
+            "filePath": "/Users/danielglasgow/Library/Application Support/Electron/Harlus/AMAT/AMAT_Q3_2024_Earnings_Release_pdf/content.pdf",
+            "chatSourceComments": [
+              {
+                "id": "4c8ec680-f344-4fc7-ad1d-1498e83edbe6",
+                "filePath": "/Users/danielglasgow/Library/Application Support/Electron/Harlus/AMAT/AMAT_Q3_2024_Earnings_Release_pdf/content.pdf",
+                "threadId": "68eab427-bc4f-4844-a96d-2832e26c7580",
+                "messageId": "25",
+                "text": "Response source",
+                "highlightArea": {
+                  "boundingBoxes": [
+                    {
+                      "left": 11.397058823529411,
+                      "top": 22.810325237235638,
+                      "width": 37.0132346558415,
+                      "height": 1.5380859375,
+                      "page": 0
+                    },
+                    {
+                      "left": 11.397058823529411,
+                      "top": 25.234569202769887,
+                      "width": 77.81535628574346,
+                      "height": 1.5380859375,
+                      "page": 0
+                    },
+                    {
+                      "left": 12.5,
+                      "top": 26.90122970426925,
+                      "width": 24.404747657526553,
+                      "height": 1.5380859375,
+                      "page": 0
+                    },
+                    {
+                      "left": 11.397058823529411,
+                      "top": 29.325473669803504,
+                      "width": 75.65472172755821,
+                      "height": 1.5380859375,
+                      "page": 0
+                    },
+                    {
+                      "left": 11.397058823529411,
+                      "top": 31.749717635337753,
+                      "width": 35.89346891914318,
+                      "height": 1.5380859375,
+                      "page": 0
+                    },
+                    {
+                      "left": 8.088235294117647,
+                      "top": 34.55148562036379,
+                      "width": 82.41372700610192,
+                      "height": 1.5380859375,
+                      "page": 0
+                    },
+                    {
+                      "left": 8.088235294117647,
+                      "top": 36.21814997509272,
+                      "width": 25.998366112802547,
+                      "height": 1.5380859375,
+                      "page": 0
+                    }
+                  ]
+                },
+                "commentGroupId": "68eab427-bc4f-4844-a96d-2832e26c7580",
+                "nextChatCommentId": ""
+              },
+              {
+                "id": "68775f36-ccfd-45c5-8280-5baafacb5d82",
+                "filePath": "/Users/danielglasgow/Library/Application Support/Electron/Harlus/AMAT/AMAT_Q3_2024_Earnings_Release_pdf/content.pdf",
+                "threadId": "68eab427-bc4f-4844-a96d-2832e26c7580",
+                "messageId": "25",
+                "text": "Response source",
+                "highlightArea": {
+                  "boundingBoxes": [
+                    {
+                      "left": 8.088235294117647,
+                      "top": 42.07673506303267,
+                      "width": 82.0294149560866,
+                      "height": 1.5380859375,
+                      "page": 0
+                    },
+                    {
+                      "left": 8.088235294117647,
+                      "top": 43.74340327099116,
+                      "width": 80.92647377961602,
+                      "height": 1.5380859375,
+                      "page": 0
+                    },
+                    {
+                      "left": 8.088235294117647,
+                      "top": 46.54643511531329,
+                      "width": 81.1344819910386,
+                      "height": 1.5380859375,
+                      "page": 0
+                    },
+                    {
+                      "left": 8.088235294117647,
+                      "top": 48.21309947004222,
+                      "width": 33.53104684867111,
+                      "height": 1.5380859375,
+                      "page": 0
+                    },
+                    {
+                      "left": 8.088235294117647,
+                      "top": 51.016131314364344,
+                      "width": 84.13398094426573,
+                      "height": 1.5380859375,
+                      "page": 0
+                    },
+                    {
+                      "left": 8.088235294117647,
+                      "top": 52.682795669093274,
+                      "width": 46.710299822240096,
+                      "height": 1.5380859375,
+                      "page": 0
+                    },
+                    {
+                      "left": 8.088235294117647,
+                      "top": 55.48582751341541,
+                      "width": 83.16503786573223,
+                      "height": 1.5380859375,
+                      "page": 0
+                    },
+                    {
+                      "left": 8.088235294117647,
+                      "top": 57.152495721373896,
+                      "width": 83.50473042407067,
+                      "height": 1.5380859375,
+                      "page": 0
+                    },
+                    {
+                      "left": 8.088235294117647,
+                      "top": 58.819160076102825,
+                      "width": 83.41668820848652,
+                      "height": 1.5380859375,
+                      "page": 0
+                    },
+                    {
+                      "left": 8.088235294117647,
+                      "top": 60.48582828406131,
+                      "width": 24.85784393510008,
+                      "height": 1.5380859375,
+                      "page": 0
+                    }
+                  ]
+                },
+                "commentGroupId": "68eab427-bc4f-4844-a96d-2832e26c7580",
+                "nextChatCommentId": "4c8ec680-f344-4fc7-ad1d-1498e83edbe6"
+              }
+            ],
+            "workspace_file": {
+              "id": "12f5a73c-1f9d-4568-b857-1f954bbe1774",
+              "name": "AMAT Q3 2024 Earnings Release.pdf",
+              "absolutePath": "/Users/danielglasgow/Library/Application Support/Electron/Harlus/AMAT/AMAT_Q3_2024_Earnings_Release_pdf/content.pdf",
+              "workspaceId": "f180ad0b-9ca9-4d56-88ab-2ae55f901050",
+              "appDir": []
+            }
+          },
+          {
+            "filePath": "/Users/danielglasgow/Library/Application Support/Electron/Harlus/AMAT/AMAT_Q1_24_Results_pdf/content.pdf",
+            "chatSourceComments": [
+              {
+                "id": "9f0e8764-9ba0-4968-84d1-0e4ac50ac745",
+                "filePath": "/Users/danielglasgow/Library/Application Support/Electron/Harlus/AMAT/AMAT_Q1_24_Results_pdf/content.pdf",
+                "threadId": "68eab427-bc4f-4844-a96d-2832e26c7580",
+                "messageId": "25",
+                "text": "Response source",
+                "highlightArea": {
+                  "boundingBoxes": [
+                    {
+                      "left": 4.901960784313726,
+                      "top": 1.7676767676767675,
+                      "width": 85.7843137254902,
+                      "height": 93.9949494949495,
+                      "page": 0
+                    },
+                    {
+                      "left": 23.366013071895424,
+                      "top": 7.075757575757575,
+                      "width": 66.50326797385621,
+                      "height": 70.1969696969697,
+                      "page": 0
+                    }
+                  ]
+                },
+                "commentGroupId": "68eab427-bc4f-4844-a96d-2832e26c7580",
+                "nextChatCommentId": "68775f36-ccfd-45c5-8280-5baafacb5d82"
+              }
+            ],
+            "workspace_file": {
+              "id": "0e7f1a2b-cb6c-4f75-84ae-ee64034bbfe8",
+              "name": "AMAT Q1 24 Results.pdf",
+              "absolutePath": "/Users/danielglasgow/Library/Application Support/Electron/Harlus/AMAT/AMAT_Q1_24_Results_pdf/content.pdf",
+              "workspaceId": "f180ad0b-9ca9-4d56-88ab-2ae55f901050",
+              "appDir": []
+            }
+          }
+        ],
+        "messageType": "answer_message"
+      },
+      "readingMessages": [
+        {
+          "id": "1746643205507.95.reading.5",
+          "sender": "assistant",
+          "content": "Now, I will proceed with that approach.",
+          "timestamp": "02:40 PM",
+          "chatSourceCommentGroups": [],
+          "messageType": "reading_message"
+        },
+        {
+          "id": "1746643205507.95.reading.1746643206510.10ok56",
+          "sender": "assistant",
+          "content": "Here\u2019s the plan for my next step:",
+          "timestamp": "02:40 PM",
+          "chatSourceCommentGroups": [],
+          "messageType": "reading_message"
+        },
+        {
+          "id": "1746643205507.95.reading.1746643206572.vktkc6",
+          "sender": "assistant",
+          "content": "1. Acknowledge the user's greeting.",
+          "timestamp": "02:40 PM",
+          "chatSourceCommentGroups": [],
+          "messageType": "reading_message"
+        },
+        {
+          "id": "1746643205507.95.reading.1746643206847.1lb7k4",
+          "sender": "assistant",
+          "content": "2. Ask if they have any specific questions or topics they would like to discuss.",
+          "timestamp": "02:40 PM",
+          "chatSourceCommentGroups": [],
+          "messageType": "reading_message"
+        },
+        {
+          "id": "1746643205507.95.reading.1746643207087.q672hy",
+          "sender": "assistant",
+          "content": "3. Offer assistance with any information related to Applied Materials or other subjects of interest.",
+          "timestamp": "02:40 PM",
+          "chatSourceCommentGroups": [],
+          "messageType": "reading_message"
+        }
+      ],
+      "answerCount": 18,
+      "showReadingMessages": false,
+      "readingMessageBuffer": ""
+    }
+  ]
+}

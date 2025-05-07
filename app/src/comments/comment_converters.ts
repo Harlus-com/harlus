@@ -97,7 +97,7 @@ export async function convertChatSourceCommentToComments(
     fileId: file.id,
     groupId: group.id,
     body: chatSourceComment.text || "Source from AI Assistant",
-    author: "AI Assistant",
+    author: "Harlus",
     timestamp: new Date(),
     annotations: convertHighlightAreaToAnnotations(
       chatSourceComment.highlightArea
