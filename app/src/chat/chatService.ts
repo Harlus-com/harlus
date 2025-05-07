@@ -32,6 +32,12 @@ function convertKeysToCamelCase(obj: any): any {
  */
 export class ChatService {
   private eventSource: EventSource | null = null;
+  private debounceTimeout: NodeJS.Timeout | null = null;
+  private pendingSaveData: {
+    messagePairs: MessagePair[];
+    threadId: string;
+    workspaceId: string;
+  } | null = null;
 
   async streamChat(
     userQuery: string,
@@ -170,7 +176,7 @@ export class ChatService {
   }
 
   /**
-   * Saves chat history for a specific thread
+   * Saves chat history for a specific thread with debouncing
    * @param messagePairs The message pairs to save
    * @param threadId The ID of the thread
    * @param workspaceId The ID of the workspace
@@ -180,12 +186,21 @@ export class ChatService {
     threadId: string,
     workspaceId: string
   ) {
-    client.post(
-      `/chat/save_history?threadId=${threadId}&workspaceId=${workspaceId}`,
-      {
-        messagePairs,
+    this.pendingSaveData = { messagePairs, threadId, workspaceId };
+    if (this.debounceTimeout) {
+      clearTimeout(this.debounceTimeout);
+    }
+    this.debounceTimeout = setTimeout(() => {
+      if (this.pendingSaveData) {
+        client.post(
+          `/chat/save_history?threadId=${this.pendingSaveData.threadId}&workspaceId=${this.pendingSaveData.workspaceId}`,
+          {
+            messagePairs: this.pendingSaveData.messagePairs,
+          }
+        );
+        this.pendingSaveData = null;
       }
-    );
+    }, 1000);
   }
 
   /**
