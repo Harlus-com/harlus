@@ -195,9 +195,7 @@ def add_node_relationships(nodes_in: List[Node]) -> List[Node]:
     return nodes_out
 
 
-# Move this function outside split_table_nodes to make it picklable
 def process_table_batch(batch, markdown_parser):
-    """Process a batch of nodes, handling tables appropriately."""
     results = []
     for node in batch:
         

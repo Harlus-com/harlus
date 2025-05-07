@@ -10,6 +10,7 @@ export interface CommentLink {
 export enum CommentTag {
   ALIGNMENT = "Alignment",
   CONTRADICTION = "Contradiction",
+  SOURCE = "Source",
 }
 
 export interface Comment {
