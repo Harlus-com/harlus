@@ -36,6 +36,7 @@ export class ChatService {
   async streamChat(
     userQuery: string,
     workspaceId: string,
+    threadId: string,
     onMessage: (
       content: string,
       messageType: "reading_message" | "answer_message"
@@ -57,7 +58,7 @@ export class ChatService {
     try {
       // 1. create the event source
       const encodedQuery = encodeURIComponent(userQuery);
-      const url = `${BASE_URL}/chat/stream?workspaceId=${workspaceId}&query=${encodedQuery}`;
+      const url = `${BASE_URL}/chat/stream?workspaceId=${workspaceId}&query=${encodedQuery}&threadId=${threadId}`;
       this.eventSource = new EventSource(url);
 
       // 2. listen for reading messages

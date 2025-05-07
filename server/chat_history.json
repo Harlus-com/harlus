@@ -259,6 +259,40 @@
       "answerCount": 18,
       "showReadingMessages": false,
       "readingMessageBuffer": ""
+    },
+    {
+      "id": "1746645377867.14",
+      "userMessage": {
+        "id": "1746645377867.14.user",
+        "sender": "user",
+        "content": "hello",
+        "timestamp": "03:16 PM",
+        "chatSourceCommentGroups": []
+      },
+      "assistantMessage": {
+        "id": "1746645377867.14.assistant",
+        "sender": "assistant",
+        "content": "I will wait for your next question or request to assist you further. Please let me know how I can help!",
+        "timestamp": "03:16 PM",
+        "chatSourceCommentGroups": [],
+        "messageType": "answer_message"
+      },
+      "readingMessages": [
+        {
+          "id": "1746645377867.14.reading.1",
+          "sender": "assistant",
+          "content": "I will wait for your next question or request to assist you further. Please let me know how I can help!",
+          "timestamp": "03:16 PM",
+          "chatSourceCommentGroups": [],
+          "messageType": "reading_message"
+        }
+      ],
+      "answerCount": 16,
+      "showReadingMessages": false,
+      "readingMessageBuffer": ""
+    }
+  ]
+}it for your next question or request to assist you further. Please let me know how I can help!"
     }
   ]
 }

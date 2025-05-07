@@ -275,15 +275,24 @@ SYSTEM_PROMPT = """
         """
 
 
+@app.post("/chat/start_thread")
+def start_thread(workspace_id: str = Query(..., alias="workspaceId")):
+    print("Starting thread", workspace_id)
+    return chat_library.start_thread(workspace_id)
+
+
 @app.get("/chat/stream")
 async def stream_chat(
-    workspace_id: str = Query(..., alias="workspaceId"), query: str = Query(...)
+    workspace_id: str = Query(..., alias="workspaceId"),
+    query: str = Query(...),
+    thread_id: str = Query(..., alias="threadId"),
 ):
+    print("Streaming chat", workspace_id, query, thread_id)
     # TODO: add endpoint to manage threads
     # A new thread can be started by calling chat_model.start_new_thread()
     # A thread can be resumed by calling chat_model.resume_thread(thread_id)
     # A list of threads can be retrieved by calling chat_model.get_thread_ids()
-    chat_model = chat_library.get(workspace_id)
+    chat_model = chat_library.get_and_resume_thread(workspace_id, thread_id)
     response = StreamingResponse(
         chat_model.stream(query),
         media_type="text/event-stream",
@@ -438,8 +447,9 @@ def get_file_from_id(file_id: str):
 
 @app.post("/chat/save_history")
 def save_chat_history(message_pairs=Body(...)):
-    with open("chat_history.json", "w") as f:
-        json.dump(message_pairs, f, indent=2)
+    # with open("chat_history.json", "w") as f:
+    #    json.dump(message_pairs, f, indent=2)
+    # return True
     return True
 
 
