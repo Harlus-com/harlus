@@ -79,8 +79,15 @@ This will create a python wheel which get's copied into python/env/wheels. Then 
 If you do this you can also switch between the packaged version and the direct link using
 
 ```
-python scripts/package.py --link <tool_dir>
+python scripts/package.py --tool-name <tool_dir> --link 
 ```
+
+or directly using
+
+```
+pip install -e <tool_dir>
+```
+
 
 And
 

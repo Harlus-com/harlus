@@ -95,6 +95,11 @@ class FileStore:
         for workspace in self.get_workspaces().values():
             files.extend(self.get_files(workspace.id).values())
         return files
+    
+    # used by chat library to store a chat in workspace directory
+    def get_workspace_path(self, workspace_id: str) -> str:
+        workspace = self.get_workspaces()[workspace_id]
+        return self.app_data_path.joinpath(workspace.dir_name)
 
     def get_files(self, workspace_id: str) -> dict[str, File]:
         workspace = self.get_workspaces()[workspace_id]

@@ -19,6 +19,7 @@ from typing import (
     AsyncIterator, 
 )
 from .config import LLM, TAVILY_TOOL
+import os
 import re
 import json 
 from rapidfuzz.fuzz import partial_ratio
@@ -216,7 +217,29 @@ class ChatAgentGraph:
 
 
     """
-    def __init__(self, tools: List[any]):
+
+
+    def __init__(self,  persist_dir: str):
+        
+        # set LLM 
+        self.LLM = LLM
+
+        # set thread 
+        self.config = {"configurable": {"thread_id": "None"}}
+        self.start_new_thread()
+
+        # set memory 
+        self.memory = MemorySaver.from_folder(persist_dir)
+
+        # build graph
+        self.graph = None
+        self.build()
+
+    
+    def update_tools(self, tools: List[any]):
+
+
+        # parse tools 
         self.tools = []
         self.tool_name_to_type = {}
         print("[harlus_chat] adding tools")
@@ -240,12 +263,33 @@ class ChatAgentGraph:
         for tool in self.tools:
             tool.name = sanitize_tool_name(tool.name)
         
-        
+
+        # describe tools to LLM 
         self.tools_descriptions_string = "\n - " + "\n -".join([f"{tool.name}: {tool.description}" for tool in tools])
-        self.LLM = LLM
+
+        # bind tools to LLM
         self.TOOL_LLM = LLM.bind_tools(self.tools)
-        self.graph = None
-        self.config = {"configurable": {"thread_id": "1"}}
+
+        # create tool execution node:
+        self.tool_node = AsyncToolNode(tools=self.tools, tool_name_to_type=self.tool_name_to_type)
+
+        # re-build graph
+        self.build()
+
+
+    def get_thread_ids(self):
+        return [
+            name for name in os.listdir(self.persist_dir)
+            if os.path.isdir(os.path.join(self.persist_dir, name))
+        ]
+
+    def start_new_thread(self):
+        self.config["configurable"]["thread_id"] = str(uuid.uuid4())
+
+    def resume_thread(self, thread_id: str):
+        self.config["configurable"]["thread_id"] = thread_id
+
+
 
     async def _communicate_plan(self, state: GraphState) -> AsyncIterator[dict]:
         prompt = [
@@ -330,7 +374,7 @@ class ChatAgentGraph:
         # nodes
         graph_builder.add_node("communicate_plan", self._communicate_plan, metadata={"name": "communicate_plan"})
         graph_builder.add_node("call_tools", self._call_tools, metadata={"name": "call_tools"})
-        graph_builder.add_node("tools", AsyncToolNode(tools=self.tools, tool_name_to_type=self.tool_name_to_type), metadata={"name": "tools"})
+        graph_builder.add_node("tools", self.tool_node, metadata={"name": "tools"})
 
         # fixed edges
         graph_builder.add_edge(START, "communicate_plan")
@@ -345,7 +389,7 @@ class ChatAgentGraph:
         )
 
         # compile
-        graph = graph_builder.compile(checkpointer=MemorySaver())
+        graph = graph_builder.compile(checkpointer=self.memory)
         self.graph = graph
 
         return graph
