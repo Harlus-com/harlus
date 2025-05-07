@@ -23,7 +23,6 @@ class BoundingBox(BaseCamelModel):
 
 class HighlightArea(BaseCamelModel):
     bounding_boxes: list[BoundingBox] = Field(alias="boundingBoxes")
-    jump_to_page_number: int = Field(alias="jumpToPageNumber")
 
 
 class LinkComment(BaseCamelModel):

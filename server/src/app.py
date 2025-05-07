@@ -366,8 +366,6 @@ def get_contrast_analyze(
                 "commentGroupId": f"{time_now}_{old_file.name}_{new_file.name}",
                 "text": comment.text,
                 "highlightArea": {
-                    # TODO: Make this zero-based
-                    "jumpToPageNumber": comment.highlight_area.jump_to_page,
                     "boundingBoxes": [
                         {
                             "left": box.left,
@@ -396,7 +394,6 @@ def get_contrast_analyze(
                                 }
                                 for box in link.highlight_area.bounding_boxes
                             ],
-                            "jumpToPageNumber": link.highlight_area.jump_to_page,
                         },
                         "parentCommentId": f"{time_now}_claim_comment_{i}",
                     }
