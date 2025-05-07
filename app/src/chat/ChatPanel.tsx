@@ -7,7 +7,7 @@ import React, {
   useContext,
   useMemo,
 } from "react";
-import { Send, FileText, X, BookOpen } from "lucide-react";
+import { Send, FileText, X, BookOpen, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { fileService } from "@/api/fileService";
@@ -19,10 +19,12 @@ import { chatService } from "@/chat/chatService";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { ChatMessage, ChatSourceCommentGroup } from "./chat_types";
+import { ChatMessage, ChatSourceCommentGroup, MessagePair } from "./chat_types";
 import { useComments } from "@/comments/useComments";
 import { CommentGroup } from "@/api/comment_types";
 import { getHighestZeroIndexedPageNumber } from "@/comments/comment_util";
+import { ChatHistory } from "./ChatHistory";
+import { useChatThread } from "./ChatThreadContext";
 
 interface ChatPanelProps {
   onSourceClicked?: (file: WorkspaceFile) => void;
@@ -32,16 +34,6 @@ interface ChatPanelProps {
 interface MessageProps {
   message: ChatMessage;
   isUser: boolean;
-}
-
-interface MessagePair {
-  id: string;
-  userMessage: ChatMessage;
-  assistantMessage: ChatMessage | null;
-  readingMessages: ChatMessage[];
-  answerCount: number;
-  showReadingMessages: boolean;
-  readingMessageBuffer: string; // Buffer to accumulate reading message content
 }
 
 interface MessagePairProps {
@@ -210,10 +202,7 @@ const UserMessage: React.FC<{ message: ChatMessage }> = memo(({ message }) => {
       </div>
       {message.timestamp && (
         <div className="text-[9px] text-gray-400 mt-1 ml-1">
-          {message.timestamp.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+          {message.timestamp}
         </div>
       )}
     </div>
@@ -573,49 +562,44 @@ LoadingIndicator.displayName = "LoadingIndicator";
 // Chat panel component
 const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
   const { workspaceId } = useParams();
+  const { currentThreadId, createThread, renameThread } = useChatThread();
   const [messagePairs, setMessagePairs] = useState<MessagePair[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isEventSourceActive, setIsEventSourceActive] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
   const [currentPairId, setCurrentPairId] = useState<string | null>(null);
+  const [isHistoryVisible, setIsHistoryVisible] = useState(false);
 
-  // load previous chat messages
-  const loadChatHistory = useCallback(async () => {
-    try {
-      const history = await fileService.getChatHistory();
-      const pairs: MessagePair[] = [];
-      for (let i = 0; i < history.length; i += 2) {
-        const userMessage = history[i];
-        const assistantMessage = history[i + 1] || null;
-        if (userMessage.sender === "user") {
-          pairs.push({
-            id: userMessage.id,
-            userMessage,
-            assistantMessage: assistantMessage
-              ? {
-                  ...assistantMessage,
-                  chatSourceCommentGroups:
-                    assistantMessage.chatSourceCommentGroups || [],
-                }
-              : null,
-            readingMessages: [],
-            answerCount: assistantMessage ? 1 : 0,
-            showReadingMessages: true,
-            readingMessageBuffer: "",
-          });
-        }
+  const updateAndSaveMessages = (
+    fn: (prev: MessagePair[]) => MessagePair[]
+  ) => {
+    setMessagePairs((prev) => {
+      const newMessages = fn(prev);
+      if (currentThreadId && workspaceId) {
+        chatService.saveChatHistory(newMessages, currentThreadId, workspaceId);
       }
-      setMessagePairs(pairs);
-    } catch (error) {
-      console.error("Error loading chat history:", error);
-    }
-  }, []);
+      return newMessages;
+    });
+  };
 
+  // Load chat history for current thread
+  const loadChatHistory = useCallback(async () => {
+    if (!currentThreadId || !workspaceId || isLoading) return;
+    const history = await chatService.getChatHistory(
+      currentThreadId,
+      workspaceId
+    );
+    setMessagePairs(history.messagePairs);
+    console.log("[ChatPanel] Chat history:", history.messagePairs);
+  }, [currentThreadId, workspaceId]);
+
+  // Load chat history when thread changes
   useEffect(() => {
-    loadChatHistory();
-  }, [loadChatHistory]);
+    if (currentThreadId) {
+      loadChatHistory();
+    }
+  }, [currentThreadId, loadChatHistory]);
 
   // scroll to bottom of chat container
   useEffect(() => {
@@ -627,7 +611,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
 
   // Toggle reading messages visibility for a specific pair
   const toggleReadingMessages = useCallback((pairId: string) => {
-    setMessagePairs((prev) =>
+    updateAndSaveMessages((prev) =>
       prev.map((pair) =>
         pair.id === pairId
           ? { ...pair, showReadingMessages: !pair.showReadingMessages }
@@ -638,22 +622,42 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
 
   // send message
   const handleSendMessage = useCallback(async () => {
-    if (!input.trim() || isEventSourceActive) return;
+    if (!input.trim() || isEventSourceActive || !workspaceId) return;
+    setIsLoading(true);
 
     const pairId = `${Date.now()}.${Math.floor(Math.random() * 100)}`;
     setCurrentPairId(pairId);
+
+    let threadId = currentThreadId;
+    console.log("Message panels.length", messagePairs.length);
+    // TODO: This just doesn't seem right.
+    // It would be cleaner to create the thread id ahead of time (e.g the moment the user opened to an empty chat)
+    if (!threadId) {
+      const title =
+        input.trim().slice(0, 50) + (input.trim().length > 50 ? "..." : "");
+      const newThread = await createThread(title);
+      threadId = newThread.id;
+    } else if (messagePairs.length === 0) {
+      const threads = await chatService.getThreads(workspaceId);
+      const currentThread = threads.find((t) => t.id === threadId);
+      if (currentThread?.title.match(/^New Chat \d+$/)) {
+        const newTitle =
+          input.trim().slice(0, 50) + (input.trim().length > 50 ? "..." : "");
+        renameThread(threadId, newTitle);
+      }
+    }
 
     // create user message
     const userMessage: ChatMessage = {
       id: `${pairId}.user`,
       sender: "user",
       content: input.trim(),
-      timestamp: new Date(),
+      timestamp: now(),
       chatSourceCommentGroups: [],
     };
 
     // add message pair to the list
-    setMessagePairs((prev) => [
+    updateAndSaveMessages((prev) => [
       ...prev,
       {
         id: pairId,
@@ -662,7 +666,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           id: `${pairId}.assistant`,
           sender: "assistant",
           content: "",
-          timestamp: new Date(),
+          timestamp: now(),
           chatSourceCommentGroups: [],
           messageType: "answer_message",
         },
@@ -673,17 +677,17 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
       },
     ]);
     setInput("");
-    setIsLoading(true);
     setIsEventSourceActive(true);
 
     // handle response from the backend
     try {
       await chatService.streamChat(
         input.trim(),
-        workspaceId!,
+        workspaceId,
+        threadId,
         // onMessage handler - for all types of messages
         (newContent, messageType) => {
-          setMessagePairs((prev) => {
+          updateAndSaveMessages((prev) => {
             const newPairs = [...prev];
             const currentPair = newPairs.find((pair) => pair.id === pairId);
 
@@ -714,7 +718,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                           .substring(2, 8)}`,
                         sender: "assistant",
                         content: trimmedLine,
-                        timestamp: new Date(),
+                        timestamp: now(),
                         chatSourceCommentGroups: [],
                         messageType: "reading_message",
                       });
@@ -751,7 +755,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                       id: tempId,
                       sender: "assistant",
                       content: bufferContent,
-                      timestamp: new Date(),
+                      timestamp: now(),
                       chatSourceCommentGroups: [],
                       messageType: "reading_message",
                     });
@@ -772,7 +776,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                   // If we just reached 5 answers, change reading message appearance
                   if (currentPair.answerCount === 5) {
                     setTimeout(() => {
-                      setMessagePairs((prev) => [...prev]);
+                      updateAndSaveMessages((prev) => [...prev]);
                     }, 0);
                   }
                 }
@@ -783,7 +787,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
         },
         // onSources handler - for document sources
         (chatSourceCommentGroups: ChatSourceCommentGroup[]) => {
-          setMessagePairs((prev) => {
+          updateAndSaveMessages((prev) => {
             const newPairs = [...prev];
             const lastPair = newPairs[newPairs.length - 1];
             if (lastPair && lastPair.assistantMessage) {
@@ -802,7 +806,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           setCurrentPairId(null);
 
           // Process any remaining content in the reading message buffer
-          setMessagePairs((prev) => {
+          updateAndSaveMessages((prev) => {
             const newPairs = [...prev];
             const lastPair = newPairs[newPairs.length - 1];
 
@@ -825,7 +829,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                     id: `${lastPair.id}.reading.${lastPair.readingMessages.length}`,
                     sender: "assistant",
                     content: bufferContent,
-                    timestamp: new Date(),
+                    timestamp: now(),
                     chatSourceCommentGroups: [],
                     messageType: "reading_message",
                   });
@@ -862,7 +866,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           setIsLoading(false);
           setIsEventSourceActive(false);
           setCurrentPairId(null);
-          setMessagePairs((prev) => {
+          updateAndSaveMessages((prev) => {
             const newPairs = [...prev];
             const currentPair = newPairs.find((pair) => pair.id === pairId);
             if (currentPair && currentPair.assistantMessage) {
@@ -879,7 +883,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
       setIsEventSourceActive(false);
       setCurrentPairId(null);
     }
-  }, [input, isEventSourceActive, workspaceId]);
+  }, [
+    input,
+    isEventSourceActive,
+    workspaceId,
+    currentThreadId,
+    createThread,
+    messagePairs,
+  ]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -905,10 +916,40 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
       <div className="h-full flex flex-col border-l border-gray-100 bg-gray-50">
         <div className="py-2.5 px-3.5 font-medium border-b border-gray-100 bg-white flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <BookOpen className="w-4 h-4 text-blue-500" />
-            <span className="text-sm text-gray-800">AI Assistant</span>
+            <span className="text-sm text-gray-800">Chat</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsHistoryVisible(!isHistoryVisible)}
+              className="h-8 px-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            >
+              <BookOpen className="h-4 w-4 mr-1.5" />
+              {isHistoryVisible ? "Hide History" : "History"}
+            </Button>
+            {/* TODO: Conditionally show this button based on whether the user is already in an empty thread */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => createThread()}
+              className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-50 group relative"
+            >
+              <Plus className="h-4 w-4" />
+              <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                New chat
+              </div>
+            </Button>
           </div>
         </div>
+
+        {isHistoryVisible && workspaceId && (
+          <div className="border-b border-gray-100 bg-white">
+            <div className="max-h-[50vh] overflow-y-auto">
+              <ChatHistory workspaceId={workspaceId} />
+            </div>
+          </div>
+        )}
 
         <ScrollArea className="flex-1 px-3.5 pt-3.5 pb-2">
           <div ref={chatContainerRef} className="space-y-6">
@@ -918,11 +959,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                   <BookOpen className="h-5 w-5 text-blue-500" />
                 </div>
                 <h3 className="text-base font-medium text-gray-800 mb-1">
-                  Welcome to Harlus
+                  {currentThreadId
+                    ? "Start a new conversation"
+                    : "Welcome to Harlus"}
                 </h3>
                 <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                  Ask questions about your documents. The AI will analyze the
-                  content and provide relevant answers.
+                  {currentThreadId
+                    ? "Ask questions about your documents in this chat thread."
+                    : "Ask questions about your documents. The AI will analyze the content and provide relevant answers."}
                 </p>
               </div>
             ) : (
@@ -982,5 +1026,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
     </SourceClickContext.Provider>
   );
 };
+
+function now(): string {
+  return new Date().toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export default memo(ChatPanel);

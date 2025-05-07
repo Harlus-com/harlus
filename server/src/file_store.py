@@ -11,9 +11,15 @@ from src.util import snake_to_camel, clean_name
 class Workspace(BaseModel):
     id: str
     name: str
-    dir_name: str
+    dir_name: str = Field(alias="dirName")
+    absolute_path: str = Field(alias="absolutePath")
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(
+        populate_by_name=True,
+        alias_generator=snake_to_camel,
+        from_attributes=True,
+        frozen=True,
+    )
 
 
 class File(BaseModel):
@@ -95,11 +101,6 @@ class FileStore:
         for workspace in self.get_workspaces().values():
             files.extend(self.get_files(workspace.id).values())
         return files
-    
-    # used by chat library to store a chat in workspace directory
-    def get_workspace_path(self, workspace_id: str) -> str:
-        workspace = self.get_workspaces()[workspace_id]
-        return self.app_data_path.joinpath(workspace.dir_name)
 
     def get_files(self, workspace_id: str) -> dict[str, File]:
         workspace = self.get_workspaces()[workspace_id]
@@ -137,7 +138,12 @@ class FileStore:
                 raise ValueError(
                     f"Workspace directory name is the same as {workspace.name}"
                 )
-        workspace = Workspace(id=str(uuid.uuid4()), name=name, dir_name=dir_name)
+        workspace = Workspace(
+            id=str(uuid.uuid4()),
+            name=name,
+            dir_name=dir_name,
+            absolute_path=self.app_data_path.joinpath(dir_name),
+        )
         os.makedirs(self.app_data_path.joinpath(workspace.dir_name), exist_ok=True)
         with open(
             self.app_data_path.joinpath(workspace.dir_name, "files.json"), "w"

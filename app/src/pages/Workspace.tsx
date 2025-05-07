@@ -1,6 +1,4 @@
-import { ClaimComment } from "@/api/comment_types";
 import { fileService } from "@/api/fileService";
-import { modelService } from "@/api/model_service";
 import {
   WorkspaceFile,
   Workspace as WorkspaceType,
@@ -21,6 +19,7 @@ import WorkspaceHeader from "@/components/WorkspaceHeader";
 import { useEffect, useRef, useState } from "react";
 import { Panel, PanelGroup } from "react-resizable-panels";
 import { useNavigate, useParams } from "react-router-dom";
+import { ChatThreadProvider } from "@/chat/ChatThreadContext";
 
 // The default sizes scale relative to each other.
 // They work best when the sum of all the default sizes is 100.
@@ -166,84 +165,88 @@ export default function Workspace() {
   };
 
   return (
-    <CommentsProvider>
-      <div className="flex flex-col h-screen">
-        <WorkspaceHeader
-          workspace={workspace}
-          files={files}
-          onFileGroupCountChange={handleOnFileGroupCountChange}
-          togglePanelVisibility={togglePanelVisibility}
-          openFile={(file, options) =>
-            handleFileSelect(file, FileGroupCount.ONE, options)
-          }
-          reloadWorkspace={reloadWorkspace}
-        />
-        <PanelGroup id="workspace" direction="horizontal" className="flex-1">
-          <div
-            className="flex-1 flex overflow-hidden"
-            ref={dropAreaRef}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            {isDragging && (
-              <div className="absolute inset-0 bg-black/20 flex items-center justify-center backdrop-blur-sm">
-                <div className="bg-card p-8 rounded-lg shadow-lg text-center">
-                  <div className="text-4xl mb-4">📄</div>
-                  <div className="text-xl font-medium">Drop PDFs here</div>
-                  <div className="text-muted-foreground mt-2">
-                    Files will be added to your workspace
+    <ChatThreadProvider workspaceId={workspaceId!}>
+      <CommentsProvider>
+        <div className="flex flex-col h-screen">
+          <WorkspaceHeader
+            workspace={workspace}
+            files={files}
+            onFileGroupCountChange={handleOnFileGroupCountChange}
+            togglePanelVisibility={togglePanelVisibility}
+            openFile={(file, options) =>
+              handleFileSelect(file, FileGroupCount.ONE, options)
+            }
+            reloadWorkspace={reloadWorkspace}
+          />
+          <PanelGroup id="workspace" direction="horizontal" className="flex-1">
+            <div
+              className="flex-1 flex overflow-hidden"
+              ref={dropAreaRef}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              {isDragging && (
+                <div className="absolute inset-0 bg-black/20 flex items-center justify-center backdrop-blur-sm">
+                  <div className="bg-card p-8 rounded-lg shadow-lg text-center">
+                    <div className="text-4xl mb-4">📄</div>
+                    <div className="text-xl font-medium">Drop PDFs here</div>
+                    <div className="text-muted-foreground mt-2">
+                      Files will be added to your workspace
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-            {visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER) && (
+              )}
+              {visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER) && (
+                <Panel
+                  id={FILE_EXPLORER.id}
+                  order={1}
+                  defaultSize={FILE_EXPLORER.defaultSize}
+                  minSize={FILE_EXPLORER.minSize}
+                  className="bg-blue-50 h-full w-auto"
+                >
+                  <FileExplorer
+                    files={files}
+                    onFileSelect={(file, groupNumber) =>
+                      handleFileSelect(file, groupNumber, {
+                        showComments: false,
+                      })
+                    }
+                    openFiles={openFiles}
+                    onFilesChange={setFiles}
+                  />
+                </Panel>
+              )}
+              <PanelDivider />
               <Panel
-                id={FILE_EXPLORER.id}
-                order={1}
-                defaultSize={FILE_EXPLORER.defaultSize}
-                minSize={FILE_EXPLORER.minSize}
-                className="bg-blue-50 h-full w-auto"
+                id={FILE_VIEWER.id}
+                order={2}
+                defaultSize={FILE_VIEWER.defaultSize}
+                minSize={FILE_VIEWER.minSize}
               >
-                <FileExplorer
-                  files={files}
-                  onFileSelect={(file, groupNumber) =>
-                    handleFileSelect(file, groupNumber, { showComments: false })
-                  }
-                  openFiles={openFiles}
-                  onFilesChange={setFiles}
-                />
+                <FileView openFiles={openFiles} setOpenFiles={setOpenFiles} />
               </Panel>
-            )}
-            <PanelDivider />
-            <Panel
-              id={FILE_VIEWER.id}
-              order={2}
-              defaultSize={FILE_VIEWER.defaultSize}
-              minSize={FILE_VIEWER.minSize}
-            >
-              <FileView openFiles={openFiles} setOpenFiles={setOpenFiles} />
-            </Panel>
-            {visiblePanels.includes(TopLevelPanelId.CHAT) && <PanelDivider />}
-            {visiblePanels.includes(TopLevelPanelId.CHAT) && (
-              <Panel
-                id={CHAT.id}
-                order={4}
-                defaultSize={CHAT.defaultSize}
-                minSize={CHAT.minSize}
-              >
-                <ChatPanel
-                  onSourceClicked={(file) =>
-                    handleFileSelect(file, FileGroupCount.ONE, {
-                      showComments: true,
-                    })
-                  }
-                />
-              </Panel>
-            )}
-          </div>
-        </PanelGroup>
-      </div>
-    </CommentsProvider>
+              {visiblePanels.includes(TopLevelPanelId.CHAT) && <PanelDivider />}
+              {visiblePanels.includes(TopLevelPanelId.CHAT) && (
+                <Panel
+                  id={CHAT.id}
+                  order={4}
+                  defaultSize={CHAT.defaultSize}
+                  minSize={CHAT.minSize}
+                >
+                  <ChatPanel
+                    onSourceClicked={(file) =>
+                      handleFileSelect(file, FileGroupCount.ONE, {
+                        showComments: true,
+                      })
+                    }
+                  />
+                </Panel>
+              )}
+            </div>
+          </PanelGroup>
+        </div>
+      </CommentsProvider>
+    </ChatThreadProvider>
   );
 }

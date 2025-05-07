@@ -9,7 +9,23 @@ export interface ChatMessage {
   id: string;
   sender: "user" | "assistant";
   content: string;
-  timestamp?: Date;
+  timestamp?: string;
   chatSourceCommentGroups: ChatSourceCommentGroup[];
   messageType?: "reading_message" | "answer_message";
+}
+
+export interface MessagePair {
+  id: string;
+  userMessage: ChatMessage;
+  assistantMessage: ChatMessage | null;
+  readingMessages: ChatMessage[];
+  answerCount: number;
+  showReadingMessages: boolean;
+  readingMessageBuffer: string; // Buffer to accumulate reading message content
+}
+
+export interface Thread {
+  id: string;
+  title: string;
+  lastMessageAt: string;
 }
