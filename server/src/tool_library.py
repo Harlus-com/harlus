@@ -8,6 +8,12 @@ from src.file_store import FileStore, File
 from harlus_doc_search import ToolWrapper
 
 
+# TODO: add functionality to get all tools for a given workspace
+#
+# TODO: for doc_search tools, we could store the vector index by using
+# llama_index built-in methods for storing and loading vector indices. 
+# at load time, we could build the doc_search tool from the vector index. 
+# Metadata could be stored seperately and pickled alongside the tool. 
 class ToolLibrary:
     def __init__(self, file_store: FileStore):
         self.file_tools: dict[str, list[ToolWrapper]] = defaultdict(list)

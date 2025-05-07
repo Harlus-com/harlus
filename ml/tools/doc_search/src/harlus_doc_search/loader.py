@@ -2,12 +2,14 @@ from llama_index.core.tools import QueryEngineTool
 from llama_index.core.schema import Node
 from .node_pipeline import NodePipeline
 from .doc_tool_pipeline import DocumentPipeline
+from .doc_tool_pipeline import DocSearchToolWrapper
 
-
+# TODO: Now we use a DocSearchToolWrapper instead of a QueryEngineTool
+# we could abolish this wrapper and move all functionality to DocSearchToolWrapper
 class ToolWrapper:
     # In the future, this will take the LLM dependency as a parameter
     def __init__(
-        self, doc_tool: QueryEngineTool, name: str, debug_info: dict[str, str]
+        self, doc_tool: DocSearchToolWrapper, name: str, debug_info: dict[str, str]
     ):
         self.doc_tool = doc_tool
         self.name = name
@@ -16,7 +18,7 @@ class ToolWrapper:
     def get_debug_info(self):
         return self.debug_info
 
-    def get(self) -> QueryEngineTool:
+    def get(self) -> DocSearchToolWrapper:
         return self.doc_tool
 
     def get_tool_name(self) -> str:

@@ -28,6 +28,7 @@ from src.file_store import FileStore, Workspace, File
 from src.sync_queue import SyncQueue, SyncType
 from src.stream_manager import StreamManager
 from src.sync_status import SyncStatus
+from src.chat_library import ChatLibrary
 from harlus_contrast_tool import ContrastTool
 from harlus_chat import ChatAgentGraph
 
@@ -68,9 +69,17 @@ print("APP_DATA_PATH", APP_DATA_PATH)
 
 file_store = FileStore(APP_DATA_PATH)
 
-
 tool_library = ToolLibrary(file_store)
 tool_library.load_tools()
+
+
+# TODO: chat_library should call update_chat_tools when new tools
+# are added to the tool_library to ensure chat has access to all tools 
+# within the workspace. 
+# TODO: (also mentioned in chat/stream). We should integrate the frontend to start new threads.
+# TODO: Once we start having longer conversations, we should summarize the history regularly.
+chat_library = ChatLibrary(file_store, tool_library)
+chat_library.load() # initialize a chat for each workspace, load from disk to memory
 
 stream_manager = StreamManager(file_store)
 
@@ -271,27 +280,13 @@ SYSTEM_PROMPT = """
 async def stream_chat(
     workspace_id: str = Query(..., alias="workspaceId"), query: str = Query(...)
 ):
-    # TODO: persist the GraphPipeline Instance in memory.
-    # The instance can store all memory related to a thread ID
-    # This can be used to show historical threads and use previous chat context in replies
-    #
-    # Example:
-    #
-    # ...
-    # gp = get_graph_pipeline_from_workspace_id(workspace_id)
-    # ...
-    # gp.event_stream_generator(query, thread_id=thread_id)
-    # ...
-    #
-    # Another method could also extract the chat history,
-    #
-    # gp.get_chat_history(thread_id=thread_id)
-    tools = [tool.get() for tool in tool_library.get_tool_for_all_files("doc_search")]
-    print("tools", tools)
-    agent_graph = ChatAgentGraph(tools)
-    agent_graph.build()
+    # TODO: add endpoint to manage threads
+    # A new thread can be started by calling chat_model.start_new_thread()
+    # A thread can be resumed by calling chat_model.resume_thread(thread_id)
+    # A list of threads can be retrieved by calling chat_model.get_thread_ids()
+    chat_model = chat_library.get(workspace_id)
     response = StreamingResponse(
-        agent_graph.stream(query),
+        chat_model.stream(query),
         media_type="text/event-stream",
     )
     response.headers["Access-Control-Allow-Origin"] = "*"

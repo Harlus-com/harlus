@@ -6,3 +6,4 @@ dist
 *.pdf
 attributes
 dev
+*.ipynb

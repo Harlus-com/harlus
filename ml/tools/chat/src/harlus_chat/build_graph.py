@@ -14,11 +14,13 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.tools import BaseTool
 from langgraph.graph.message import add_messages
 from llama_index.core.tools import QueryEngineTool
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from typing import (
     List, 
     AsyncIterator, 
 )
 from .config import LLM, TAVILY_TOOL
+import os
 import re
 import json 
 from rapidfuzz.fuzz import partial_ratio
@@ -166,8 +168,8 @@ def sanitize_tool_name(name):
     return re.sub(r"[^a-zA-Z0-9_-]", "_", name)
 
 
-
-
+# TODO: summarize long-term memorys
+# https://langchain-ai.github.io/langgraph/concepts/memory/#writing-memories-in-the-background
 class ChatAgentGraph:
     """
     ChatAgentGraph represents the agent behind the chat interface.
@@ -216,7 +218,39 @@ class ChatAgentGraph:
 
 
     """
-    def __init__(self, tools: List[any]):
+
+
+    def __init__(self,  persist_dir: str):
+        
+        # set LLM 
+        self.LLM = LLM
+
+        # set thread 
+        self.config = {"configurable": {"thread_id": "n.a.", "user_id": "n.a."}}
+
+
+        # set persist dir and create it if it doesn't exist
+        self.persist_dir = persist_dir
+        os.makedirs(self.persist_dir, exist_ok=True)
+        
+        # Create the database path
+        self.db_path = os.path.join(self.persist_dir, "langgraph.db")
+        
+        # Create the checkpointer
+        self.memory = None
+
+        # set an empty tool node
+        self.tool_node = AsyncToolNode(tools=[], tool_name_to_type={})
+
+        # build graph
+        self.graph = None
+        self.build()
+
+    
+    def update_tools(self, tools: List[any]):
+
+
+        # parse tools 
         self.tools = []
         self.tool_name_to_type = {}
         print("[harlus_chat] adding tools")
@@ -240,24 +274,81 @@ class ChatAgentGraph:
         for tool in self.tools:
             tool.name = sanitize_tool_name(tool.name)
         
-        
+
+        # describe tools to LLM 
         self.tools_descriptions_string = "\n - " + "\n -".join([f"{tool.name}: {tool.description}" for tool in tools])
-        self.LLM = LLM
+
+        # bind tools to LLM
         self.TOOL_LLM = LLM.bind_tools(self.tools)
-        self.graph = None
-        self.config = {"configurable": {"thread_id": "1"}}
+
+        # create tool execution node:
+        self.tool_node = AsyncToolNode(tools=self.tools, tool_name_to_type=self.tool_name_to_type)
+
+        # re-build graph
+        self.build()
+
+    def get_current_thread_id(self):
+        return self.config["configurable"].get("thread_id")
+
+    # AI generated, to review and improve
+    # def get_thread_ids(self):
+        
+    #     import sqlite3
+        
+    #     if not os.path.exists(self.db_path):
+    #         return []
+            
+    #     try:
+    #         # Connect to the SQLite database
+    #         conn = sqlite3.connect(self.db_path)
+    #         cursor = conn.cursor()
+            
+    #         # Query for unique thread_ids
+    #         cursor.execute("""
+    #             SELECT DISTINCT json_extract(config, '$.configurable.thread_id') 
+    #             FROM checkpoints
+    #             WHERE json_extract(config, '$.configurable.thread_id') IS NOT NULL
+    #         """)
+            
+    #         # Fetch all results and close connection
+    #         results = cursor.fetchall()
+    #         conn.close()
+            
+    #         # Extract thread_ids and return
+    #         return [result[0] for result in results if result[0]]
+    #     except Exception as e:
+    #         print(f"Error retrieving thread IDs: {e}")
+    #         return []
+
+    def start_new_thread(self):
+        self.config["configurable"]["thread_id"] = str(uuid.uuid4())
+
+    def resume_thread(self, thread_id: str):
+        self.config["configurable"]["thread_id"] = thread_id
+
+
 
     async def _communicate_plan(self, state: GraphState) -> AsyncIterator[dict]:
         prompt = [
             SystemMessage(content=f"""
             You are an autonomous AI agent solving a task step-by-step using tools.
-            Decide what to do next. YOU MUST BASE YOUR ANSWER ON THE TOOLS PROVIDED BELOW. DO NOT RELY ON PRIOR KNOWLEDGE.
-                        
-            WRITE A SHORT AND CONCISE PLAN BASED ON THE TOOLS PROVIDED. FOLLOW THE EXAMPLES BELOW.
-                                  
-            "Reading Apple's 2024 Annual 10K report to find information on ..."
-            "Reading Applied Materials 2024 Earnings call transcript from Q1 to find information on ..."
-            "Searching the web for information on ..."
+            
+            You must anser to the last Human Message. You have tools at your disposal to do so.
+            
+            If you decide to use a tool, make sure to provide a short and concise plan for what you want to do. Examples are given below:
+                          
+            Example 1: You see you have access to the 2024 Annual 10K report of Apple. You can use this tool to answer the question.
+            Your plan could be: "Read the 2024 Annual 10K report of Apple to find information on ..."
+            
+            Example 2: You see you have access to Earnings call transcripts from Applied Materials. You can use this tool to answer the question.
+            Your plan could be: "Read the Earnings call transcript from Applied Materials from Q1 2024 to find information on ..."
+            
+            Example 3: You see you have access to a search engine. You can use this tool to answer the question.
+            Your plan could be: "Search the web for information on ..."
+            
+            
+            If you do not need to use a tool, just answer the question. However, you cannot rely on general knowledge, but only on the tools provided and the chat history.
+                                                          
                         
             {self.tools_descriptions_string}
             """),
@@ -330,7 +421,7 @@ class ChatAgentGraph:
         # nodes
         graph_builder.add_node("communicate_plan", self._communicate_plan, metadata={"name": "communicate_plan"})
         graph_builder.add_node("call_tools", self._call_tools, metadata={"name": "call_tools"})
-        graph_builder.add_node("tools", AsyncToolNode(tools=self.tools, tool_name_to_type=self.tool_name_to_type), metadata={"name": "tools"})
+        graph_builder.add_node("tools", self.tool_node, metadata={"name": "tools"})
 
         # fixed edges
         graph_builder.add_edge(START, "communicate_plan")
@@ -344,20 +435,18 @@ class ChatAgentGraph:
             {"tools":"tools", "no_tools":END}
         )
 
-        # compile
-        graph = graph_builder.compile(checkpointer=MemorySaver())
-        self.graph = graph
+        self.graph_builder = graph_builder
 
-        return graph
+        return self.graph_builder
     
 
-    def _get_sources(self):
-        return self.graph.get_state(self.config).values.get("sources", [])
+    async def _get_sources(self, graph):
+        state = await graph.aget_state(self.config)
+        return state.values.get("sources", [])
 
-    def _get_retrieved_nodes(self):
-
+    async def _get_retrieved_nodes(self, graph):
         # extract nodes which were retrieved during the last run through the graph
-        sources = self._get_sources()
+        sources = await self._get_sources(graph)
         retrieved_nodes = [source for source in sources if isinstance(source, DocSearchRetrievedNode)]
 
         # prune nodes which have similar text
@@ -373,13 +462,15 @@ class ChatAgentGraph:
         
         return pruned_retrieved_nodes
 
-    def _get_chat_source_comments(self):
-
+    async def _get_chat_source_comments(self, graph):
         chat_source_comments = []
 
         # get the retrieved nodes from the graph
-        retrieved_nodes = self._get_retrieved_nodes()
-        nb_messages = len(self.graph.get_state(self.config).values.get("messages", []))
+        retrieved_nodes = await self._get_retrieved_nodes(graph)
+        
+        # Get the graph state to access its values
+        state = await graph.aget_state(self.config)
+        nb_messages = len(state.values.get("messages", []))
 
         # convert the retrieved nodes to source annotations
         last_unique_id = ""
@@ -422,68 +513,69 @@ class ChatAgentGraph:
         return chat_source_comments
     
 
-    async def stream(self, user_message: str, thread_id: str = "1"):
-
+    async def stream(self, user_message: str):
         input_state = {
             "messages": [("user", user_message)], 
             "retrieved_nodes": [], 
             "full_answer": ""
         }
 
-        self.config["configurable"]["thread_id"] = thread_id
-
-        # 1. stream the answer 
-        print("[harlus_chat] Streaming answer...")
-        async for message_chunk, metadata in self.graph.astream(
-            input_state,
-            stream_mode="messages",
-            config = self.config
-        ):
-            try:
-                # stream only message chunks
-                if isinstance(message_chunk, AIMessageChunk):
-                    # stream reading message
-                    if metadata.get("langgraph_node") == "communicate_plan":
-                        response = '\n'.join([
-                            f'data: {json.dumps({"text": message_chunk.content})}',
-                            f'event: {"reading_message"}',
-                            '\n\n'
-                        ])
-                    # stream answer message
-                    elif metadata.get("langgraph_node") == "call_tools":
-                        response = '\n'.join([
-                            f'data: {json.dumps({"text": message_chunk.content})}',
-                            f'event: {"answer_message"}',
-                            '\n\n'
-                        ])
-                    else:
-                        print(f"[harlus_chat] Ignoring stream from unknown node: {metadata.get('langgraph_node')}")
+        # Use the database path from persist_dir
+        async with AsyncSqliteSaver.from_conn_string(self.db_path) as memory:
+            graph = self.graph_builder.compile(checkpointer=memory)
+        
+            # 1. stream the answer 
+            print("[harlus_chat] Streaming answer...")
+            async for message_chunk, metadata in graph.astream(
+                input_state,
+                stream_mode="messages",
+                config = self.config
+            ):
+                try:
+                    # stream only message chunks
+                    if isinstance(message_chunk, AIMessageChunk):
+                        # stream reading message
+                        if metadata.get("langgraph_node") == "communicate_plan":
+                            response = '\n'.join([
+                                f'data: {json.dumps({"text": message_chunk.content})}',
+                                f'event: {"reading_message"}',
+                                '\n\n'
+                            ])
+                        # stream answer message
+                        elif metadata.get("langgraph_node") == "call_tools":
+                            response = '\n'.join([
+                                f'data: {json.dumps({"text": message_chunk.content})}',
+                                f'event: {"answer_message"}',
+                                '\n\n'
+                            ])
+                        else:
+                            print(f"[harlus_chat] Ignoring stream from unknown node: {metadata.get('langgraph_node')}")
+                    
+                        yield response
+                except Exception as e:
+                    print(f"Streaming error: {e}")
                 
-                    yield response
+            # 2. stream the source annotations
+            print("[harlus_chat] Streaming source annotations...")
+            try:
+                data = await self._get_chat_source_comments(graph)
+                data = [d.model_dump() for d in data]
+                response = '\n'.join([
+                        f'data: {json.dumps(data)}',
+                        f'event: {"sources"}',
+                        '\n\n'
+                ])
+                print(f"[harlus_chat] Sent {len(data)} source annotations")
+                yield response
             except Exception as e:
-                print(f"Streaming error: {e}")
-            
-        # 2. stream the source annotations
-        print("[harlus_chat] Streaming source annotations...")
-        try:
-            data = self._get_chat_source_comments()
-            data = [d.model_dump() for d in data]
-            response = '\n'.join([
-                    f'data: {json.dumps(data)}',
-                    f'event: {"sources"}',
-                    '\n\n'
-            ])
-            print(f"[harlus_chat] Sent {len(data)} source annotations")
-            yield response
-        except Exception as e:
-            print(f"[harlus_chat] Error sending source annotations: {e}")
+                print(f"[harlus_chat] Error sending source annotations: {e}")
 
-        # 3. stream the completion
-        response = '\n'.join([
-                    f'data: ',
-                    f'event: {"complete"}',
-                    '\n\n'
-            ])
-        yield response
+            # 3. stream the completion
+            response = '\n'.join([
+                        f'data: ',
+                        f'event: {"complete"}',
+                        '\n\n'
+                ])
+            yield response
     
     
