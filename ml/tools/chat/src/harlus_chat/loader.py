@@ -1,7 +1,8 @@
 from .build_graph import ChatAgentGraph
 import json
 
-
+# TODO: Decide if we actually use this wrapper since 
+# ChatAgentGraph is self defined and we can use it directly
 class ChatModelWrapper:
 
     def __init__(

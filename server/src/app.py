@@ -76,8 +76,10 @@ tool_library.load_tools()
 # TODO: chat_library should call update_chat_tools when new tools
 # are added to the tool_library to ensure chat has access to all tools 
 # within the workspace. 
+# TODO: (also mentioned in chat/stream). We should integrate the frontend to start new threads.
+# TODO: Once we start having longer conversations, we should summarize the history regularly.
 chat_library = ChatLibrary(file_store, tool_library)
-chat_library.load_chats() # initialize a chat for each workspace, load from disk to memory
+chat_library.load() # initialize a chat for each workspace, load from disk to memory
 
 stream_manager = StreamManager(file_store)
 
@@ -282,7 +284,7 @@ async def stream_chat(
     # A new thread can be started by calling chat_model.start_new_thread()
     # A thread can be resumed by calling chat_model.resume_thread(thread_id)
     # A list of threads can be retrieved by calling chat_model.get_thread_ids()
-    chat_model = chat_library.get_chat(workspace_id)
+    chat_model = chat_library.get(workspace_id)
     response = StreamingResponse(
         chat_model.stream(query),
         media_type="text/event-stream",

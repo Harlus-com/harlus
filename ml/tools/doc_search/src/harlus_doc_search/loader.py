@@ -4,7 +4,8 @@ from .node_pipeline import NodePipeline
 from .doc_tool_pipeline import DocumentPipeline
 from .doc_tool_pipeline import DocSearchToolWrapper
 
-
+# TODO: Now we use a DocSearchToolWrapper instead of a QueryEngineTool
+# we could abolish this wrapper and move all functionality to DocSearchToolWrapper
 class ToolWrapper:
     # In the future, this will take the LLM dependency as a parameter
     def __init__(
