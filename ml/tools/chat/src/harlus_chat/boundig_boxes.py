@@ -91,7 +91,7 @@ def get_standard_rects_from_pdf(pdf_path: str, target_text: str, page_nb: int = 
                     "top": (rect.y0 / page_height) * 100,
                     "width": (rect.width / page_width) * 100,
                     "height": (rect.height / page_height) * 100,
-                    "page": page_number + 1 # 1-indexed convention 
+                    "page": page_number
                 } 
                 for rect in rects
             ]
@@ -147,7 +147,7 @@ def get_llamaparse_rects(file_path, bounding_boxes, page_nb):
                     "top": float(bounding_box.top / page_height) * 100,
                     "width": float(bounding_box.width / page_width) * 100,
                     "height": float(bounding_box.height / page_height) * 100,
-                    "page": page_nb + 1, # 1-indexed convention 
+                    "page": page_nb - 1, # llama parse is 1-indexed
                     "type": "relative"
                 } )
     return standard_rects

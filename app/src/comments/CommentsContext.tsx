@@ -11,10 +11,11 @@ interface CommentsContextType {
     comments: ClaimComment[],
     group: CommentGroup
   ) => Promise<void>;
+  // TODO: make robust for case that comment already exists
   addChatSourceComments: (
     comments: ChatSourceComment[],
     group: CommentGroup
-  ) => void;
+  ) => Promise<void>;
   addCommentGroup: (commentGroup: CommentGroup) => void;
 
   deleteComment: (commentId: string) => void;
