@@ -119,3 +119,5 @@ harlus.code-workspace specifies the defualt interpreter to the global python env
 If this doesn't work, you may also have to run the "Python: Select Interpreter" VS Code command afterwards (it should appear as an option in the dropdown).
 
 If it doens't appear in the drop down, you can manually specify the path.
+
+Note: You interpreter might struggle to recognize locally linked packages, if so, and you are not developing a tool, you can just point to the packaged versions at the start of your developing session by running `python scripts/package.py --package`
