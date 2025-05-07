@@ -25,7 +25,7 @@ export type WorkSpaceHeaderProps = {
   files: WorkspaceFile[];
   onFileGroupCountChange: (fileGroupCount: FileGroupCount) => void;
   togglePanelVisibility: (panelId: TopLevelPanelId) => void;
-  refreshFiles: () => void;
+  reloadWorkspace: () => void;
   openFile: (file: WorkspaceFile, options: { showComments: boolean }) => void;
 };
 
@@ -34,7 +34,7 @@ export default function WorkspaceHeader({
   files,
   onFileGroupCountChange,
   togglePanelVisibility,
-  refreshFiles,
+  reloadWorkspace,
   openFile,
 }: WorkSpaceHeaderProps) {
   const navigate = useNavigate();
@@ -59,14 +59,14 @@ export default function WorkspaceHeader({
       <div className="flex items-center space-x-2">
         <div className="flex items-center space-x-2 border-r border-border pr-6">
           <Button
-            onClick={refreshFiles}
+            onClick={reloadWorkspace}
             variant="outline"
             size="sm"
             className="group relative"
           >
             <RefreshCw size={16} />
             <div className="absolute top-full left-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              Refresh
+              Reload
             </div>
           </Button>
 

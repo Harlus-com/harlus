@@ -37,24 +37,24 @@ export default function Workspace() {
   const [isDragging, setIsDragging] = useState(false);
   const dropAreaRef = useRef<HTMLDivElement>(null);
 
+  const loadWorkspace = async () => {
+    if (!workspaceId) {
+      navigate("/");
+      return;
+    }
+
+    const workspace = await workspaceService.getWorkspace(workspaceId);
+    if (!workspace) {
+      navigate("/");
+      return;
+    }
+
+    const workspaceFiles = await fileService.getFiles(workspaceId);
+    setFiles(workspaceFiles);
+    setWorkspace(workspace);
+  };
+
   useEffect(() => {
-    const loadWorkspace = async () => {
-      if (!workspaceId) {
-        navigate("/");
-        return;
-      }
-
-      const workspace = await workspaceService.getWorkspace(workspaceId);
-      if (!workspace) {
-        navigate("/");
-        return;
-      }
-
-      const workspaceFiles = await fileService.getFiles(workspaceId);
-      setFiles(workspaceFiles);
-      setWorkspace(workspace);
-    };
-
     loadWorkspace();
   }, [workspaceId, navigate]);
 
@@ -136,16 +136,9 @@ export default function Workspace() {
     );
   };
 
-  const refreshFiles = async () => {
+  const reloadWorkspace = async () => {
     if (!workspaceId) return;
-
-    try {
-      const workspaceFiles = await fileService.getFiles(workspaceId);
-      setFiles(workspaceFiles);
-      await modelService.updateKnowledgeGraph(workspaceId);
-    } catch (error) {
-      console.error("Failed to refresh workspace:", error);
-    }
+    window.location.reload();
   };
 
   const handleFileSelect = (
@@ -183,7 +176,7 @@ export default function Workspace() {
           openFile={(file, options) =>
             handleFileSelect(file, FileGroupCount.ONE, options)
           }
-          refreshFiles={refreshFiles}
+          reloadWorkspace={reloadWorkspace}
         />
         <PanelGroup id="workspace" direction="horizontal" className="flex-1">
           <div
