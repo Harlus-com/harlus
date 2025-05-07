@@ -195,28 +195,7 @@ def add_node_relationships(nodes_in: List[Node]) -> List[Node]:
     return nodes_out
 
 
-<<<<<<< HEAD:ml/tools/doc_search/src/harlus_doc_search/node_parse.py
-def process_table_batch(batch, markdown_parser):
-    results = []
-    for node in batch:
-        
-        try:
-            if node.metadata["type"] == "table":
-                table_base_nodes = markdown_parser.get_nodes_from_node(node)
-                base_nodes, objects = markdown_parser.get_nodes_and_objects(table_base_nodes)
-                for base_node in base_nodes:
-                    base_node.metadata["file_path"] = node.metadata["file_path"]
-                results.extend(base_nodes + objects)
-            else:
-                results.append(node)
-        except Exception as e:
-            # Avoid silent failures by logging and preserving the original node
-            print(f"Error processing node: {e}")
-            results.append(node)
-    return results
-=======
 async def process_table_node(node, markdown_parser):
->>>>>>> 8abedfb (added notes):ml/tools/doc_search/src/doc_search/node_parse.py
 
     if node.metadata["type"] == "table":
         table_base_nodes = await markdown_parser.aget_nodes_from_node(node)
