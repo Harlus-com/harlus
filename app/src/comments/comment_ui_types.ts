@@ -23,7 +23,6 @@ export interface Comment {
   timestamp: Date;
   annotations: HighlightArea[];
   links: CommentLink[];
-  jumpToPageNumber: number;
 }
 
 export interface CommentState {

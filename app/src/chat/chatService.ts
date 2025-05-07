@@ -3,8 +3,6 @@ import { fileService } from "../api/fileService";
 import { ChatSourceCommentGroup } from "./chat_types";
 import { ChatSourceComment } from "@/api/comment_types";
 
-
-
 // Utility function to convert snake_case to camelCase
 function snakeToCamel(str: string): string {
   return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
@@ -186,7 +184,6 @@ function createChatSourceComment(item: any): ChatSourceComment {
         height: bbox.height,
         page: bbox.page,
       })),
-      jumpToPageNumber: item.highlightArea.jumpToPageNumber,
     },
     commentGroupId: item.threadId,
     nextChatCommentId: item.nextChatCommentId,
