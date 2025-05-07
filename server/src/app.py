@@ -19,6 +19,7 @@ from pathlib import Path
 from llama_index.core.agent.workflow import ReActAgent
 
 from pydantic import BaseModel, ConfigDict, Field
+from src.chat_store import ChatStore
 from src.util import BoundingBoxConverter, snake_to_camel
 from src.tool_library import ToolLibrary
 from src.sync_workspace import get_workspace_sync_manager
@@ -275,10 +276,20 @@ SYSTEM_PROMPT = """
         """
 
 
+class StartThreadRequest(BaseModel):
+    workspace_id: str = Field(alias="workspaceId")
+
+
 @app.post("/chat/start_thread")
-def start_thread(workspace_id: str = Query(..., alias="workspaceId")):
-    print("Starting thread", workspace_id)
-    return chat_library.start_thread(workspace_id)
+def start_thread(request: StartThreadRequest):
+    print("Starting thread", request.workspace_id)
+    return {"threadId": chat_library.start_thread(request.workspace_id)}
+
+
+@app.get("/chat/threads")
+def get_threads(workspace_id: str = Query(..., alias="workspaceId")):
+    print("Getting threads", workspace_id)
+    return {"threadIds": chat_library.load_thread_ids(workspace_id)}
 
 
 @app.get("/chat/stream")
@@ -445,15 +456,23 @@ def get_file_from_id(file_id: str):
     return file_store.get_file(file_id)
 
 
+chat_store = ChatStore(file_store)
+
+
 @app.post("/chat/save_history")
-def save_chat_history(message_pairs=Body(...)):
-    # with open("chat_history.json", "w") as f:
-    #    json.dump(message_pairs, f, indent=2)
-    # return True
+async def save_chat_history(
+    message_pairs=Body(...),
+    thread_id: str = Query(..., alias="threadId"),
+    workspace_id: str = Query(..., alias="workspaceId"),
+):
+    await chat_store.save_chat_history(workspace_id, thread_id, message_pairs)
     return True
 
 
 @app.get("/chat/get_history")
-def get_chat_history():
-    with open("chat_history.json", "r") as f:
-        return json.load(f)
+def get_chat_history(
+    thread_id: str = Query(..., alias="threadId"),
+    workspace_id: str = Query(..., alias="workspaceId"),
+):
+    print("Getting chat history", thread_id, workspace_id)
+    return chat_store.get_chat_history(workspace_id, thread_id)

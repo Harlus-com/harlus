@@ -59,7 +59,7 @@ class ChatLibrary:
         with open(os.path.join(chat_dir, "thread_ids.txt"), "a") as f:
             f.write(thread_id + "\n")
 
-    def _load_thread_ids(self, workspace_id: str) -> list[str]:
+    def load_thread_ids(self, workspace_id: str) -> list[str]:
         workspace = self.file_store.get_workspaces()[workspace_id]
         thread_id_path = os.path.join(workspace.absolute_path, "chat", "thread_ids.txt")
         with open(thread_id_path, "r") as f:
@@ -86,7 +86,7 @@ class ChatLibrary:
     def get_and_resume_thread(
         self, workspace_id: str, thread_id: str
     ) -> ChatAgentGraph:
-        if not thread_id in self._load_thread_ids(workspace_id):
+        if not thread_id in self.load_thread_ids(workspace_id):
             raise ValueError(f"Thread {thread_id} not found")
         chat_model = self._get(workspace_id)
         if chat_model.get_current_thread_id() != thread_id:

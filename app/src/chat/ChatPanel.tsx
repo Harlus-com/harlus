@@ -7,7 +7,7 @@ import React, {
   useContext,
   useMemo,
 } from "react";
-import { Send, FileText, X, BookOpen } from "lucide-react";
+import { Send, FileText, X, BookOpen, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { fileService } from "@/api/fileService";
@@ -557,6 +557,13 @@ const LoadingIndicator: React.FC = memo(() => (
 
 LoadingIndicator.displayName = "LoadingIndicator";
 
+// Add new interfaces for thread management
+interface Thread {
+  id: string;
+  title: string;
+  lastMessageAt: string;
+}
+
 // Chat panel component
 const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
   const { workspaceId } = useParams();
@@ -567,30 +574,94 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const [currentPairId, setCurrentPairId] = useState<string | null>(null);
+
+  // Add thread management state
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
+  const [isLoadingThreads, setIsLoadingThreads] = useState(false);
+
   const updateAndSaveMessages = (
     fn: (prev: MessagePair[]) => MessagePair[]
   ) => {
     setMessagePairs((prev) => {
       const newMessages = fn(prev);
-      chatService.saveChatHistory(newMessages);
+      if (currentThreadId && workspaceId) {
+        chatService.saveChatHistory(newMessages, currentThreadId, workspaceId);
+      }
       return newMessages;
     });
   };
 
-  // load previous chat messages
-  const loadChatHistory = useCallback(async () => {
+  // Load threads for the workspace
+  const loadThreads = useCallback(async () => {
+    if (!workspaceId) return;
+
+    setIsLoadingThreads(true);
     try {
-      const history = await chatService.getChatHistory();
-      console.log("[ChatPanel] Chat history:", history.messagePairs);
-      setMessagePairs(history.messagePairs);
+      const threadIds = await chatService.getThreads(workspaceId);
+      const threadData = threadIds.map((id) => ({
+        id,
+        title: `Chat ${id.slice(0, 8)}`,
+        lastMessageAt: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      }));
+      setThreads(threadData);
+
+      // If no current thread is selected and we have threads, select the most recent one
+      if (!currentThreadId && threadData.length > 0) {
+        setCurrentThreadId(threadData[0].id);
+      }
     } catch (error) {
-      console.error("Error loading chat history:", error);
+      console.error("Error loading threads:", error);
+    } finally {
+      setIsLoadingThreads(false);
+    }
+  }, [workspaceId, currentThreadId]);
+
+  // Create a new thread
+  const createNewThread = useCallback(async () => {
+    try {
+      const newThreadId = await chatService.startThread(workspaceId!);
+      const newThread = {
+        id: newThreadId,
+        title: `New Chat ${newThreadId.slice(0, 8)}`,
+        lastMessageAt: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+
+      setThreads((prev) => [newThread, ...prev]);
+      setCurrentThreadId(newThreadId);
+      setMessagePairs([]); // Clear messages for new thread
+    } catch (error) {
+      console.error("Error creating new thread:", error);
     }
   }, []);
 
+  // Load threads on mount and when workspace changes
   useEffect(() => {
-    loadChatHistory();
-  }, [loadChatHistory]);
+    loadThreads();
+  }, [loadThreads]);
+
+  // Load chat history for current thread
+  const loadChatHistory = useCallback(async () => {
+    const history = await chatService.getChatHistory(
+      currentThreadId,
+      workspaceId
+    );
+    setMessagePairs(history.messagePairs);
+    console.log("[ChatPanel] Chat history:", history.messagePairs);
+  }, [currentThreadId, workspaceId]);
+
+  // Load chat history when thread changes or on initial mount
+  useEffect(() => {
+    if (currentThreadId) {
+      loadChatHistory();
+    }
+  }, [currentThreadId]); // Only depend on currentThreadId
 
   // scroll to bottom of chat container
   useEffect(() => {
@@ -614,6 +685,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
   // send message
   const handleSendMessage = useCallback(async () => {
     if (!input.trim() || isEventSourceActive) return;
+
+    // Create new thread if none exists
+    if (!currentThreadId) {
+      await createNewThread();
+      return; // The message will be sent on the next render when currentThreadId is set
+    }
 
     const pairId = `${Date.now()}.${Math.floor(Math.random() * 100)}`;
     setCurrentPairId(pairId);
@@ -656,6 +733,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
       await chatService.streamChat(
         input.trim(),
         workspaceId!,
+        currentThreadId,
         // onMessage handler - for all types of messages
         (newContent, messageType) => {
           updateAndSaveMessages((prev) => {
@@ -854,7 +932,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
       setIsEventSourceActive(false);
       setCurrentPairId(null);
     }
-  }, [input, isEventSourceActive, workspaceId]);
+  }, [
+    input,
+    isEventSourceActive,
+    workspaceId,
+    currentThreadId,
+    createNewThread,
+  ]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -874,6 +958,32 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
     [handleSendMessage]
   );
 
+  // Add thread selector component
+  const ThreadSelector = () => (
+    <div className="flex items-center gap-2 px-3.5 py-2 border-b border-gray-100">
+      <select
+        value={currentThreadId || ""}
+        onChange={(e) => setCurrentThreadId(e.target.value)}
+        className="flex-1 text-sm bg-transparent border-none focus:ring-0 text-gray-700"
+        disabled={isLoadingThreads}
+      >
+        {threads.map((thread) => (
+          <option key={thread.id} value={thread.id}>
+            {thread.title}
+          </option>
+        ))}
+      </select>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={createNewThread}
+        className="h-8 w-8 p-0 hover:bg-gray-100"
+      >
+        <Plus className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+
   // render chat panel
   return (
     <SourceClickContext.Provider value={{ onSourceClicked }}>
@@ -885,6 +995,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           </div>
         </div>
 
+        <ThreadSelector />
+
         <ScrollArea className="flex-1 px-3.5 pt-3.5 pb-2">
           <div ref={chatContainerRef} className="space-y-6">
             {messagePairs.length === 0 ? (
@@ -893,11 +1005,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                   <BookOpen className="h-5 w-5 text-blue-500" />
                 </div>
                 <h3 className="text-base font-medium text-gray-800 mb-1">
-                  Welcome to Harlus
+                  {currentThreadId
+                    ? "Start a new conversation"
+                    : "Welcome to Harlus"}
                 </h3>
                 <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                  Ask questions about your documents. The AI will analyze the
-                  content and provide relevant answers.
+                  {currentThreadId
+                    ? "Ask questions about your documents in this chat thread."
+                    : "Ask questions about your documents. The AI will analyze the content and provide relevant answers."}
                 </p>
               </div>
             ) : (

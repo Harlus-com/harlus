@@ -49,54 +49,6 @@ class FileService {
     );
   }
 
-  // Send a message to the AI assistant
-  async sendMessage(content: string): Promise<ChatMessage> {
-    // Add user message
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      sender: "user",
-      content,
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      chatSourceCommentGroups: [],
-    };
-
-    this.chatHistory.push(userMessage);
-
-    // Mock AI response - would be replaced with actual API call
-    // For demo, we have some predefined responses
-    let responseContent = `I'm analyzing your question: "${content}"`;
-
-    if (content.toLowerCase().includes("financial")) {
-      responseContent =
-        "The financial reports show a 5% increase in revenue compared to the previous quarter, with significant growth in the technology sector.";
-    } else if (content.toLowerCase().includes("market")) {
-      responseContent =
-        "Market analysis indicates a potential shift towards sustainable investments, with ESG-focused companies outperforming the broader market by 2.3% in Q1.";
-    } else if (content.toLowerCase().includes("competitor")) {
-      responseContent =
-        "Competitor earnings reports reveal a slowdown in their core business segments, with a 3% decline in retail operations but 7% growth in digital services.";
-    }
-
-    const aiMessage: ChatMessage = {
-      id: (Date.now() + 1).toString(),
-      sender: "assistant",
-      content: responseContent,
-      timestamp: new Date(),
-      chatSourceCommentGroups: [],
-    };
-
-    this.chatHistory.push(aiMessage);
-    return aiMessage;
-  }
-
-  // Get chat history
-  async getChatHistory(): Promise<ChatMessage[]> {
-    return this.chatHistory;
-  }
-
   // Run contrast analysis between two files
   async runContrastAnalysis(
     file1Id: string,

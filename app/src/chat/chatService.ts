@@ -169,14 +169,58 @@ export class ChatService {
     }
   }
 
-  saveChatHistory(messagePairs: MessagePair[]) {
-    client.post("/chat/save_history", {
-      messagePairs,
-    });
+  /**
+   * Saves chat history for a specific thread
+   * @param messagePairs The message pairs to save
+   * @param threadId The ID of the thread
+   * @param workspaceId The ID of the workspace
+   */
+  saveChatHistory(
+    messagePairs: MessagePair[],
+    threadId: string,
+    workspaceId: string
+  ) {
+    client.post(
+      `/chat/save_history?threadId=${threadId}&workspaceId=${workspaceId}`,
+      {
+        messagePairs,
+      }
+    );
   }
 
-  getChatHistory() {
-    return client.get("/chat/get_history");
+  /**
+   * Starts a new chat thread
+   * @returns Promise<string> The ID of the new thread
+   */
+  async startThread(workspaceId: string): Promise<string> {
+    const response = await client.post("/chat/start_thread", {
+      workspaceId,
+    });
+    return response.threadId;
+  }
+
+  /**
+   * Gets all chat threads for a workspace
+   * @param workspaceId The ID of the workspace
+   * @returns Promise<string[]> Array of thread IDs
+   */
+  async getThreads(workspaceId: string): Promise<string[]> {
+    const response = await client.get(
+      `/chat/threads?workspaceId=${workspaceId}`
+    );
+    return response.threadIds;
+  }
+
+  /**
+   * Gets chat history for a specific thread
+   * @param threadId The ID of the thread
+   * @param workspaceId The ID of the workspace
+   * @returns Promise<{ messagePairs: MessagePair[] }>
+   */
+  async getChatHistory(threadId: string, workspaceId: string) {
+    return client.get(
+      `/chat/get_history?threadId=${threadId}&workspaceId=${workspaceId}`
+    );
   }
 }
 
