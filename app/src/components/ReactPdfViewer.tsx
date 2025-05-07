@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useImperativeHandle,
-  forwardRef,
-  useMemo,
-} from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { WorkspaceFile } from "@/api/workspace_types";
 import { fileService } from "@/api/fileService";
 
@@ -18,7 +12,6 @@ import type {
   RenderHighlightsProps,
 } from "@react-pdf-viewer/highlight";
 import "@react-pdf-viewer/core/lib/styles/index.css";
-import { pageNavigationPlugin } from "@react-pdf-viewer/page-navigation";
 import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 
 // pdfjs worker for the Viewer
@@ -31,17 +24,11 @@ interface PdfViewerProps {
 
 type Highlight = HighlightArea & { color: string };
 
-// Define the ref interface
-export interface PdfViewerRef {
-  jumpToPage: (zeroBasedPageIndex: number) => void;
-}
-
-const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
+const PdfViewer = ({ file }: PdfViewerProps) => {
   const { getActiveComments, getSelectedComment } = useComments();
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const activeComments = getActiveComments(file.id);
   const selectedComment = getSelectedComment(file.id);
-  const initialPage = selectedComment?.jumpToPageNumber;
 
   const highlightAreas: Highlight[] = useMemo(() => {
     const areas: Highlight[] = [];
@@ -55,12 +42,6 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
     }
     return areas;
   }, [activeComments]);
-
-  useImperativeHandle(ref, () => ({
-    jumpToPage: (zeroBasedPageIndex: number) => {
-      pageNavigationPluginInstance.jumpToPage(zeroBasedPageIndex);
-    },
-  }));
 
   // initialize the default-layout plugin
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
@@ -91,7 +72,14 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
     trigger: Trigger.None,
   });
 
-  const pageNavigationPluginInstance = pageNavigationPlugin();
+  useEffect(() => {
+    console.log("selectedComment changed: ", selectedComment);
+    if (selectedComment) {
+      highlightPluginInstance.jumpToHighlightArea(
+        selectedComment.annotations[0]
+      );
+    }
+  }, [selectedComment]);
 
   useEffect(() => {
     let isMounted = true;
@@ -104,9 +92,6 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
           const blob = new Blob([data], { type: "application/pdf" });
           const url = URL.createObjectURL(blob);
           setFileUrl(url);
-          if (initialPage) {
-            pageNavigationPluginInstance.jumpToPage(initialPage);
-          }
         })
         .catch((err) => {
           console.error("Failed to load PDF data", err);
@@ -143,11 +128,7 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
         {fileUrl ? (
           <Viewer
             fileUrl={fileUrl}
-            plugins={[
-              defaultLayoutPluginInstance,
-              highlightPluginInstance,
-              pageNavigationPluginInstance,
-            ]}
+            plugins={[defaultLayoutPluginInstance, highlightPluginInstance]}
             defaultScale={1}
             onPageChange={(e) => {
               // This is just for tracking the current page
@@ -162,6 +143,6 @@ const PdfViewer = forwardRef<PdfViewerRef, PdfViewerProps>(({ file }, ref) => {
       </Worker>
     </div>
   );
-});
+};
 
 export default PdfViewer;

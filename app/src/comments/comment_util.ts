@@ -1,5 +1,6 @@
-import { ClaimComment } from "@/api/comment_types";
+import { BoundingBox, ClaimComment } from "@/api/comment_types";
 import { CommentColor, ReadonlyComment } from "./comment_ui_types";
+import { HighlightArea } from "@react-pdf-viewer/highlight";
 
 import { CommentState } from "./comment_ui_types";
 
@@ -34,4 +35,22 @@ export function copyToReadonly(comment: CommentComponentData): ReadonlyComment {
     ...comment.apiData,
     ...comment.uiState,
   };
+}
+
+export function getHighestZeroIndexedPageNumber(
+  boundingBoxes: BoundingBox[]
+): number | null {
+  if (!boundingBoxes || boundingBoxes.length === 0) {
+    return null;
+  }
+  return boundingBoxes.reduce((max, box) => Math.max(max, box.page), 0);
+}
+
+export function getHighestZeroIndexedPageNumberFromHighlightArea(
+  areas: HighlightArea[]
+): number | null {
+  if (!areas || areas.length === 0) {
+    return null;
+  }
+  return areas.reduce((max, box) => Math.max(max, box.pageIndex), 0);
 }

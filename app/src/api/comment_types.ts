@@ -6,6 +6,7 @@ export interface CommentGroup {
 }
 
 // REMEMBER THIS HAS TO BE FOR ReactPdfVieiwer, which uses percentages
+// TODO: Replace this with the HighlightArea type from @react-pdf-viewer/highlight
 export interface BoundingBox {
   readonly left: number;
   readonly top: number;
@@ -17,8 +18,6 @@ export interface BoundingBox {
 
 export interface HighlightArea {
   readonly boundingBoxes: BoundingBox[]; // Array of bounding boxes that make up the highlight area
-  // Page number to jump to when the highlight is clicked note: the comment could span multiplage pages hence "jumpTo"
-  readonly jumpToPageNumber: number; // This is 1-based -- TODO: Make this 0-based for consistency
 }
 
 export interface ClaimComment {

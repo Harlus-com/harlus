@@ -2,7 +2,6 @@
 import { WorkspaceFile } from "./workspace_types";
 import { ChatMessage } from "../chat/chat_types";
 import { client } from "./client";
-import { mockContrastAnalysisResponse } from "./mock_data";
 import { ClaimComment } from "./comment_types";
 // Mock API service for now - will be replaced with actual API calls
 class FileService {

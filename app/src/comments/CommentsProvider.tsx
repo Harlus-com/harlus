@@ -10,7 +10,10 @@ import {
   Comment,
   CommentColor,
 } from "./comment_ui_types";
-import { convertChatSourceCommentToComments, convertClaimCommentToComments } from "./comment_converters";
+import {
+  convertChatSourceCommentToComments,
+  convertClaimCommentToComments,
+} from "./comment_converters";
 import { getCommentColor, updateUiState, copyToReadonly } from "./comment_util";
 import { CommentsContext } from "./CommentsContext";
 import { flushSync } from "react-dom";
@@ -35,7 +38,11 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
 
   const updateComments = (
     updates: { [key: string]: CommentComponentData },
-    options: { expectAllNew?: boolean; expectReplace?: boolean; upsert?: boolean } = {}
+    options: {
+      expectAllNew?: boolean;
+      expectReplace?: boolean;
+      upsert?: boolean;
+    } = {}
   ) => {
     // With upsert option, we can add new comments and update existing ones without errors
     // This simplifies adding chat source comments (the source button can be clicked multiple times)
@@ -44,7 +51,7 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
         // Just merge updates without throwing errors for duplicates or missing comments
         return { ...prevComments, ...updates };
       }
-      
+
       if (options.expectAllNew) {
         Object.keys(updates).forEach((key) => {
           if (prevComments[key]) {
@@ -100,60 +107,66 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
     group: CommentGroup
   ) => {
     // Filter out invalid comments
-    const validComments = comments.filter(comment => {
-
+    const validComments = comments.filter((comment) => {
       if (!comment.highlightArea) {
         console.warn("Missing highlight area in chat source comment:", comment);
         return false;
       }
-      
-      if (!comment.highlightArea.boundingBoxes || !Array.isArray(comment.highlightArea.boundingBoxes)) {
-        console.warn("Missing or invalid bounding boxes in chat source comment:", comment);
+
+      if (
+        !comment.highlightArea.boundingBoxes ||
+        !Array.isArray(comment.highlightArea.boundingBoxes)
+      ) {
+        console.warn(
+          "Missing or invalid bounding boxes in chat source comment:",
+          comment
+        );
         return false;
       }
-      
-      const validBoundingBoxes = comment.highlightArea.boundingBoxes.every(bbox => {
-        if (!bbox || typeof bbox !== 'object') {
-          console.warn("Invalid bounding box object:", bbox);
-          return false;
+
+      const validBoundingBoxes = comment.highlightArea.boundingBoxes.every(
+        (bbox) => {
+          if (!bbox || typeof bbox !== "object") {
+            console.warn("Invalid bounding box object:", bbox);
+            return false;
+          }
+
+          if (
+            bbox.page === undefined ||
+            bbox.left === undefined ||
+            bbox.top === undefined ||
+            bbox.width === undefined ||
+            bbox.height === undefined
+          ) {
+            console.warn("Incomplete bounding box properties:", bbox);
+            return false;
+          }
+
+          return true;
         }
-        
-        if (bbox.page === undefined || 
-            bbox.left === undefined || 
-            bbox.top === undefined || 
-            bbox.width === undefined || 
-            bbox.height === undefined) {
-          console.warn("Incomplete bounding box properties:", bbox);
-          return false;
-        }
-        
-        return true;
-      });
-      
+      );
+
       if (!validBoundingBoxes) {
         console.warn("Invalid bounding boxes in comment:", comment.id);
         return false;
       }
-      
-      if (comment.highlightArea.jumpToPageNumber === undefined) {
-        console.warn("Missing jumpToPageNumber in chat source comment:", comment);
-        return false;
-      }
-      
+
       return true;
     });
-    
+
     if (validComments.length === 0) {
       console.warn("No valid chat source comments to add");
       return;
     }
-    
+
     const convertedComments: Comment[] = (
       await Promise.all(
-        validComments.map((comment) => convertChatSourceCommentToComments(comment, group))
+        validComments.map((comment) =>
+          convertChatSourceCommentToComments(comment, group)
+        )
       )
     ).flat();
-    
+
     const commentComponentData: CommentComponentData[] = convertedComments.map(
       (comment) => ({
         apiData: comment,
@@ -164,12 +177,12 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
         },
       })
     );
-    
+
     const updates: { [key: string]: CommentComponentData } = {};
     for (const comment of commentComponentData) {
       updates[comment.apiData.id] = comment;
     }
-    
+
     // Apply updates
     updateComments(updates, { upsert: true });
   };

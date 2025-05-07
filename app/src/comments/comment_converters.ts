@@ -11,6 +11,7 @@ import { HighlightArea as ReactPdfHighlightArea } from "@react-pdf-viewer/highli
 import { fileService } from "@/api/fileService";
 import { Comment, CommentLink, CommentTag } from "./comment_ui_types";
 import { WorkspaceFile } from "@/api/workspace_types";
+import { getHighestZeroIndexedPageNumber } from "./comment_util";
 
 export async function convertClaimCommentToComments(
   claim: ClaimComment,
@@ -27,7 +28,6 @@ export async function convertClaimCommentToComments(
     timestamp: new Date(),
     annotations: convertHighlightAreaToAnnotations(claim.highlightArea),
     links,
-    jumpToPageNumber: claim.highlightArea.jumpToPageNumber,
   };
   console.log("VERDICT", claim.verdict);
   if (claim.verdict === "true") {
@@ -49,7 +49,9 @@ async function convertLinkCommentToLink(
   const file = await fileService.getFileFromPath(comment.filePath);
   return {
     linkToCommentId: comment.id,
-    text: `${file.name}, page ${comment.highlightArea.jumpToPageNumber}`,
+    text: `${file.name}, page ${
+      getHighestZeroIndexedPageNumber(comment.highlightArea.boundingBoxes) + 1
+    }`,
     likeToFileId: file.id,
   };
 }
@@ -74,11 +76,14 @@ async function convertLinkCommentToComment(
     links: [
       {
         linkToCommentId: parentComment.id,
-        text: `${parentFile.name}, page ${parentComment.highlightArea.jumpToPageNumber}`,
+        text: `${parentFile.name}, page ${
+          getHighestZeroIndexedPageNumber(
+            parentComment.highlightArea.boundingBoxes
+          ) + 1
+        }`,
         likeToFileId: parentFile.id,
       },
     ],
-    jumpToPageNumber: comment.highlightArea.jumpToPageNumber,
   };
 }
 
@@ -94,12 +99,13 @@ export async function convertChatSourceCommentToComments(
     body: chatSourceComment.text || "Source from AI Assistant",
     author: "AI Assistant",
     timestamp: new Date(),
-    annotations: convertHighlightAreaToAnnotations(chatSourceComment.highlightArea),
+    annotations: convertHighlightAreaToAnnotations(
+      chatSourceComment.highlightArea
+    ),
     links: [],
-    jumpToPageNumber: chatSourceComment.highlightArea.jumpToPageNumber,
     tag: CommentTag.SOURCE,
   };
-  
+
   return [comment];
 }
 
