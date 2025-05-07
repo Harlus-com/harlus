@@ -36,6 +36,8 @@ import { ChatHistory } from "./ChatHistory";
 
 interface ChatPanelProps {
   onSourceClicked?: (file: WorkspaceFile) => void;
+  currentThreadId: string | null;
+  onThreadChange: (threadId: string | null) => void;
 }
 
 // Message type interfaces
@@ -568,7 +570,11 @@ const LoadingIndicator: React.FC = memo(() => (
 LoadingIndicator.displayName = "LoadingIndicator";
 
 // Chat panel component
-const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
+const ChatPanel: React.FC<ChatPanelProps> = ({
+  onSourceClicked,
+  currentThreadId,
+  onThreadChange,
+}) => {
   const { workspaceId } = useParams();
   const [messagePairs, setMessagePairs] = useState<MessagePair[]>([]);
   const [input, setInput] = useState("");
@@ -577,7 +583,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const [currentPairId, setCurrentPairId] = useState<string | null>(null);
-  const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
+  const [isHistoryVisible, setIsHistoryVisible] = useState(false);
 
   const updateAndSaveMessages = (
     fn: (prev: MessagePair[]) => MessagePair[]
@@ -608,6 +614,21 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
       loadChatHistory();
     }
   }, [currentThreadId, loadChatHistory]);
+
+  // Create a new thread when chat panel is opened and no thread is selected
+  useEffect(() => {
+    const createNewThreadIfNeeded = async () => {
+      if (workspaceId && !currentThreadId) {
+        try {
+          const newThreadId = await chatService.startThread(workspaceId);
+          onThreadChange(newThreadId);
+        } catch (error) {
+          console.error("Error creating new thread:", error);
+        }
+      }
+    };
+    createNewThreadIfNeeded();
+  }, [workspaceId, currentThreadId, onThreadChange]);
 
   // scroll to bottom of chat container
   useEffect(() => {
@@ -904,24 +925,61 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
       <div className="h-full flex flex-col border-l border-gray-100 bg-gray-50">
         <div className="py-2.5 px-3.5 font-medium border-b border-gray-100 bg-white flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <BookOpen className="w-4 h-4 text-blue-500" />
-            <span className="text-sm text-gray-800">AI Assistant</span>
+            <span className="text-sm text-gray-800">Chat</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsHistoryVisible(!isHistoryVisible)}
+              className="h-8 px-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            >
+              <BookOpen className="h-4 w-4 mr-1.5" />
+              {isHistoryVisible ? "Hide History" : "History"}
+            </Button>
+            {messagePairs.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (workspaceId) {
+                    chatService.startThread(workspaceId).then(onThreadChange);
+                  }
+                }}
+                className="h-8 w-8 p-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50 group relative"
+              >
+                <Plus className="h-4 w-4" />
+                <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  New chat
+                </div>
+              </Button>
+            )}
           </div>
         </div>
 
-        {workspaceId && (
-          <ChatHistory
-            workspaceId={workspaceId}
-            currentThreadId={currentThreadId}
-            onThreadSelect={setCurrentThreadId}
-            onThreadCreate={setCurrentThreadId}
-            onThreadDelete={(threadId) => {
-              if (currentThreadId === threadId) {
-                setCurrentThreadId(null);
-                setMessagePairs([]);
-              }
-            }}
-          />
+        {isHistoryVisible && workspaceId && (
+          <div className="border-b border-gray-100 bg-white">
+            <div className="max-h-[50vh] overflow-y-auto">
+              <ChatHistory
+                workspaceId={workspaceId}
+                currentThreadId={currentThreadId}
+                onThreadSelect={(threadId) => {
+                  onThreadChange(threadId);
+                  setIsHistoryVisible(false);
+                }}
+                onThreadCreate={(threadId) => {
+                  onThreadChange(threadId);
+                  setIsHistoryVisible(false);
+                }}
+                onThreadDelete={(threadId) => {
+                  if (currentThreadId === threadId) {
+                    onThreadChange(null);
+                    setMessagePairs([]);
+                  }
+                }}
+              />
+            </div>
+          </div>
         )}
 
         <ScrollArea className="flex-1 px-3.5 pt-3.5 pb-2">

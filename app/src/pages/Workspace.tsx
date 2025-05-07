@@ -36,6 +36,7 @@ export default function Workspace() {
   const [files, setFiles] = useState<WorkspaceFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const dropAreaRef = useRef<HTMLDivElement>(null);
+  const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
 
   const loadWorkspace = async () => {
     if (!workspaceId) {
@@ -233,6 +234,8 @@ export default function Workspace() {
                 minSize={CHAT.minSize}
               >
                 <ChatPanel
+                  currentThreadId={currentThreadId}
+                  onThreadChange={setCurrentThreadId}
                   onSourceClicked={(file) =>
                     handleFileSelect(file, FileGroupCount.ONE, {
                       showComments: true,
