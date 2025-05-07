@@ -406,7 +406,7 @@ AssistantMessage.displayName = "AssistantMessage";
 const MessagePairComponent: React.FC<MessagePairProps> = memo(
   ({ pair, isReading, toggleReadingMessages }) => {
     const { onSourceClicked } = useContext(SourceClickContext);
-    const { addChatSourceComments, addCommentGroup, setActiveCommentGroups } = useComments();
+    const { addChatSourceComments, addCommentGroup, setActiveCommentGroups, getAllComments, getAllCommentGroups } = useComments();
 
     // Handle source clicks
     const handleSourceClick = useCallback(
@@ -426,17 +426,41 @@ const MessagePairComponent: React.FC<MessagePairProps> = memo(
               return;
             }
             
+            // Create or reuse existing comment group
+            const commentGroupId = `chat-source-${chatSourceCommentGroup.filePath.replace(/\//g, "-")}`;
             const commentGroup: CommentGroup = {
-              id: `chat-source-${Date.now()}`, // TODO: replace with thread ID
+              id: commentGroupId,
               name: `Source from AI Assistant`,
             };
             
+            // Get existing comments for this file
+            const existingComments = getAllComments(file.id);
+            const existingCommentIds = new Set(existingComments.map(comment => comment.id));
             
-            addCommentGroup(commentGroup);
+            // Only add the comment group if it doesn't already exist
+            const existingGroups = getAllCommentGroups(file.id);
+            const groupExists = existingGroups.some(group => group.id === commentGroupId);
+            
+            if (!groupExists) {
+              addCommentGroup(commentGroup);
+            }
 
-            setActiveCommentGroups(file.id, [commentGroup.id]);            
+            // Set this as the active comment group for the file
+            setActiveCommentGroups(file.id, [commentGroupId]);            
+            
+            // Filter out comments that already exist
             if (chatSourceCommentGroup.chatSourceComments) {
-              await addChatSourceComments(chatSourceCommentGroup.chatSourceComments, commentGroup);
+              const filteredComments = chatSourceCommentGroup.chatSourceComments.filter(
+                comment => !existingCommentIds.has(comment.id)
+              );
+              
+              console.log(
+                `[MessagePair] Adding ${filteredComments.length} new comments out of ${chatSourceCommentGroup.chatSourceComments.length} total`
+              );
+              
+              if (filteredComments.length > 0) {
+                await addChatSourceComments(filteredComments, commentGroup);
+              }
             }
 
             onSourceClicked(file);
@@ -446,7 +470,7 @@ const MessagePairComponent: React.FC<MessagePairProps> = memo(
           }
         }
       },
-      [onSourceClicked, addChatSourceComments, addCommentGroup, setActiveCommentGroups]
+      [onSourceClicked, addChatSourceComments, addCommentGroup, setActiveCommentGroups, getAllComments, getAllCommentGroups]
     );
 
     const handleToggleReadingMessages = useCallback(() => {
