@@ -5,7 +5,7 @@ import dill
 from collections import defaultdict
 
 from src.file_store import FileStore, File
-from doc_search import ToolWrapper
+from harlus_doc_search import ToolWrapper
 
 
 class ToolLibrary:

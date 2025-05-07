@@ -1,13 +1,9 @@
 from setuptools import setup, find_packages
 
-with open("requirements.txt") as f:
-    requirements = f.read().splitlines()
-
 setup(
-    name="contrast_tool",
-    version="0.1.0",
+    name="harlus_contrast_tool",
+    version="0.1.0",  # DO NOT BUMP THIS VERSION (see python/env/README.md)
     packages=find_packages(where="src"),
     package_dir={"": "src"},
-    install_requires=requirements,
-    package_data={"contrast_tool": ["config.yaml"]},
+    package_data={"harlus_contrast_tool": ["config.yaml"]},
 )

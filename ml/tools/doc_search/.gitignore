@@ -2,6 +2,6 @@ artifacts
 __pycache__
 .venv
 dist
-doc_search.egg-info
+*.egg-info
 .vscode
 dev

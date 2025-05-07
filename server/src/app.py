@@ -28,7 +28,7 @@ from src.file_store import FileStore, Workspace, File
 from src.sync_queue import SyncQueue, SyncType
 from src.stream_manager import StreamManager
 from src.sync_status import SyncStatus
-from contrast_tool import ContrastTool
+from harlus_contrast_tool import ContrastTool
 from harlus_chat import ChatAgentGraph
 
 

@@ -1,6 +1,7 @@
 {
   "folders": [{ "path": "." }],
   "settings": {
-    "window.title": "Harlus"
+    "window.title": "Harlus",
+    "python.defaultInterpreterPath": "python/env/.venv/bin/python3.13"
   }
 }
