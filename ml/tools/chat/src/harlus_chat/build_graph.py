@@ -290,34 +290,35 @@ class ChatAgentGraph:
     def get_current_thread_id(self):
         return self.config["configurable"].get("thread_id")
 
-    def get_thread_ids(self):
+    # AI generated, to review and improve
+    # def get_thread_ids(self):
         
-        import sqlite3
+    #     import sqlite3
         
-        if not os.path.exists(self.db_path):
-            return []
+    #     if not os.path.exists(self.db_path):
+    #         return []
             
-        try:
-            # Connect to the SQLite database
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
+    #     try:
+    #         # Connect to the SQLite database
+    #         conn = sqlite3.connect(self.db_path)
+    #         cursor = conn.cursor()
             
-            # Query for unique thread_ids
-            cursor.execute("""
-                SELECT DISTINCT json_extract(config, '$.configurable.thread_id') 
-                FROM checkpoints
-                WHERE json_extract(config, '$.configurable.thread_id') IS NOT NULL
-            """)
+    #         # Query for unique thread_ids
+    #         cursor.execute("""
+    #             SELECT DISTINCT json_extract(config, '$.configurable.thread_id') 
+    #             FROM checkpoints
+    #             WHERE json_extract(config, '$.configurable.thread_id') IS NOT NULL
+    #         """)
             
-            # Fetch all results and close connection
-            results = cursor.fetchall()
-            conn.close()
+    #         # Fetch all results and close connection
+    #         results = cursor.fetchall()
+    #         conn.close()
             
-            # Extract thread_ids and return
-            return [result[0] for result in results if result[0]]
-        except Exception as e:
-            print(f"Error retrieving thread IDs: {e}")
-            return []
+    #         # Extract thread_ids and return
+    #         return [result[0] for result in results if result[0]]
+    #     except Exception as e:
+    #         print(f"Error retrieving thread IDs: {e}")
+    #         return []
 
     def start_new_thread(self):
         self.config["configurable"]["thread_id"] = str(uuid.uuid4())
