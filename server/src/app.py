@@ -315,6 +315,11 @@ class ReactPdfAnnotation(BaseModel):
     height: float
 
 
+cache_file_path_base = "contrast_analysis"
+# Set this to the desired cache response
+cache_file_path_target = ""
+
+
 @app.get("/contrast/analyze")
 def get_contrast_analyze(
     old_file_id: str = Query(..., alias="oldFileId"),
@@ -337,9 +342,9 @@ def get_contrast_analyze(
     update_sentence_retriever = tool_library.get_tool(
         new_file.absolute_path, "sentence_retriever_tool"
     )
-    if os.path.exists("original_comments.json"):
+    if os.path.exists(cache_file_path_target):
         time.sleep(3)
-        with open("original_comments.json", "r") as f:
+        with open(cache_file_path_target, "r") as f:
             comments = json.load(f)
             comments = [ClaimComment(**comment) for comment in comments]
     else:
@@ -351,8 +356,16 @@ def get_contrast_analyze(
             update_qengine.get(),
             update_sentence_retriever.get(),
         )
-        with open("original_comments.json", "w") as f:
-            json.dump([comment.model_dump() for comment in comments], f, indent=2)
+        for i in range(1, 100):
+            new_cache_file_path = f"{cache_file_path_base}_{i}.json"
+            if not os.path.exists(new_cache_file_path):
+                with open(new_cache_file_path, "w") as f:
+                    json.dump(
+                        [comment.model_dump() for comment in comments],
+                        f,
+                        indent=2,
+                    )
+                break
 
     response_comments = []
     time_now = datetime.datetime.now().isoformat()
@@ -404,8 +417,6 @@ def get_contrast_analyze(
             }
         )
 
-    with open("comments.json", "w") as f:
-        json.dump(response_comments, f, indent=2)
     return response_comments
 
 
