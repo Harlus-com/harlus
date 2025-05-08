@@ -15,9 +15,10 @@ export interface FileViewProps {
   setOpenFiles: React.Dispatch<
     React.SetStateAction<Record<FileGroupCount, OpenFileGroup | null>>
   >;
+  onSendMessage?: (message: string) => void;
 }
 
-export default function FileView({ openFiles, setOpenFiles }: FileViewProps) {
+export default function FileView({ openFiles, setOpenFiles, onSendMessage }: FileViewProps) {
   const fileGroupCount = Object.values(openFiles).filter((g) => g).length;
 
   const handleSelectFile = (
@@ -94,6 +95,7 @@ export default function FileView({ openFiles, setOpenFiles }: FileViewProps) {
           onCloseFile={handleCloseFile}
           onToggleComments={handleToggleComments}
           openFile={openFile}
+          onSendMessage={onSendMessage}
         />
       </>
     );
@@ -128,6 +130,7 @@ interface FileGroupPanelProps {
       fileGroup: FileGroupCount;
     }
   ) => void;
+  onSendMessage?: (message: string) => void;
 }
 
 function FileGroupPanel({
@@ -137,6 +140,7 @@ function FileGroupPanel({
   onCloseFile,
   onToggleComments,
   openFile,
+  onSendMessage,
 }: FileGroupPanelProps) {
   const { files, selectedFile, showComments } = openFileGroup;
 
@@ -206,7 +210,11 @@ function FileGroupPanel({
         >
           {selectedFile != null ? (
             <div className="flex-1 min-h-0">
-              <PdfViewer file={selectedFile} key={selectedFile.id} />
+              <PdfViewer 
+                file={selectedFile} 
+                key={selectedFile.id} 
+                onSendMessage={onSendMessage}
+              />
             </div>
           ) : (
             <div className="flex-1 bg-white h-full flex items-center justify-center">

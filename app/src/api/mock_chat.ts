@@ -13,6 +13,15 @@ export const mockConversations: MockMessage[] = [
       "Extracting main company KPIs...",
       "Comparing KPIs to current values in financial_model.xls..."
     ]
+  },
+  {
+    userMessage: "Do any sell-side reports confirm this?",
+    assistantMessage: "The capital of France is Paris. It's one of the most populous cities in Europe and serves as the country's major economic and cultural center.",
+    readingMessages: [
+      "Let's see if other reports confirm the decreasing iPad sales.",
+      "Searching Bloomberg terminal for iPad sales...",
+      "Comparing KPIs to current values in financial_model.xls..."
+    ]
   }
   // Add more mock conversations as needed
 ];

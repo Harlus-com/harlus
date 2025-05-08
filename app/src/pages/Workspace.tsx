@@ -16,7 +16,7 @@ import {
   TopLevelPanelId,
 } from "@/components/panels";
 import WorkspaceHeader from "@/components/WorkspaceHeader";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Panel, PanelGroup, ImperativePanelGroupHandle } from "react-resizable-panels";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChatThreadProvider } from "@/chat/ChatThreadContext";
@@ -36,6 +36,11 @@ export default function Workspace() {
   const [isDragging, setIsDragging] = useState(false);
   const dropAreaRef = useRef<HTMLDivElement>(null);
   const panelGroupRef = useRef<ImperativePanelGroupHandle>(null);
+  const [chatSendMessage, setChatSendMessage] = useState<(message: string) => void>();
+  const [chatPanelFunctions, setChatPanelFunctions] = useState<{
+    setInput?: (message: string) => void;
+    sendMessage?: () => void;
+  }>({});
 
   const loadWorkspace = async () => {
     if (!workspaceId) {
@@ -177,6 +182,13 @@ export default function Workspace() {
     }));
   };
 
+  const sendPdfMessage = useCallback((message: string) => {
+    if (chatPanelFunctions.setInput && chatPanelFunctions.sendMessage) {
+      chatPanelFunctions.setInput(message);
+      chatPanelFunctions.sendMessage();
+    }
+  }, [chatPanelFunctions]);
+
   return (
     <ChatThreadProvider workspaceId={workspaceId!}>
       <CommentsProvider>
@@ -238,7 +250,11 @@ export default function Workspace() {
                   defaultSize={FILE_VIEWER.defaultSize}
                   minSize={FILE_VIEWER.minSize}
                 >
-                  <FileView openFiles={openFiles} setOpenFiles={setOpenFiles} />
+                  <FileView
+                    openFiles={openFiles}
+                    setOpenFiles={setOpenFiles}
+                    onSendMessage={sendPdfMessage}
+                  />
                 </Panel>
               )}
               {visiblePanels.includes(TopLevelPanelId.FILE_VIEWER) && <PanelDivider />}
@@ -255,6 +271,9 @@ export default function Workspace() {
                         showComments: true,
                       })
                     }
+                    onSendMessageRef={(setInput, sendMessage) => {
+                      setChatPanelFunctions({ setInput, sendMessage });
+                    }}
                   />
                 </Panel>
               )}

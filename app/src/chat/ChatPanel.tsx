@@ -29,6 +29,7 @@ import { findMockResponse } from '../api/mock_chat';
 
 interface ChatPanelProps {
   onSourceClicked?: (file: WorkspaceFile) => void;
+  onSendMessageRef?: (setInputFn: (message: string) => void, sendFn: () => void) => void;
 }
 
 // Message type interfaces
@@ -606,7 +607,7 @@ const LoadingIndicator: React.FC = memo(() => (
 LoadingIndicator.displayName = "LoadingIndicator";
 
 // Chat panel component
-const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
+const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef }) => {
   const { workspaceId } = useParams();
   const { currentThreadId, createThread, renameThread } = useChatThread();
   const [messagePairs, setMessagePairs] = useState<MessagePair[]>([]);
@@ -737,6 +738,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
     },
     [handleSendMessage]
   );
+
+  // Expose handleSendMessage through the prop
+  useEffect(() => {
+    if (onSendMessageRef) {
+      onSendMessageRef(
+        // Function to set input
+        (message: string) => setInput(message),
+        // Function to send the message
+        handleSendMessage
+      );
+    }
+  }, [onSendMessageRef, handleSendMessage]);
 
   // render chat panel
   return (

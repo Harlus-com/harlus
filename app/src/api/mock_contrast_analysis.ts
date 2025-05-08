@@ -7,7 +7,7 @@ export const mockContrastAnalysisResponse: { claimComments: ClaimComment[] } = {
     {
       id: "c1",
       filePath:
-        "C:\\Users\\info\\AppData\\Local\\electron\\Electron\\Harlus\\AAPL\\2017_Q3_internal_analysis_pdf\\content.pdf",
+        "C:\\Users\\info\\AppData\\Local\\electron\\Electron\\Harlus\\AAPL\\17_Q3_analysis_pdf\\content.pdf",
       commentGroupId: "g1",
       text: "The conclusion section over‑simplifies the contributing factors.",
       highlightArea: {
@@ -18,7 +18,7 @@ export const mockContrastAnalysisResponse: { claimComments: ClaimComment[] } = {
         {
           id: "l1",
           filePath:
-            "C:\\Users\\info\\AppData\\Local\\electron\\Electron\\Harlus\\AAPL\\2017_Q4_results_pdf\\content.pdf",
+            "C:\\Users\\info\\AppData\\Local\\electron\\Electron\\Harlus\\AAPL\\24_Q1_pdf\\content.pdf",
           text: "See detailed factor breakdown in Section 7.2",
           highlightArea: {
             boundingBoxes: [
@@ -36,7 +36,7 @@ export const mockContrastAnalysisResponse: { claimComments: ClaimComment[] } = {
     {
       id: "c2",
       filePath:
-        "C:\\Users\\info\\AppData\\Local\\electron\\Electron\\Harlus\\AAPL\\2017_Q3_internal_analysis_pdf\\content.pdf",
+      "C:\\Users\\info\\AppData\\Local\\electron\\Electron\\Harlus\\AAPL\\17_Q3_analysis_pdf\\content.pdf",
       commentGroupId: "g1",
       text: "Figure reference lacks proper context in the methodology section.",
       highlightArea: {
@@ -47,7 +47,7 @@ export const mockContrastAnalysisResponse: { claimComments: ClaimComment[] } = {
         {
           id: "l2",
           filePath:
-            "C:\\Users\\info\\AppData\\Local\\electron\\Electron\\Harlus\\AAPL\\2017_Q4_results_pdf\\content.pdf",
+          "C:\\Users\\info\\AppData\\Local\\electron\\Electron\\Harlus\\AAPL\\24_Q1_pdf\\content.pdf",
           text: "Comparison figure in Doc2, page 10 shows context.",
           highlightArea: {
             boundingBoxes: [
@@ -60,7 +60,7 @@ export const mockContrastAnalysisResponse: { claimComments: ClaimComment[] } = {
         {
           id: "l3",
           filePath:
-            "C:\\Users\\info\\AppData\\Local\\electron\\Electron\\Harlus\\AAPL\\2017_Q4_results_pdf\\content.pdf",
+          "C:\\Users\\info\\AppData\\Local\\electron\\Electron\\Harlus\\AAPL\\24_Q1_pdf\\content.pdf",
           text: "Additional legend explanation on page 11.",
           highlightArea: {
             boundingBoxes: [
