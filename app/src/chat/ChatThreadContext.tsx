@@ -100,8 +100,11 @@ export const ChatThreadProvider: React.FC<ChatThreadProviderProps> = ({
     options: {
       expectNew?: boolean;
       expectReplace?: boolean;
-    } = {}
+    }
   ) => {
+    if (options.expectNew && options.expectReplace) {
+      throw new Error("expectNew and expectReplace cannot both be true");
+    }
     setThreads((prevThreads) => {
       if (options.expectNew) {
         if (prevThreads[update.apiData.id]) {
@@ -133,7 +136,7 @@ export const ChatThreadProvider: React.FC<ChatThreadProviderProps> = ({
         ? `New Chat ${getNextNewChatNumber(getReadonlyThreads())}`
         : "";
     const componentThread = createNewEmptyThread(title);
-    updateThreads(componentThread);
+    updateThreads(componentThread, { expectNew: true });
     if (options?.setSelected) {
       setCurrentThreadId(componentThread.apiData.id);
     }
@@ -218,13 +221,16 @@ export const ChatThreadProvider: React.FC<ChatThreadProviderProps> = ({
         setAsActiveThreadServerSide: threadId === currentThreadId,
       }
     );
-    updateThreads({
-      apiData: updatedThread,
-      uiState: {
-        isEmpty: false,
-        isUiOnly: false,
+    updateThreads(
+      {
+        apiData: updatedThread,
+        uiState: {
+          isEmpty: false,
+          isUiOnly: false,
+        },
       },
-    });
+      { expectReplace: true }
+    );
   };
 
   const getOrderedThreads = (): ReadonlyThread[] => {
@@ -239,13 +245,16 @@ export const ChatThreadProvider: React.FC<ChatThreadProviderProps> = ({
     if (!thread) {
       throw new Error(`Thread with id ${threadId} does not exist`);
     }
-    updateThreads({
-      ...thread,
-      uiState: {
-        ...thread.uiState,
-        isEmpty: false,
+    updateThreads(
+      {
+        ...thread,
+        uiState: {
+          ...thread.uiState,
+          isEmpty: false,
+        },
       },
-    });
+      { expectReplace: true }
+    );
   };
 
   const value = {
