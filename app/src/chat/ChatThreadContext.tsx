@@ -1,17 +1,31 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useEffect,
-} from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { chatService } from "./chatService";
-import { Thread } from "./chat_types";
+import { ReadonlyThread, ThreadComponentData } from "./chat_types";
+import {
+  sortChatThreads,
+  hourMinuteNow,
+  getNextNewChatNumber,
+  getThreadAhead,
+  getThreadBehind,
+  getTitleFromMessage,
+} from "./chat_util";
+
+interface CreateEmptyThreadOptions {
+  includePlaceholderTitle?: boolean;
+  setSelected?: boolean;
+}
 
 interface ChatThreadContextType {
   currentThreadId: string | null;
-  threads: Thread[];
-  createThread: (title?: string) => Promise<Thread>;
+  getThread: (threadId: string) => ReadonlyThread;
+  getOrderedThreads: () => ReadonlyThread[];
+  upgradeEmptyThread: (
+    initialChatMessage: string,
+    threadId: string
+  ) => Promise<void>;
+  createEmptyThread: (
+    options?: CreateEmptyThreadOptions
+  ) => Promise<ReadonlyThread>;
   selectThread: (threadId: string) => void;
   deleteThread: (threadId: string) => Promise<void>;
   renameThread: (threadId: string, newTitle: string) => Promise<void>;
@@ -37,57 +51,159 @@ export const ChatThreadProvider: React.FC<ChatThreadProviderProps> = ({
   children,
 }) => {
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
-  const [threads, setThreads] = useState<Thread[]>([]);
-
-  const loadThreads = useCallback(async () => {
-    const loadedThreads = await chatService.getThreads(workspaceId);
-    const sortedThreads = loadedThreads.sort((a, b) => {
-      const timeCompare = b.lastMessageAt.localeCompare(a.lastMessageAt);
-      if (timeCompare !== 0) return timeCompare;
-      return b.title.localeCompare(a.title);
-    });
-    setThreads(sortedThreads);
-  }, [workspaceId]);
+  const [threads, setThreads] = useState<{
+    [key: string]: ThreadComponentData;
+  }>({});
 
   useEffect(() => {
+    const loadThreads = async () => {
+      const threads = await chatService.getThreads(workspaceId);
+      const threadComponentData: ThreadComponentData[] = threads.map((t) => ({
+        apiData: t,
+        uiState: {
+          isEmpty: false,
+        },
+      }));
+      const threadMap: { [key: string]: ThreadComponentData } = {};
+      for (const thread of threadComponentData) {
+        threadMap[thread.apiData.id] = thread;
+      }
+      setThreads(threadMap);
+    };
     loadThreads();
-  }, [loadThreads]);
+  }, [workspaceId]);
 
-  const createThread = async (title?: string) => {
-    console.log("[ChatThreadContext] Creating thread", { title });
-    const nextNumber = await chatService.getNextNewChatNumber(workspaceId);
-    const newTitle = title || `New Chat ${nextNumber}`;
-    const newThreadId = await chatService.startThread(workspaceId, newTitle);
-    await loadThreads();
-    setCurrentThreadId(newThreadId);
-    const newThread = await chatService.getThread(workspaceId, newThreadId);
-    return newThread;
+  const getReadonlyThreads = (): ReadonlyThread[] => {
+    return Object.values(threads).map(toReadonlyThread);
+  };
+
+  const updateThreads = (
+    update: ThreadComponentData,
+    options: {
+      expectNew?: boolean;
+      expectReplace?: boolean;
+    } = {}
+  ) => {
+    setThreads((prevThreads) => {
+      if (options.expectNew) {
+        if (prevThreads[update.apiData.id]) {
+          throw new Error(`Thread with id ${update.apiData.id} already exists`);
+        }
+      }
+      if (options.expectReplace) {
+        if (!prevThreads[update.apiData.id]) {
+          throw new Error(`Thread with id ${update.apiData.id} does not exist`);
+        }
+      }
+      return { ...prevThreads, [update.apiData.id]: update };
+    });
+  };
+
+  const getThread = (threadId: string): ReadonlyThread => {
+    const thread = threads[threadId];
+    if (!thread) {
+      throw new Error(`Thread with id ${threadId} does not exist`);
+    }
+    return toReadonlyThread(thread);
+  };
+
+  const createEmptyThread = async (options?: CreateEmptyThreadOptions) => {
+    const threadId = await chatService.createEmptyThread(workspaceId);
+    const thread = {
+      id: threadId,
+      title: "",
+      lastMessageAt: hourMinuteNow(),
+    };
+    if (options?.includePlaceholderTitle) {
+      thread.title = `New Chat ${getNextNewChatNumber(getReadonlyThreads())}`;
+    }
+    const componentThread: ThreadComponentData = {
+      apiData: thread,
+      uiState: {
+        isEmpty: true,
+      },
+    };
+    updateThreads(componentThread);
+    if (options?.setSelected) {
+      setCurrentThreadId(threadId);
+    }
+    return toReadonlyThread(componentThread);
   };
 
   const selectThread = (threadId: string) => {
+    if (!threads[threadId]) {
+      throw new Error(`Thread with id ${threadId} does not exist`);
+    }
     setCurrentThreadId(threadId);
   };
 
   const deleteThread = async (threadId: string) => {
-    await chatService.deleteThread(threadId, workspaceId);
-    await loadThreads();
-    const nextThread = threads.find((t) => t.id !== threadId);
-    if (nextThread) {
-      setCurrentThreadId(nextThread.id);
-    } else {
-      setCurrentThreadId(null);
+    if (!threads[threadId]) {
+      throw new Error(`Thread with id ${threadId} does not exist`);
     }
+    await chatService.deleteThread(threadId, workspaceId);
+    const currentThreads = {
+      ...threads,
+    };
+    const readonlyThreads = Object.values(currentThreads).map(toReadonlyThread);
+    const threadAheadId = getThreadAhead(readonlyThreads, threadId);
+    const threadBehindId = getThreadBehind(readonlyThreads, threadId);
+    delete currentThreads[threadId];
+    setThreads(currentThreads);
+    if (threadAheadId) {
+      selectThread(threadAheadId);
+      return;
+    }
+    if (threadBehindId) {
+      selectThread(threadBehindId);
+      return;
+    }
+    // There must always be a currentThreadId, so we create a new empty thread,
+    // which get's set as the selected thread
+    createEmptyThread({
+      includePlaceholderTitle: false,
+      setSelected: true,
+    });
   };
 
   const renameThread = async (threadId: string, newTitle: string) => {
     await chatService.renameThread(threadId, newTitle, workspaceId);
-    await loadThreads();
+  };
+
+  const upgradeEmptyThread = async (
+    initialChatMessage: string,
+    threadId: string
+  ) => {
+    const thread = threads[threadId];
+    if (!thread.uiState.isEmpty) {
+      throw new Error("Thread is not empty");
+    }
+    const updatedThread = await chatService.startThread(
+      workspaceId,
+      threadId,
+      getTitleFromMessage(initialChatMessage)
+    );
+    updateThreads({
+      apiData: updatedThread,
+      uiState: {
+        isEmpty: false,
+      },
+    });
+  };
+
+  const getOrderedThreads = (): ReadonlyThread[] => {
+    const threadOrdering: string[] = sortChatThreads(getReadonlyThreads()).map(
+      (t) => t.id
+    );
+    return threadOrdering.map((id) => toReadonlyThread(threads[id]));
   };
 
   const value = {
     currentThreadId,
-    threads,
-    createThread,
+    getOrderedThreads,
+    getThread,
+    upgradeEmptyThread,
+    createEmptyThread,
     selectThread,
     deleteThread,
     renameThread,
@@ -99,3 +215,10 @@ export const ChatThreadProvider: React.FC<ChatThreadProviderProps> = ({
     </ChatThreadContext.Provider>
   );
 };
+
+function toReadonlyThread(thread: ThreadComponentData): ReadonlyThread {
+  return {
+    ...thread.apiData,
+    ...thread.uiState,
+  };
+}

@@ -205,13 +205,29 @@ export class ChatService {
 
   /**
    * Starts a new chat thread
+   *
+   * Prior to this method being called, the thread will just have an id, but not metadata.
+   *
+   * This method get's called once the user actually sends a message.
    * @returns Promise<string> The ID of the new thread
    */
-  async startThread(workspaceId: string, title: string): Promise<string> {
+  async startThread(
+    workspaceId: string,
+    threadId: string,
+    title: string
+  ): Promise<Thread> {
     console.log("[ChatService] Starting thread", { workspaceId, title });
     const response = await client.post("/chat/start_thread", {
       workspaceId,
+      threadId,
       title,
+    });
+    return response.thread;
+  }
+
+  async createEmptyThread(workspaceId: string): Promise<string> {
+    const response = await client.post("/chat/create_empty_thread", {
+      workspaceId,
     });
     return response.threadId;
   }

@@ -11,14 +11,16 @@ interface ChatHistoryProps {
 export const ChatHistory: React.FC<ChatHistoryProps> = ({ workspaceId }) => {
   const {
     currentThreadId,
-    threads,
-    createThread,
+    getOrderedThreads,
+    createEmptyThread,
     selectThread,
     deleteThread,
     renameThread,
   } = useChatThread();
   const [editingThreadId, setEditingThreadId] = useState<string | null>(null);
   const [editingThreadTitle, setEditingThreadTitle] = useState("");
+
+  const threads = getOrderedThreads();
 
   return (
     <div className="border-b border-gray-100">
@@ -29,7 +31,10 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({ workspaceId }) => {
           </div>
         ) : (
           threads.map((thread) => {
-            const isEmpty = false; // TODO: check if thread is empty
+            const isEmpty = thread.isEmpty;
+            if (isEmpty && !thread.title) {
+              return null;
+            }
             return (
               <div
                 key={thread.id}
@@ -153,7 +158,12 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({ workspaceId }) => {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => createThread()}
+          onClick={() =>
+            createEmptyThread({
+              includePlaceholderTitle: true,
+              setSelected: true,
+            })
+          }
           className="w-full mt-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50"
         >
           <Plus className="h-4 w-4 mr-1" />
