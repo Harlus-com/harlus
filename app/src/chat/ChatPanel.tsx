@@ -20,8 +20,13 @@ interface ChatPanelProps {
 // Chat panel component
 const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
   const { workspaceId } = useParams();
-  const { currentThreadId, upgradeEmptyThread, createEmptyThread, getThread } =
-    useChatThread();
+  const {
+    currentThreadId,
+    persistUiOnlyThread,
+    createEmptyThread,
+    getThread,
+    markThreadAsNonEmpty,
+  } = useChatThread();
   const [messagePairs, setMessagePairs] = useState<MessagePair[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -49,7 +54,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
         currentThreadId,
         workspaceId
       );
-      setMessagePairs(history.messagePairs);
+      setMessagePairs(history);
     };
     loadChatHistory();
   }, [currentThreadId]);
@@ -79,8 +84,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
     setIsLoading(true);
 
     const thread = getThread(currentThreadId);
+    if (thread.isUiOnly) {
+      await persistUiOnlyThread(input.trim(), currentThreadId);
+    }
     if (thread.isEmpty) {
-      await upgradeEmptyThread(input.trim(), currentThreadId);
+      markThreadAsNonEmpty(currentThreadId);
     }
 
     const pairId = `${Date.now()}.${Math.floor(Math.random() * 100)}`;

@@ -46,6 +46,9 @@ class ChatStore:
             threads = json.load(f)
         return list(threads.keys())
 
+    def thread_exists(self, workspace_id: str, thread_id: str) -> bool:
+        return thread_id in self.get_thread_ids(workspace_id)
+
     def create_thread(self, workspace_id: str, thread_id: str, title: str):
         """Create a new thread and save it to threads.json"""
         thread = {

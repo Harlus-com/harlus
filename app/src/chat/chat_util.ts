@@ -1,4 +1,5 @@
-import { Thread } from "./chat_types";
+import { Thread, ThreadComponentData } from "./chat_types";
+import { v4 as uuidv4 } from "uuid";
 
 export function sortChatThreads(threads: Thread[]): Thread[] {
   return threads.sort((a, b) => {
@@ -61,4 +62,21 @@ export function getTitleFromMessage(message: string): string {
   return (
     message.trim().slice(0, 50) + (message.trim().length > 50 ? "..." : "")
   );
+}
+
+export function createNewEmptyThread(title?: string): ThreadComponentData {
+  const threadId = uuidv4();
+  const thread = {
+    id: threadId,
+    title: title ?? "",
+    lastMessageAt: hourMinuteNow(),
+  };
+  const componentThread: ThreadComponentData = {
+    apiData: thread,
+    uiState: {
+      isEmpty: true,
+      isUiOnly: true,
+    },
+  };
+  return componentThread;
 }

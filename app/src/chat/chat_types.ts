@@ -33,6 +33,7 @@ export interface Thread {
 
 export class ThreadState {
   isEmpty: boolean;
+  isUiOnly: boolean;
 }
 
 export type ThreadComponentData = ComponentData<Thread, ThreadState>;
