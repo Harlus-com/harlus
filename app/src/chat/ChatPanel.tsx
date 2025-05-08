@@ -697,8 +697,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                 currentPair.readingMessageBuffer += newContent;
 
                 // Split by newlines and process
-                if (currentPair.readingMessageBuffer.includes("\n")) {
-                  const lines = currentPair.readingMessageBuffer.split("\n");
+                if (currentPair.readingMessageBuffer.includes("<STEP>")) {
+                  const lines = currentPair.readingMessageBuffer.split("<STEP>");
 
                   // Last item might be incomplete (no newline yet)
                   const incompleteLine = lines.pop() || "";

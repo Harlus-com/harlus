@@ -1,0 +1,46 @@
+[
+  {
+    "file_path": "/Users/ronald/Library/Application Support/Electron/Harlus/AAPL/2025_Q1_10_Q_pdf/content.pdf",
+    "text": "The information does not provide specific historical net sales data for each quarter, nor does it confirm a consistent pattern of higher sales in the first quarter due to seasonal holiday demand. While it mentions that consumer electronics sales are typically influenced by holiday demand, it does not provide evidence of a consistent trend for the company.",
+    "highlight_area": {
+      "bounding_boxes": [
+        {
+          "left": 5.514705882352941,
+          "top": 52.439371744791664,
+          "width": 88.97061815448836,
+          "height": 3.2196969696969697,
+          "page": 17
+        },
+        {
+          "left": 5.514705882352941,
+          "top": 55.94315962357954,
+          "width": 17.66976749195772,
+          "height": 1.1363636363636365,
+          "page": 17
+        }
+      ],
+      "jump_to_page": 17
+    },
+    "links": [],
+    "verdict": "unknown"
+  },
+  {
+    "file_path": "/Users/ronald/Library/Application Support/Electron/Harlus/AAPL/2025_Q1_10_Q_pdf/content.pdf",
+    "text": "Inflation can directly impact the company's operations by affecting consumer demand for premium products and increasing operational costs, which may affect profit margins. Interest rates, although not detailed in the context, generally influence borrowing costs and consumer spending, which can impact the company's revenue. Currency fluctuations can indirectly impact the company's results by affecting international sales revenue and costs associated with manufacturing and sourcing materials. These macroeconomic conditions have historically influenced the company's financial results and could materially impact its future operations and financial condition.",
+    "highlight_area": {
+      "bounding_boxes": [],
+      "jump_to_page": 17
+    },
+    "links": [
+      {
+        "file_path": "/Users/ronald/Library/Application Support/Electron/Harlus/AAPL/2024_Q4_AAPL_Internal_pdf/content.pdf",
+        "highlight_area": {
+          "bounding_boxes": [],
+          "jump_to_page": 2
+        },
+        "text": null
+      }
+    ],
+    "verdict": "true"
+  }
+]
