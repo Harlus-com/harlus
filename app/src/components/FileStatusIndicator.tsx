@@ -12,12 +12,17 @@ const FileStatusIndicator: React.FC<FileStatusIndicatorProps> = ({
   className,
 }) => {
   const status = file.status || "OUT_OF_DATE";
+  const statusText = getStatusText(status);
+  
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <div className={cn("w-2 h-2 rounded-full", getStatusColor(status))} />
-      <span className="text-xs text-muted-foreground">
-        {getStatusText(status)}
-      </span>
+    <div className={cn("flex items-center gap-1.5", className)}>
+      <div className={cn("w-1.5 h-1.5 rounded-full", getStatusColor(status))} />
+      {/* Only show text for statuses other than OUT_OF_DATE */}
+      {status !== "OUT_OF_DATE" && (
+        <span className="text-xs text-muted-foreground">
+          {statusText}
+        </span>
+      )}
     </div>
   );
 };
@@ -40,7 +45,7 @@ function getStatusColor(status: SyncStatus) {
     case "SYNC_COMPLETE":
       return "bg-green-500";
     default:
-      return "bg-red-500";
+      return "bg-red-500 opacity-70";
   }
 }
 

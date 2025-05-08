@@ -76,6 +76,8 @@ Support your verdict with a short explanation. For numeric claims:
     |(ClaimValue - EvidenceValue) / EvidenceValue| x 100%
 Round to one decimal place and state whether the claim over- or understates the metric.
 When verifying the claim, make sure to consider all aliases of the claim's topic and its key drivers.
+
+YOU SHOULD ANSWER IN 2-3 CONCISE BULLET POINTS.
 """
 PROMPT_VERDICT = PromptTemplate(PROMPT_VERDICT_TEXT)
 

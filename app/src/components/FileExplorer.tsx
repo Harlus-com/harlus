@@ -74,15 +74,19 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   )}
                 >
                   <div
-                    className="flex items-center flex-1 min-w-0 cursor-pointer"
+                    className="flex items-center flex-1 min-w-0 cursor-pointer whitespace-nowrap"
                     onClick={() => onFileSelect(file, FileGroupCount.ONE)}
                   >
                     <File
                       size={16}
                       className="mr-2 flex-shrink-0 text-blue-500"
                     />
-                    <span className="truncate text-sm flex-1">{file.name}</span>
-                    <FileStatusIndicator file={file} className="ml-2" />
+                    <div className="flex-1 min-w-0 flex items-center overflow-hidden">
+                      <span className="text-sm order-first flex-shrink-0">{file.name}</span>
+                      <div className="ml-1.5 overflow-hidden flex-shrink min-w-0 order-last flex justify-end">
+                        <FileStatusIndicator file={file} />
+                      </div>
+                    </div>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
