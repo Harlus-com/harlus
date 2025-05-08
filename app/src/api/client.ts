@@ -8,7 +8,7 @@ class Client {
       throw new Error(`GET ${path} failed: ${response.statusText}`);
     }
     const data = await response.json();
-    console.log("GET Response", data);
+    console.log(`GET ${path} Response`, data);
     return data;
   }
 
@@ -34,7 +34,7 @@ class Client {
       throw new Error(`POST ${path} failed: ${response.statusText}`);
     }
     const data = await response.json();
-    console.log("POST Response", data);
+    console.log(`POST ${path} Response`, data);
     return data;
   }
 
@@ -47,7 +47,7 @@ class Client {
       throw new Error(`DELETE ${path} failed: ${response.statusText}`);
     }
     const data = await response.json();
-    console.log("DELETE Response", data);
+    console.log(`DELETE ${path} Response`, data);
     return data;
   }
 }
