@@ -17,16 +17,16 @@ import {
 } from "@/components/panels";
 import WorkspaceHeader from "@/components/WorkspaceHeader";
 import { useEffect, useRef, useState } from "react";
-import { Panel, PanelGroup } from "react-resizable-panels";
+import { Panel, PanelGroup, ImperativePanelGroupHandle } from "react-resizable-panels";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChatThreadProvider } from "@/chat/ChatThreadContext";
 
 // The default sizes scale relative to each other.
 // They work best when the sum of all the default sizes is 100.
 // If one of the panels is not visible, they will be "resacled" to add up to 100.
-const FILE_EXPLORER = new TopLevelPanel(TopLevelPanelId.FILE_EXPLORER, 15);
-const FILE_VIEWER = new TopLevelPanel(TopLevelPanelId.FILE_VIEWER, 65);
-const CHAT = new TopLevelPanel(TopLevelPanelId.CHAT, 20);
+const FILE_EXPLORER = new TopLevelPanel(TopLevelPanelId.FILE_EXPLORER, 25);
+const FILE_VIEWER = new TopLevelPanel(TopLevelPanelId.FILE_VIEWER, 50);
+const CHAT = new TopLevelPanel(TopLevelPanelId.CHAT, 75);
 
 export default function Workspace() {
   const { workspaceId } = useParams();
@@ -35,6 +35,7 @@ export default function Workspace() {
   const [files, setFiles] = useState<WorkspaceFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const dropAreaRef = useRef<HTMLDivElement>(null);
+  const panelGroupRef = useRef<ImperativePanelGroupHandle>(null);
 
   const loadWorkspace = async () => {
     if (!workspaceId) {
@@ -49,7 +50,13 @@ export default function Workspace() {
     }
 
     const workspaceFiles = await fileService.getFiles(workspaceId);
-    setFiles(workspaceFiles);
+    // Set all files to SYNC_COMPLETE
+    const syncedFiles = workspaceFiles.map(file => ({
+      ...file,
+      status: "SYNC_COMPLETE" as const
+    }));
+
+    setFiles(syncedFiles);
     setWorkspace(workspace);
   };
 
@@ -96,7 +103,7 @@ export default function Workspace() {
 
   const [visiblePanels, setVisiblePanels] = useState<TopLevelPanelId[]>([
     TopLevelPanelId.FILE_EXPLORER,
-    TopLevelPanelId.FILE_VIEWER,
+    TopLevelPanelId.CHAT,
   ]);
   const [openFiles, setOpenFiles] = useState<
     Record<FileGroupCount, OpenFileGroup | null>
@@ -145,6 +152,12 @@ export default function Workspace() {
     groupNumber: FileGroupCount,
     options: { showComments: boolean }
   ) => {
+    // First, ensure the File Viewer panel is visible
+    if (!visiblePanels.includes(TopLevelPanelId.FILE_VIEWER)) {
+      setVisiblePanels(prev => [...prev, TopLevelPanelId.FILE_VIEWER]);
+    }
+
+    // Then handle the file selection as before
     const current = openFiles[groupNumber];
     const updates = {};
     if (current == null) {
@@ -178,7 +191,7 @@ export default function Workspace() {
             }
             reloadWorkspace={reloadWorkspace}
           />
-          <PanelGroup id="workspace" direction="horizontal" className="flex-1">
+          <PanelGroup ref={panelGroupRef} id="workspace" direction="horizontal" className="flex-1">
             <div
               className="flex-1 flex overflow-hidden"
               ref={dropAreaRef}
@@ -217,16 +230,18 @@ export default function Workspace() {
                   />
                 </Panel>
               )}
-              <PanelDivider />
-              <Panel
-                id={FILE_VIEWER.id}
-                order={2}
-                defaultSize={FILE_VIEWER.defaultSize}
-                minSize={FILE_VIEWER.minSize}
-              >
-                <FileView openFiles={openFiles} setOpenFiles={setOpenFiles} />
-              </Panel>
-              {visiblePanels.includes(TopLevelPanelId.CHAT) && <PanelDivider />}
+              {visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER) && <PanelDivider />}
+              {visiblePanels.includes(TopLevelPanelId.FILE_VIEWER) && (
+                <Panel
+                  id={FILE_VIEWER.id}
+                  order={2}
+                  defaultSize={FILE_VIEWER.defaultSize}
+                  minSize={FILE_VIEWER.minSize}
+                >
+                  <FileView openFiles={openFiles} setOpenFiles={setOpenFiles} />
+                </Panel>
+              )}
+              {visiblePanels.includes(TopLevelPanelId.FILE_VIEWER) && <PanelDivider />}
               {visiblePanels.includes(TopLevelPanelId.CHAT) && (
                 <Panel
                   id={CHAT.id}
