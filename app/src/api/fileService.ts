@@ -58,7 +58,9 @@ class FileService {
       oldFileId: file1Id,
       newFileId: file2Id,
     });
-    const comments = await client.get(`/contrast/analyze?${params.toString()}`);
+    // const comments = await client.get(`/contrast/analyze?${params.toString()}`);
+    const { mockContrastAnalysisResponse } = await import('./mock_contrast_analysis');
+    const comments = mockContrastAnalysisResponse.claimComments;
     console.log("[FileService] Comments:", comments);
     return comments;
   }

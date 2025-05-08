@@ -82,16 +82,19 @@ class FileStore:
         return file
 
     def get_file_by_path(self, path: str, workspace_id: str | None = None) -> File:
+        # Normalize the input path to match the case used in the database
+        normalized_path = str(Path(path).resolve())
+        
         if workspace_id is not None:
             files_by_path = {
-                f.absolute_path: f for f in self.get_files(workspace_id).values()
+                str(Path(f.absolute_path).resolve()): f for f in self.get_files(workspace_id).values()
             }
-            return files_by_path[path]
+            return files_by_path[normalized_path]
         for workspace in self.get_workspaces().values():
             files_by_path = {
-                f.absolute_path: f for f in self.get_files(workspace.id).values()
+                str(Path(f.absolute_path).resolve()): f for f in self.get_files(workspace.id).values()
             }
-            file = files_by_path.get(path)
+            file = files_by_path.get(normalized_path)
             if file is not None:
                 return file
         raise ValueError(f"File with path {path} not found")
