@@ -48,6 +48,14 @@ class ToolLibrary:
 
     def get_tool_for_all_files(self, tool_name: str):
         return [t for t in self.universal_tools if t.get_tool_name() == tool_name]
+    
+    def get_tools_for_workspace(self, workspace_id: str, tool_name: str):
+        files_in_workspace = self.file_store.get_files(workspace_id).values()
+        tools = []
+        for file in files_in_workspace:
+            tools.extend(self.file_tools[file.absolute_path])
+        output_tools = [t for t in tools if t.get_tool_name() == tool_name]
+        return output_tools
 
     def get_tool(self, file_path: str, tool_name: str):
         matching_tools = [

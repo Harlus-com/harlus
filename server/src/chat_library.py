@@ -61,7 +61,7 @@ class ChatLibrary:
             chat_model = self._get(workspace_id=workspace_id)
             doc_search_tools = [
                 tool.get()
-                for tool in self.tool_library.get_tool_for_all_files("doc_search")
+                for tool in self.tool_library.get_tools_for_workspace(workspace_id, "doc_search")
             ]
             chat_model.update_tools(doc_search_tools)
 
