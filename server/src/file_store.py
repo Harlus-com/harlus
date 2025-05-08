@@ -142,7 +142,7 @@ class FileStore:
             id=str(uuid.uuid4()),
             name=name,
             dir_name=dir_name,
-            absolute_path=self.app_data_path.joinpath(dir_name),
+            absolute_path=str(self.app_data_path.joinpath(dir_name)),
         )
         os.makedirs(self.app_data_path.joinpath(workspace.dir_name), exist_ok=True)
         with open(
