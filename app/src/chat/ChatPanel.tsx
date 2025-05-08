@@ -9,7 +9,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage, ChatSourceCommentGroup, MessagePair } from "./chat_types";
 import { ChatHistory } from "./ChatHistory";
 import { useChatThread } from "./ChatThreadContext";
-import { SourceClickContext } from "./SourceContext";
 import { MessagePairComponent } from "./Message";
 import { LoadingIndicator } from "./LoadingIndicator";
 
@@ -370,118 +369,117 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
 
   // render chat panel
   return (
-    <SourceClickContext.Provider value={{ onSourceClicked }}>
-      <div className="h-full flex flex-col border-l border-gray-100 bg-gray-50">
-        <div className="py-2.5 px-3.5 font-medium border-b border-gray-100 bg-white flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm text-gray-800">Chat</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsHistoryVisible(!isHistoryVisible)}
-              className="h-8 px-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-            >
-              <BookOpen className="h-4 w-4 mr-1.5" />
-              {isHistoryVisible ? "Hide History" : "History"}
-            </Button>
-            {/* TODO: Conditionally show this button based on whether the user is already in an empty thread */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => createThread()}
-              className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-50 group relative"
-            >
-              <Plus className="h-4 w-4" />
-              <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                New chat
-              </div>
-            </Button>
-          </div>
+    <div className="h-full flex flex-col border-l border-gray-100 bg-gray-50">
+      <div className="py-2.5 px-3.5 font-medium border-b border-gray-100 bg-white flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm text-gray-800">Chat</span>
         </div>
-
-        {isHistoryVisible && workspaceId && (
-          <div className="border-b border-gray-100 bg-white">
-            <div className="max-h-[50vh] overflow-y-auto">
-              <ChatHistory workspaceId={workspaceId} />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsHistoryVisible(!isHistoryVisible)}
+            className="h-8 px-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+          >
+            <BookOpen className="h-4 w-4 mr-1.5" />
+            {isHistoryVisible ? "Hide History" : "History"}
+          </Button>
+          {/* TODO: Conditionally show this button based on whether the user is already in an empty thread */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => createThread()}
+            className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-50 group relative"
+          >
+            <Plus className="h-4 w-4" />
+            <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              New chat
             </div>
-          </div>
-        )}
-
-        <ScrollArea className="flex-1 px-3.5 pt-3.5 pb-2">
-          <div ref={chatContainerRef} className="space-y-6">
-            {messagePairs.length === 0 ? (
-              <div className="text-center py-10 bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-                <div className="inline-flex rounded-full bg-blue-50 p-2 mb-3">
-                  <BookOpen className="h-5 w-5 text-blue-500" />
-                </div>
-                <h3 className="text-base font-medium text-gray-800 mb-1">
-                  {currentThreadId
-                    ? "Start a new conversation"
-                    : "Welcome to Harlus"}
-                </h3>
-                <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                  {currentThreadId
-                    ? "Ask questions about your documents in this chat thread."
-                    : "Ask questions about your documents. The AI will analyze the content and provide relevant answers."}
-                </p>
-              </div>
-            ) : (
-              <>
-                {messagePairs.map((pair) => (
-                  <MessagePairComponent
-                    key={pair.id}
-                    pair={pair}
-                    isReading={isEventSourceActive && pair.id === currentPairId}
-                    toggleReadingMessages={toggleReadingMessages}
-                  />
-                ))}
-                {isLoading && currentPairId === null && <LoadingIndicator />}
-              </>
-            )}
-          </div>
-        </ScrollArea>
-
-        <div className="p-3 border-t border-gray-100 bg-white">
-          <div className="flex flex-col space-y-1.5">
-            <div className="flex items-end space-x-2">
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (!isLoading && !isEventSourceActive) {
-                    handleKeyDown(e);
-                  }
-                }}
-                placeholder="Ask questions about your documents..."
-                className="min-h-[52px] max-h-[120px] resize-none text-sm border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-300 py-2 px-2.5 rounded-md"
-                disabled={isLoading || isEventSourceActive}
-              />
-              <Button
-                variant="default"
-                size="icon"
-                className="h-[52px] w-[52px] shrink-0 bg-blue-600 hover:bg-blue-700 rounded-md"
-                onClick={() => {
-                  if (!isLoading && !isEventSourceActive) {
-                    handleSendMessage();
-                  }
-                }}
-                disabled={!input.trim() || isLoading || isEventSourceActive}
-              >
-                <Send size={18} />
-              </Button>
-            </div>
-
-            {isEventSourceActive && (
-              <div className="text-[10px] text-gray-400 text-center">
-                Processing your request...
-              </div>
-            )}
-          </div>
+          </Button>
         </div>
       </div>
-    </SourceClickContext.Provider>
+
+      {isHistoryVisible && workspaceId && (
+        <div className="border-b border-gray-100 bg-white">
+          <div className="max-h-[50vh] overflow-y-auto">
+            <ChatHistory workspaceId={workspaceId} />
+          </div>
+        </div>
+      )}
+
+      <ScrollArea className="flex-1 px-3.5 pt-3.5 pb-2">
+        <div ref={chatContainerRef} className="space-y-6">
+          {messagePairs.length === 0 ? (
+            <div className="text-center py-10 bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+              <div className="inline-flex rounded-full bg-blue-50 p-2 mb-3">
+                <BookOpen className="h-5 w-5 text-blue-500" />
+              </div>
+              <h3 className="text-base font-medium text-gray-800 mb-1">
+                {currentThreadId
+                  ? "Start a new conversation"
+                  : "Welcome to Harlus"}
+              </h3>
+              <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                {currentThreadId
+                  ? "Ask questions about your documents in this chat thread."
+                  : "Ask questions about your documents. The AI will analyze the content and provide relevant answers."}
+              </p>
+            </div>
+          ) : (
+            <>
+              {messagePairs.map((pair) => (
+                <MessagePairComponent
+                  key={pair.id}
+                  pair={pair}
+                  isReading={isEventSourceActive && pair.id === currentPairId}
+                  toggleReadingMessages={toggleReadingMessages}
+                  onSourceClicked={onSourceClicked}
+                />
+              ))}
+              {isLoading && currentPairId === null && <LoadingIndicator />}
+            </>
+          )}
+        </div>
+      </ScrollArea>
+
+      <div className="p-3 border-t border-gray-100 bg-white">
+        <div className="flex flex-col space-y-1.5">
+          <div className="flex items-end space-x-2">
+            <Textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (!isLoading && !isEventSourceActive) {
+                  handleKeyDown(e);
+                }
+              }}
+              placeholder="Ask questions about your documents..."
+              className="min-h-[52px] max-h-[120px] resize-none text-sm border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-300 py-2 px-2.5 rounded-md"
+              disabled={isLoading || isEventSourceActive}
+            />
+            <Button
+              variant="default"
+              size="icon"
+              className="h-[52px] w-[52px] shrink-0 bg-blue-600 hover:bg-blue-700 rounded-md"
+              onClick={() => {
+                if (!isLoading && !isEventSourceActive) {
+                  handleSendMessage();
+                }
+              }}
+              disabled={!input.trim() || isLoading || isEventSourceActive}
+            >
+              <Send size={18} />
+            </Button>
+          </div>
+
+          {isEventSourceActive && (
+            <div className="text-[10px] text-gray-400 text-center">
+              Processing your request...
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 
