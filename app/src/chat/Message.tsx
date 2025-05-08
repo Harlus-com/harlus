@@ -7,19 +7,20 @@ import { ReadingMessage } from "./ReadingMessage";
 import { ReadingMessagesToggle } from "./ReadingMessage";
 import { CommentGroup } from "@/api/comment_types";
 import { useComments } from "@/comments/useComments";
-import { SourceClickContext } from "./SourceContext";
+import { WorkspaceFile } from "@/api/workspace_types";
 
 interface MessagePairProps {
   pair: MessagePair;
   isReading: boolean;
   toggleReadingMessages: (pairId: string) => void;
+  onSourceClicked: (file: WorkspaceFile) => void;
 }
 
 export const MessagePairComponent: React.FC<MessagePairProps> = ({
   pair,
   toggleReadingMessages,
+  onSourceClicked,
 }) => {
-  const { onSourceClicked } = useContext(SourceClickContext);
   const {
     addChatSourceComments,
     addCommentGroup,
