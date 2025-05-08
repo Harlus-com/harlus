@@ -39,21 +39,21 @@ class BoundingBoxConverter:
 
 
 class Timestamp(BaseModel):
-    seconds: int
-    minutes: int
-    hours: int
-    days: int
-    months: int
-    years: int
+    second: int
+    minute: int
+    hour: int
+    day: int
+    month: int
+    year: int
 
 
 def timestamp_now() -> Timestamp:
     now = datetime.datetime.now()
     return Timestamp(
-        seconds=now.second,
-        minutes=now.minute,
-        hours=now.hour,
-        days=now.day,
-        months=now.month,
-        years=now.year,
+        second=now.second,
+        minute=now.minute,
+        hour=now.hour,
+        day=now.day,
+        month=now.month,
+        year=now.year,
     )

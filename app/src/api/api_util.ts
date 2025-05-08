@@ -27,5 +27,32 @@ export function timestampNow(): Timestamp {
 }
 
 export function formatTimestamp(timestamp: Timestamp): string {
-  return `${timestamp.year}-${timestamp.month}-${timestamp.day} ${timestamp.hour}:${timestamp.minute}:${timestamp.second}`;
+  const date = new Date(timestamp.year, timestamp.month - 1, timestamp.day);
+  return `${timestamp.hour}:${timestamp.minute} ${todayYesterdayOrNDaysAgo(
+    date
+  )}`;
+}
+
+function todayYesterdayOrNDaysAgo(date: Date): string {
+  console.log("date", date);
+  const today = new Date();
+  if (
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  ) {
+    return "Today";
+  }
+  const yesterday = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate() - 1
+  );
+  if (date.toDateString() === yesterday.toDateString()) {
+    return "Yesterday";
+  }
+  const n = Math.floor(
+    (today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+  );
+  return `${n} days ago`;
 }
