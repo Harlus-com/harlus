@@ -4,19 +4,10 @@ import asyncio
 from typing import Dict, Optional, Any
 
 from pydantic import BaseModel, ConfigDict, Field
-from src.util import snake_to_camel
+from src.util import Timestamp, snake_to_camel
 from src.file_store import FileStore
 
 JsonType = Dict[str, Any]
-
-
-class Timestamp(BaseModel):
-    seconds: int
-    minutes: int
-    hours: int
-    days: int
-    months: int
-    years: int
 
 
 class CommentGroup(BaseModel):
@@ -35,8 +26,6 @@ class CommentGroup(BaseModel):
 class CommentStore:
     def __init__(self, file_store: FileStore):
         self.file_store = file_store
-        self.last_save: Dict[str, list[JsonType]] = {}  # workspace_id -> json
-        self.save_task: Optional[asyncio.Task] = None
         self.lock = asyncio.Lock()
 
         for workspace in self.file_store.get_workspaces().values():
@@ -113,27 +102,20 @@ class CommentStore:
     async def save_comments(self, workspace_id: str, comments: list[JsonType]):
         """Add a save request to the queue. The actual save will happen after debounce."""
         async with self.lock:
-            self.last_save[workspace_id] = comments
-            if self.save_task is None or self.save_task.done():
-                self.save_task = asyncio.create_task(self._debounced_save(workspace_id))
-
-    async def _debounced_save(self, workspace_id: str):
-        """Debounced save mechanism that saves the last queued state for each comment group."""
-        await asyncio.sleep(1)
-        async with self.lock:
             os.makedirs(self._get_comments_dir(workspace_id), exist_ok=True)
-            for comment in self.last_save[workspace_id]:
+            for comment in comments:
+                print("Saving comment", comment)
                 file_path = self._get_comments_file_path(
-                    workspace_id, f"{comment['id']}_comment.json"
+                    workspace_id, f"{comment['apiData']['id']}_comment.json"
                 )
                 with open(file_path, "w") as f:
                     json.dump(comment, f, indent=2)
-            self.last_save.clear()
 
     def get_comments(self, workspace_id) -> list[JsonType]:
         """Read comments from disk."""
         comments = []
-        for file_path in os.listdir(self._get_comments_dir(workspace_id)):
+        for file_name in os.listdir(self._get_comments_dir(workspace_id)):
+            file_path = self._get_comments_file_path(workspace_id, file_name)
             if file_path.endswith("_comment.json"):
                 with open(file_path, "r") as f:
                     comments.append(json.load(f))

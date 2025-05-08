@@ -98,7 +98,7 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
     group: CommentGroup,
     options: CommentContextAddOptions
   ) => {
-    const comments: Comment[] = (
+    const newComments: Comment[] = (
       await Promise.all(
         claims.map((claim) => convertClaimCommentToComments(claim, group))
       )
@@ -107,7 +107,7 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
     claims.forEach((claim) => {
       claimsById[claim.id] = claim;
     });
-    const commentComponentData: CommentComponentData[] = comments.map(
+    const commentComponentData: CommentComponentData[] = newComments.map(
       (comment) => ({
         apiData: comment,
         uiState: {
@@ -130,13 +130,13 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
   };
 
   const addChatSourceComments = async (
-    comments: ChatSourceComment[],
+    chatSourceComments: ChatSourceComment[],
     group: CommentGroup,
     options: CommentContextAddOptions
   ) => {
     const convertedComments: Comment[] = (
       await Promise.all(
-        comments.map((comment) =>
+        chatSourceComments.map((comment) =>
           convertChatSourceCommentToComments(comment, group)
         )
       )
@@ -155,6 +155,8 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
 
     const updates: { [key: string]: CommentComponentData } = {};
     for (const comment of commentComponentData) {
+      console.log("Adding chat source comment", comment);
+      console.log("Comments", comments);
       if (options.ignoreIfExists && comments[comment.apiData.id]) {
         continue;
       }

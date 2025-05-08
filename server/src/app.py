@@ -522,7 +522,7 @@ def get_thread(
 
 class CreateCommentGroupRequest(BaseModel):
     workspace_id: str = Field(alias="workspaceId")
-    comment_group: CommentGroup
+    comment_group: CommentGroup = Field(alias="commentGroup")
 
 
 class RenameCommentGroupRequest(BaseModel):
