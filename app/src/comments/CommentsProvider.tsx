@@ -269,6 +269,14 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
     return null;
   };
 
+  const deleteCommentGroup = (groupId: string) => {
+    // TODO
+  };
+
+  const renameCommentGroup = (groupId: string, name: string) => {
+    // TODO
+  };
+
   const value = {
     addClaimComments,
     addChatSourceComments,
@@ -282,6 +290,8 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
     getActiveComments,
     getAllComments,
     getSelectedComment,
+    deleteCommentGroup,
+    renameCommentGroup,
   };
 
   return (

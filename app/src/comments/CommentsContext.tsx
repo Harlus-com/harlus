@@ -37,6 +37,8 @@ interface CommentsContextType {
   /** Get all comments for all comments associated with the file */
   getAllComments: (fileId: string) => ReadonlyComment[];
   getSelectedComment: (fileId: string) => ReadonlyComment | null;
+  deleteCommentGroup: (groupId: string) => void;
+  renameCommentGroup: (groupId: string, name: string) => void;
 }
 
 export const CommentsContext = createContext<CommentsContextType | undefined>(

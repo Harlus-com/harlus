@@ -25,3 +25,7 @@ export function dateToTimestamp(date: Date): Timestamp {
 export function timestampNow(): Timestamp {
   return dateToTimestamp(new Date());
 }
+
+export function formatTimestamp(timestamp: Timestamp): string {
+  return `${timestamp.year}-${timestamp.month}-${timestamp.day} ${timestamp.hour}:${timestamp.minute}:${timestamp.second}`;
+}
