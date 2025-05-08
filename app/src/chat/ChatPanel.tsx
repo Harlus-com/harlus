@@ -25,6 +25,7 @@ import { CommentGroup } from "@/api/comment_types";
 import { getHighestZeroIndexedPageNumber } from "@/comments/comment_util";
 import { ChatHistory } from "./ChatHistory";
 import { useChatThread } from "./ChatThreadContext";
+import { findMockResponse } from '../api/mock_chat';
 
 interface ChatPanelProps {
   onSourceClicked?: (file: WorkspaceFile) => void;
@@ -253,6 +254,7 @@ const AssistantMessage: React.FC<{
   handleSourceClick: (source: ChatSourceCommentGroup) => void;
   toggleReadingMessages: () => void;
   isReading: boolean;
+  openFile: (file: WorkspaceFile, options: { showComments: boolean }) => void;
 }> = memo(
   ({
     message,
@@ -262,7 +264,38 @@ const AssistantMessage: React.FC<{
     handleSourceClick,
     toggleReadingMessages,
     isReading,
+    openFile,
   }) => {
+    const { addClaimComments, addCommentGroup, setActiveCommentGroups } = useComments();
+
+    const handleMockAnalysis = async () => {
+      try {
+        // Get the WorkspaceFile objects from their IDs
+        const selectedFile1 = await fileService.getFileFromId("3432dee7-83ba-406f-99e5-62ad7ef5873a");
+        const selectedFile2 = await fileService.getFileFromId("5f34608a-882e-4856-9fea-322284451f3f");
+
+        const result = await fileService.runContrastAnalysis(
+          selectedFile1.id,
+          selectedFile2.id
+        );
+        
+        const commentGroup: CommentGroup = {
+          name: `Compare ${selectedFile1.name} and ${selectedFile2.name}`,
+          id: `compare-${selectedFile1.id}-${selectedFile2.id}`,
+        };
+        
+        addCommentGroup(commentGroup);
+        setActiveCommentGroups(selectedFile1.id, [commentGroup.id]);
+        setActiveCommentGroups(selectedFile2.id, [commentGroup.id]);
+        await addClaimComments(result, commentGroup);
+        
+        // Open the first file with comments visible
+        openFile(selectedFile1, { showComments: true });
+      } catch (error) {
+        console.error("Error running contrast analysis:", error);
+      }
+    };
+
     return (
       <div className="flex flex-col mt-4">
         {/* AI Response */}
@@ -390,6 +423,18 @@ const AssistantMessage: React.FC<{
               onSourceClick={handleSourceClick}
             />
           )}
+
+        {/* Add Contrast Analysis button */}
+        <div className="mt-3">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-3 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-gray-200"
+            onClick={handleMockAnalysis}
+          >
+            Contrast Analysis
+          </Button>
+        </div>
       </div>
     );
   }
@@ -536,6 +581,7 @@ const MessagePairComponent: React.FC<MessagePairProps> = memo(
             handleSourceClick={handleSourceClick}
             toggleReadingMessages={handleToggleReadingMessages}
             isReading={isReading}
+            openFile={onSourceClicked}
           />
         )}
       </div>
@@ -611,7 +657,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
 
   // Toggle reading messages visibility for a specific pair
   const toggleReadingMessages = useCallback((pairId: string) => {
-    updateAndSaveMessages((prev) =>
+    setMessagePairs((prev) =>
       prev.map((pair) =>
         pair.id === pairId
           ? { ...pair, showReadingMessages: !pair.showReadingMessages }
@@ -628,26 +674,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
     const pairId = `${Date.now()}.${Math.floor(Math.random() * 100)}`;
     setCurrentPairId(pairId);
 
-    let threadId = currentThreadId;
-    console.log("Message panels.length", messagePairs.length);
-    // TODO: This just doesn't seem right.
-    // It would be cleaner to create the thread id ahead of time (e.g the moment the user opened to an empty chat)
-    if (!threadId) {
-      const title =
-        input.trim().slice(0, 50) + (input.trim().length > 50 ? "..." : "");
-      const newThread = await createThread(title);
-      threadId = newThread.id;
-    } else if (messagePairs.length === 0) {
-      const threads = await chatService.getThreads(workspaceId);
-      const currentThread = threads.find((t) => t.id === threadId);
-      if (currentThread?.title.match(/^New Chat \d+$/)) {
-        const newTitle =
-          input.trim().slice(0, 50) + (input.trim().length > 50 ? "..." : "");
-        renameThread(threadId, newTitle);
-      }
-    }
-
-    // create user message
+    // Create user message
     const userMessage: ChatMessage = {
       id: `${pairId}.user`,
       sender: "user",
@@ -656,8 +683,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
       chatSourceCommentGroups: [],
     };
 
-    // add message pair to the list
-    updateAndSaveMessages((prev) => [
+    // Find mock response
+    const mockResponse = findMockResponse(input.trim());
+
+    // Add message pair to the list
+    setMessagePairs((prev) => [
       ...prev,
       {
         id: pairId,
@@ -665,232 +695,30 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
         assistantMessage: {
           id: `${pairId}.assistant`,
           sender: "assistant",
-          content: "",
+          content: mockResponse?.assistantMessage || "I don't have a mock response for that question.",
           timestamp: now(),
           chatSourceCommentGroups: [],
           messageType: "answer_message",
         },
-        readingMessages: [],
-        answerCount: 0,
+        readingMessages: mockResponse?.readingMessages?.map((content, index) => ({
+          id: `${pairId}.reading.${index}`,
+          sender: "assistant",
+          content,
+          timestamp: now(),
+          chatSourceCommentGroups: [],
+          messageType: "reading_message",
+        })) || [],
+        answerCount: 1,
         showReadingMessages: true,
         readingMessageBuffer: "",
       },
     ]);
+
     setInput("");
-    setIsEventSourceActive(true);
-
-    // handle response from the backend
-    try {
-      await chatService.streamChat(
-        input.trim(),
-        workspaceId,
-        threadId,
-        // onMessage handler - for all types of messages
-        (newContent, messageType) => {
-          updateAndSaveMessages((prev) => {
-            const newPairs = [...prev];
-            const currentPair = newPairs.find((pair) => pair.id === pairId);
-
-            if (currentPair) {
-              if (messageType === "reading_message") {
-                // Add to the buffer and process the updated content
-                currentPair.readingMessageBuffer += newContent;
-
-                // Split by newlines and process
-                if (currentPair.readingMessageBuffer.includes("\n")) {
-                  const lines = currentPair.readingMessageBuffer.split("\n");
-
-                  // Last item might be incomplete (no newline yet)
-                  const incompleteLine = lines.pop() || "";
-
-                  // Process all complete lines (with newlines)
-                  const existingReadingIds = new Set(
-                    currentPair.readingMessages.map((m) => m.content.trim())
-                  );
-
-                  // Add new complete reading messages
-                  lines.forEach((line) => {
-                    const trimmedLine = line.trim();
-                    if (trimmedLine && !existingReadingIds.has(trimmedLine)) {
-                      currentPair.readingMessages.push({
-                        id: `${pairId}.reading.${Date.now()}.${Math.random()
-                          .toString(36)
-                          .substring(2, 8)}`,
-                        sender: "assistant",
-                        content: trimmedLine,
-                        timestamp: now(),
-                        chatSourceCommentGroups: [],
-                        messageType: "reading_message",
-                      });
-                    }
-                  });
-
-                  // Update buffer with incomplete line
-                  currentPair.readingMessageBuffer = incompleteLine;
-                }
-
-                // Always ensure the current buffer content is visible if it's not empty
-                // and doesn't duplicate an existing reading message
-                const bufferContent = currentPair.readingMessageBuffer.trim();
-                if (
-                  bufferContent &&
-                  !currentPair.readingMessages.some(
-                    (m) => m.content === bufferContent
-                  )
-                ) {
-                  const tempId = `${pairId}.reading.buffer`;
-
-                  // Check if we already have a buffer message
-                  const bufferMsgIndex = currentPair.readingMessages.findIndex(
-                    (m) => m.id.includes(".buffer")
-                  );
-
-                  if (bufferMsgIndex >= 0) {
-                    // Update existing buffer message
-                    currentPair.readingMessages[bufferMsgIndex].content =
-                      bufferContent;
-                  } else {
-                    // Add a new buffer message
-                    currentPair.readingMessages.push({
-                      id: tempId,
-                      sender: "assistant",
-                      content: bufferContent,
-                      timestamp: now(),
-                      chatSourceCommentGroups: [],
-                      messageType: "reading_message",
-                    });
-                  }
-                }
-              } else if (messageType === "answer_message") {
-                // Add to main answer
-                currentPair.assistantMessage = {
-                  ...currentPair.assistantMessage!,
-                  content: currentPair.assistantMessage!.content + newContent,
-                  messageType: "answer_message",
-                };
-
-                // Only increment answer count when content is meaningful (length > 2)
-                if (newContent.trim().length > 2) {
-                  currentPair.answerCount += 1;
-
-                  // If we just reached 5 answers, change reading message appearance
-                  if (currentPair.answerCount === 5) {
-                    setTimeout(() => {
-                      updateAndSaveMessages((prev) => [...prev]);
-                    }, 0);
-                  }
-                }
-              }
-            }
-            return newPairs;
-          });
-        },
-        // onSources handler - for document sources
-        (chatSourceCommentGroups: ChatSourceCommentGroup[]) => {
-          updateAndSaveMessages((prev) => {
-            const newPairs = [...prev];
-            const lastPair = newPairs[newPairs.length - 1];
-            if (lastPair && lastPair.assistantMessage) {
-              lastPair.assistantMessage = {
-                ...lastPair.assistantMessage,
-                chatSourceCommentGroups: chatSourceCommentGroups,
-              };
-            }
-            return newPairs;
-          });
-        },
-        // onComplete handler - when the response is complete
-        () => {
-          setIsLoading(false);
-          setIsEventSourceActive(false);
-          setCurrentPairId(null);
-
-          // Process any remaining content in the reading message buffer
-          updateAndSaveMessages((prev) => {
-            const newPairs = [...prev];
-            const lastPair = newPairs[newPairs.length - 1];
-
-            if (lastPair) {
-              // Process any remaining content in the buffer as a final reading message
-              if (lastPair.readingMessageBuffer.trim()) {
-                const bufferContent = lastPair.readingMessageBuffer.trim();
-
-                // Check if this content is already in our reading messages
-                const existingMatch = lastPair.readingMessages.find(
-                  (m) => m.content === bufferContent || m.id.includes(".buffer")
-                );
-
-                if (existingMatch) {
-                  // Update the existing buffer message to be a permanent message
-                  existingMatch.id = `${lastPair.id}.reading.${lastPair.readingMessages.length}`;
-                } else if (bufferContent) {
-                  // Add a new final reading message
-                  lastPair.readingMessages.push({
-                    id: `${lastPair.id}.reading.${lastPair.readingMessages.length}`,
-                    sender: "assistant",
-                    content: bufferContent,
-                    timestamp: now(),
-                    chatSourceCommentGroups: [],
-                    messageType: "reading_message",
-                  });
-                }
-
-                // Clear the buffer
-                lastPair.readingMessageBuffer = "";
-              }
-
-              // Remove any duplicate reading messages
-              const uniqueContents = new Set<string>();
-              lastPair.readingMessages = lastPair.readingMessages.filter(
-                (msg) => {
-                  if (uniqueContents.has(msg.content)) {
-                    return false;
-                  }
-                  uniqueContents.add(msg.content);
-                  return true;
-                }
-              );
-
-              // Automatically collapse reading messages if we have enough answer content
-              if (lastPair.answerCount >= 12) {
-                lastPair.showReadingMessages = false;
-              }
-            }
-
-            return newPairs;
-          });
-        },
-        // onError handler - when an error occurs
-        (error) => {
-          console.error("[ChatPanel] Error in chat stream:", error);
-          setIsLoading(false);
-          setIsEventSourceActive(false);
-          setCurrentPairId(null);
-          updateAndSaveMessages((prev) => {
-            const newPairs = [...prev];
-            const currentPair = newPairs.find((pair) => pair.id === pairId);
-            if (currentPair && currentPair.assistantMessage) {
-              currentPair.assistantMessage.content =
-                "Sorry, there was an error processing your request.";
-            }
-            return newPairs;
-          });
-        }
-      );
-    } catch (error) {
-      console.error("[ChatPanel] Error setting up stream:", error);
-      setIsLoading(false);
-      setIsEventSourceActive(false);
-      setCurrentPairId(null);
-    }
-  }, [
-    input,
-    isEventSourceActive,
-    workspaceId,
-    currentThreadId,
-    createThread,
-    messagePairs,
-  ]);
+    setIsLoading(false);
+    setIsEventSourceActive(false);
+    setCurrentPairId(null);
+  }, [input, isEventSourceActive, workspaceId]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -959,15 +787,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                   <BookOpen className="h-5 w-5 text-blue-500" />
                 </div>
                 <h3 className="text-base font-medium text-gray-800 mb-1">
-                  {currentThreadId
-                    ? "Start a new conversation"
-                    : "Welcome to Harlus"}
+                  Hey Tijs! Did you see Apple's latest sell-side report?
                 </h3>
-                <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                  {currentThreadId
-                    ? "Ask questions about your documents in this chat thread."
-                    : "Ask questions about your documents. The AI will analyze the content and provide relevant answers."}
-                </p>
               </div>
             ) : (
               <>
@@ -986,7 +807,41 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
         </ScrollArea>
 
         <div className="p-3 border-t border-gray-100 bg-white">
-          <div className="flex flex-col space-y-1.5">
+          <div className="flex flex-col space-y-3 max-w-[80%] mx-auto">
+            {/* Prompt suggestions - only show when no messages */}
+            {messagePairs.length === 0 && (
+              <div className="grid grid-cols-1 gap-2">
+                <button 
+                  onClick={() => {
+                    setInput("Let's analyse the impact of the latest sell-side report on Apple's FCF!");
+                    handleSendMessage();
+                  }}
+                  className="text-left p-2.5 bg-gray-50 hover:bg-gray-100 rounded-md text-sm text-gray-700 border border-gray-200 transition-colors"
+                >
+                  Let's analyse the impact of the latest sell-side report on Apple's FCF!
+                </button>
+                <button 
+                  onClick={() => {
+                    setInput("How do the trends of iPhone sales impact my investment theses?");
+                    handleSendMessage();
+                  }}
+                  className="text-left p-2.5 bg-gray-50 hover:bg-gray-100 rounded-md text-sm text-gray-700 border border-gray-200 transition-colors"
+                >
+                  How do the trends of iPhone sales impact my investment theses?
+                </button>
+                <button 
+                  onClick={() => {
+                    setInput("Does Apple's latest 10K confirm managment's claims form the earlier Earnings Call?");
+                    handleSendMessage();
+                  }}
+                  className="text-left p-2.5 bg-gray-50 hover:bg-gray-100 rounded-md text-sm text-gray-700 border border-gray-200 transition-colors"
+                >
+                  Does Apple's latest 10K confirm managment's claims form the earlier Earnings Call?
+                </button>
+              </div>
+            )}
+
+            {/* Input box */}
             <div className="flex items-end space-x-2">
               <Textarea
                 value={input}
