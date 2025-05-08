@@ -12,7 +12,8 @@ import { WorkspaceFile } from "@/api/workspace_types";
 import { fileService } from "@/api/fileService";
 import { CommentGroup } from "@/api/comment_types";
 import { useComments } from "@/comments/useComments";
-
+import { timestampNow } from "@/api/api_util";
+import { v4 as uuidv4 } from "uuid";
 export interface ContrastResult {
   fileId: string;
   claimChecks: {
@@ -59,12 +60,13 @@ const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
       );
       const commentGroup: CommentGroup = {
         name: `Compare ${selectedFile1.name} and ${selectedFile2.name}`,
-        id: `compare-${selectedFile1.id}-${selectedFile2.id}`,
+        id: uuidv4(),
+        createdAt: timestampNow(),
       };
-      addCommentGroup(commentGroup);
+      addCommentGroup(commentGroup, { ignoreIfExists: true });
       setActiveCommentGroups(selectedFile1.id, [commentGroup.id]);
       setActiveCommentGroups(selectedFile2.id, [commentGroup.id]);
-      await addClaimComments(result, commentGroup);
+      await addClaimComments(result, commentGroup, { ignoreIfExists: true });
       openFile(selectedFile1, { showComments: true });
       setIsOpen(false);
     } catch (error) {

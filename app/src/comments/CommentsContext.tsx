@@ -6,17 +6,25 @@ import {
 import { createContext } from "react";
 import { ReadonlyComment } from "./comment_ui_types";
 
+export interface CommentContextAddOptions {
+  ignoreIfExists?: boolean;
+}
+
 interface CommentsContextType {
   addClaimComments: (
     comments: ClaimComment[],
-    group: CommentGroup
+    group: CommentGroup,
+    options: CommentContextAddOptions
   ) => Promise<void>;
   addChatSourceComments: (
     comments: ChatSourceComment[],
-    group: CommentGroup
+    group: CommentGroup,
+    options: CommentContextAddOptions
   ) => Promise<void>;
-  addCommentGroup: (commentGroup: CommentGroup) => void;
-
+  addCommentGroup: (
+    commentGroup: CommentGroup,
+    options: CommentContextAddOptions
+  ) => void;
   deleteComment: (commentId: string) => void;
   hideComment: (commentId: string) => void;
   setSelectedComment: (commentId: string) => void;

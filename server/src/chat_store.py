@@ -15,6 +15,7 @@ class ChatThread(BaseModel):
     id: str
     title: str
     last_message_at: str = Field(alias="lastMessageAt")
+    created_at: str = Field(alias="createdAt")
 
     model_config = ConfigDict(
         populate_by_name=True,

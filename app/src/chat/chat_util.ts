@@ -1,3 +1,4 @@
+import { timestampNow } from "@/api/api_util";
 import { Thread, ThreadComponentData, ThreadSavedState } from "./chat_types";
 import { v4 as uuidv4 } from "uuid";
 
@@ -70,6 +71,7 @@ export function createNewEmptyThread(title?: string): ThreadComponentData {
     id: threadId,
     title: title ?? "",
     lastMessageAt: hourMinuteNow(),
+    createdAt: timestampNow(),
   };
   const componentThread: ThreadComponentData = {
     apiData: thread,
