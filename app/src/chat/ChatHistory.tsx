@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useChatThread } from "./ChatThreadContext";
+import * as chatUtil from "./chat_util";
 
 interface ChatHistoryProps {
   workspaceId: string;
@@ -31,8 +32,8 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({ workspaceId }) => {
           </div>
         ) : (
           threads.map((thread) => {
-            const isEmpty = thread.isEmpty;
-            if (isEmpty && !thread.title) {
+            const hasMessages = chatUtil.hasMessages(thread.savedState);
+            if (!hasMessages && !thread.title) {
               return null;
             }
             return (
@@ -93,7 +94,7 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({ workspaceId }) => {
                         )}
                       >
                         {thread.title}
-                        {isEmpty && (
+                        {!hasMessages && (
                           <span className="text-gray-400 ml-1">(empty)</span>
                         )}
                       </span>

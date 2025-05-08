@@ -31,9 +31,14 @@ export interface Thread {
   lastMessageAt: string;
 }
 
+export enum ThreadSavedState {
+  UI_ONLY = "ui_only",
+  SAVED_NO_MESSAGES = "saved_no_messages",
+  SAVED_WITH_MESSAGES = "saved_with_messages",
+}
+
 export class ThreadState {
-  isEmpty: boolean;
-  isUiOnly: boolean;
+  savedState: ThreadSavedState;
 }
 
 export type ThreadComponentData = ComponentData<Thread, ThreadState>;

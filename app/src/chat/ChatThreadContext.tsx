@@ -1,13 +1,17 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { chatService } from "./chatService";
-import { ReadonlyThread, ThreadComponentData } from "./chat_types";
+import {
+  ReadonlyThread,
+  ThreadComponentData,
+  ThreadSavedState,
+} from "./chat_types";
 import {
   sortChatThreads,
   getThreadAhead,
   getThreadBehind,
-  getTitleFromMessage,
   getNextNewChatNumber,
   createNewEmptyThread,
+  savedStateRank,
 } from "./chat_util";
 
 interface CreateEmptyThreadOptions {
@@ -19,15 +23,18 @@ interface ChatThreadContextType {
   currentThreadId: string | null;
   getThread: (threadId: string) => ReadonlyThread;
   getOrderedThreads: () => ReadonlyThread[];
-  persistUiOnlyThread: (
-    initialChatMessage: string,
-    threadId: string
-  ) => Promise<void>;
   createEmptyThread: (options?: CreateEmptyThreadOptions) => ReadonlyThread;
   selectThread: (threadId: string) => void;
   deleteThread: (threadId: string) => Promise<void>;
-  renameThread: (threadId: string, newTitle: string) => Promise<void>;
-  markThreadAsNonEmpty: (threadId: string) => void;
+  upgradeThreadSavedState: (
+    threadId: string,
+    newSavedState: ThreadSavedState
+  ) => void;
+  renameThread: (
+    threadId: string,
+    newTitle: string,
+    options?: { newSavedState?: ThreadSavedState }
+  ) => Promise<void>;
 }
 
 const ChatThreadContext = createContext<ChatThreadContextType | null>(null);
@@ -71,8 +78,10 @@ export const ChatThreadProvider: React.FC<ChatThreadProviderProps> = ({
         threadComponentData.push({
           apiData: thread,
           uiState: {
-            isEmpty: messages.length === 0,
-            isUiOnly: false,
+            savedState:
+              messages.length === 0
+                ? ThreadSavedState.SAVED_NO_MESSAGES
+                : ThreadSavedState.SAVED_WITH_MESSAGES,
           },
         });
       }
@@ -86,7 +95,9 @@ export const ChatThreadProvider: React.FC<ChatThreadProviderProps> = ({
   }, [workspaceId]);
 
   useEffect(() => {
-    if (!threads[currentThreadId].uiState.isEmpty) {
+    if (
+      threads[currentThreadId].uiState.savedState !== ThreadSavedState.UI_ONLY
+    ) {
       chatService.setThread(currentThreadId, workspaceId);
     }
   }, [currentThreadId]);
@@ -179,7 +190,11 @@ export const ChatThreadProvider: React.FC<ChatThreadProviderProps> = ({
     });
   };
 
-  const renameThread = async (threadId: string, newTitle: string) => {
+  const renameThread = async (
+    threadId: string,
+    newTitle: string,
+    options?: { newSavedState?: ThreadSavedState }
+  ) => {
     const oldThread = threads[threadId];
     if (!oldThread) {
       throw new Error(`Thread with id ${threadId} does not exist`);
@@ -192,43 +207,32 @@ export const ChatThreadProvider: React.FC<ChatThreadProviderProps> = ({
         setAsActiveThreadServerSide: threadId === currentThreadId,
       }
     );
-    const messages = await chatService.getChatHistory(threadId, workspaceId);
+    const savedState = options?.newSavedState ?? oldThread.uiState.savedState;
     updateThreads(
       {
         apiData: updatedThread,
         uiState: {
-          isEmpty: messages.length === 0,
-          isUiOnly: false,
+          savedState: savedState,
         },
       },
       { expectReplace: true }
     );
   };
 
-  const persistUiOnlyThread = async (
-    initialChatMessage: string,
-    threadId: string
+  const upgradeThreadSavedState = (
+    threadId: string,
+    newSavedState: ThreadSavedState
   ) => {
     const thread = threads[threadId];
-    if (!thread.uiState.isUiOnly) {
-      throw new Error("Thread is not ui only");
+    if (!thread) {
+      throw new Error(`Thread with id ${threadId} does not exist`);
     }
-    const updatedThread = await chatService.upsertThread(
-      workspaceId,
-      threadId,
-      getTitleFromMessage(initialChatMessage),
-      {
-        setAsActiveThreadServerSide: threadId === currentThreadId,
-      }
-    );
+    const oldSavedState = thread.uiState.savedState;
+    if (savedStateRank(oldSavedState) > savedStateRank(newSavedState)) {
+      throw new Error(`${newSavedState} is a downgrade from ${oldSavedState}`);
+    }
     updateThreads(
-      {
-        apiData: updatedThread,
-        uiState: {
-          isEmpty: false,
-          isUiOnly: false,
-        },
-      },
+      { ...thread, uiState: { savedState: newSavedState } },
       { expectReplace: true }
     );
   };
@@ -240,33 +244,15 @@ export const ChatThreadProvider: React.FC<ChatThreadProviderProps> = ({
     return threadOrdering.map((id) => toReadonlyThread(threads[id]));
   };
 
-  const markThreadAsNonEmpty = (threadId: string) => {
-    const thread = threads[threadId];
-    if (!thread) {
-      throw new Error(`Thread with id ${threadId} does not exist`);
-    }
-    updateThreads(
-      {
-        ...thread,
-        uiState: {
-          ...thread.uiState,
-          isEmpty: false,
-        },
-      },
-      { expectReplace: true }
-    );
-  };
-
   const value = {
     currentThreadId,
     getOrderedThreads,
     getThread,
-    persistUiOnlyThread,
     createEmptyThread,
     selectThread,
     deleteThread,
     renameThread,
-    markThreadAsNonEmpty,
+    upgradeThreadSavedState,
   };
 
   return (

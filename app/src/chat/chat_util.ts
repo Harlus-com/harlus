@@ -1,4 +1,4 @@
-import { Thread, ThreadComponentData } from "./chat_types";
+import { Thread, ThreadComponentData, ThreadSavedState } from "./chat_types";
 import { v4 as uuidv4 } from "uuid";
 
 export function sortChatThreads(threads: Thread[]): Thread[] {
@@ -74,9 +74,30 @@ export function createNewEmptyThread(title?: string): ThreadComponentData {
   const componentThread: ThreadComponentData = {
     apiData: thread,
     uiState: {
-      isEmpty: true,
-      isUiOnly: true,
+      savedState: ThreadSavedState.UI_ONLY,
     },
   };
   return componentThread;
+}
+
+export function hasMessages(state: ThreadSavedState): boolean {
+  switch (state) {
+    case ThreadSavedState.UI_ONLY:
+      return false;
+    case ThreadSavedState.SAVED_NO_MESSAGES:
+      return false;
+    case ThreadSavedState.SAVED_WITH_MESSAGES:
+      return true;
+  }
+}
+
+export function savedStateRank(savedState: ThreadSavedState): number {
+  switch (savedState) {
+    case ThreadSavedState.UI_ONLY:
+      return 0;
+    case ThreadSavedState.SAVED_NO_MESSAGES:
+      return 1;
+    case ThreadSavedState.SAVED_WITH_MESSAGES:
+      return 2;
+  }
 }

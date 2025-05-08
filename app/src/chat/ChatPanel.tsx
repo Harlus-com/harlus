@@ -6,12 +6,17 @@ import { WorkspaceFile } from "@/api/workspace_types";
 import { useParams } from "react-router-dom";
 import { chatService } from "@/chat/chatService";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChatMessage, ChatSourceCommentGroup, MessagePair } from "./chat_types";
+import {
+  ChatMessage,
+  ChatSourceCommentGroup,
+  MessagePair,
+  ThreadSavedState,
+} from "./chat_types";
 import { ChatHistory } from "./ChatHistory";
 import { useChatThread } from "./ChatThreadContext";
 import { MessagePairComponent } from "./Message";
 import { LoadingIndicator } from "./LoadingIndicator";
-import { hourMinuteNow } from "./chat_util";
+import { getTitleFromMessage, hourMinuteNow } from "./chat_util";
 
 interface ChatPanelProps {
   onSourceClicked?: (file: WorkspaceFile) => void;
@@ -22,10 +27,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
   const { workspaceId } = useParams();
   const {
     currentThreadId,
-    persistUiOnlyThread,
     createEmptyThread,
     getThread,
-    markThreadAsNonEmpty,
+    renameThread,
+    upgradeThreadSavedState,
   } = useChatThread();
   const [messagePairs, setMessagePairs] = useState<MessagePair[]>([]);
   const [input, setInput] = useState("");
@@ -84,11 +89,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
     setIsLoading(true);
 
     const thread = getThread(currentThreadId);
-    if (thread.isUiOnly) {
-      await persistUiOnlyThread(input.trim(), currentThreadId);
-    }
-    if (thread.isEmpty) {
-      markThreadAsNonEmpty(currentThreadId);
+    if (thread.savedState === ThreadSavedState.UI_ONLY) {
+      await renameThread(currentThreadId, getTitleFromMessage(input.trim()), {
+        newSavedState: ThreadSavedState.SAVED_WITH_MESSAGES,
+      });
+    } else {
+      upgradeThreadSavedState(
+        currentThreadId,
+        ThreadSavedState.SAVED_WITH_MESSAGES
+      );
     }
 
     const pairId = `${Date.now()}.${Math.floor(Math.random() * 100)}`;
