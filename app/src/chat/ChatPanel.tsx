@@ -6,11 +6,17 @@ import { WorkspaceFile } from "@/api/workspace_types";
 import { useParams } from "react-router-dom";
 import { chatService } from "@/chat/chatService";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChatMessage, ChatSourceCommentGroup, MessagePair } from "./chat_types";
+import {
+  ChatMessage,
+  ChatSourceCommentGroup,
+  MessagePair,
+  ThreadSavedState,
+} from "./chat_types";
 import { ChatHistory } from "./ChatHistory";
 import { useChatThread } from "./ChatThreadContext";
 import { MessagePairComponent } from "./Message";
 import { LoadingIndicator } from "./LoadingIndicator";
+import { getTitleFromMessage, hourMinuteNow } from "./chat_util";
 
 interface ChatPanelProps {
   onSourceClicked?: (file: WorkspaceFile) => void;
@@ -19,7 +25,13 @@ interface ChatPanelProps {
 // Chat panel component
 const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
   const { workspaceId } = useParams();
-  const { currentThreadId, createThread, renameThread } = useChatThread();
+  const {
+    currentThreadId,
+    createEmptyThread,
+    getThread,
+    renameThread,
+    upgradeThreadSavedState,
+  } = useChatThread();
   const [messagePairs, setMessagePairs] = useState<MessagePair[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -29,10 +41,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
   const [isHistoryVisible, setIsHistoryVisible] = useState(false);
 
   const updateAndSaveMessages = (
-    fn: (prev: MessagePair[]) => MessagePair[]
+    createNewMessages: (prev: MessagePair[]) => MessagePair[]
   ) => {
     setMessagePairs((prev) => {
-      const newMessages = fn(prev);
+      const newMessages = createNewMessages(prev);
       if (currentThreadId && workspaceId) {
         chatService.saveChatHistory(newMessages, currentThreadId, workspaceId);
       }
@@ -40,23 +52,17 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
     });
   };
 
-  // Load chat history for current thread
-  const loadChatHistory = useCallback(async () => {
-    if (!currentThreadId || !workspaceId || isLoading) return;
-    const history = await chatService.getChatHistory(
-      currentThreadId,
-      workspaceId
-    );
-    setMessagePairs(history.messagePairs);
-    console.log("[ChatPanel] Chat history:", history.messagePairs);
-  }, [currentThreadId, workspaceId]);
-
-  // Load chat history when thread changes
   useEffect(() => {
-    if (currentThreadId) {
-      loadChatHistory();
-    }
-  }, [currentThreadId, loadChatHistory]);
+    const loadChatHistory = async () => {
+      if (isLoading) return;
+      const history = await chatService.getChatHistory(
+        currentThreadId,
+        workspaceId
+      );
+      setMessagePairs(history);
+    };
+    loadChatHistory();
+  }, [currentThreadId]);
 
   // scroll to bottom of chat container
   useEffect(() => {
@@ -82,34 +88,27 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
     if (!input.trim() || isEventSourceActive || !workspaceId) return;
     setIsLoading(true);
 
+    const thread = getThread(currentThreadId);
+    if (thread.savedState === ThreadSavedState.UI_ONLY) {
+      await renameThread(currentThreadId, getTitleFromMessage(input.trim()), {
+        newSavedState: ThreadSavedState.SAVED_WITH_MESSAGES,
+      });
+    } else {
+      upgradeThreadSavedState(
+        currentThreadId,
+        ThreadSavedState.SAVED_WITH_MESSAGES
+      );
+    }
+
     const pairId = `${Date.now()}.${Math.floor(Math.random() * 100)}`;
     setCurrentPairId(pairId);
-
-    let threadId = currentThreadId;
-    console.log("Message panels.length", messagePairs.length);
-    // TODO: This just doesn't seem right.
-    // It would be cleaner to create the thread id ahead of time (e.g the moment the user opened to an empty chat)
-    if (!threadId) {
-      const title =
-        input.trim().slice(0, 50) + (input.trim().length > 50 ? "..." : "");
-      const newThread = await createThread(title);
-      threadId = newThread.id;
-    } else if (messagePairs.length === 0) {
-      const threads = await chatService.getThreads(workspaceId);
-      const currentThread = threads.find((t) => t.id === threadId);
-      if (currentThread?.title.match(/^New Chat \d+$/)) {
-        const newTitle =
-          input.trim().slice(0, 50) + (input.trim().length > 50 ? "..." : "");
-        renameThread(threadId, newTitle);
-      }
-    }
 
     // create user message
     const userMessage: ChatMessage = {
       id: `${pairId}.user`,
       sender: "user",
       content: input.trim(),
-      timestamp: now(),
+      timestamp: hourMinuteNow(),
       chatSourceCommentGroups: [],
     };
 
@@ -123,7 +122,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           id: `${pairId}.assistant`,
           sender: "assistant",
           content: "",
-          timestamp: now(),
+          timestamp: hourMinuteNow(),
           chatSourceCommentGroups: [],
           messageType: "answer_message",
         },
@@ -141,7 +140,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
       await chatService.streamChat(
         input.trim(),
         workspaceId,
-        threadId,
+        currentThreadId,
         // onMessage handler - for all types of messages
         (newContent, messageType) => {
           updateAndSaveMessages((prev) => {
@@ -175,7 +174,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                           .substring(2, 8)}`,
                         sender: "assistant",
                         content: trimmedLine,
-                        timestamp: now(),
+                        timestamp: hourMinuteNow(),
                         chatSourceCommentGroups: [],
                         messageType: "reading_message",
                       });
@@ -212,7 +211,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                       id: tempId,
                       sender: "assistant",
                       content: bufferContent,
-                      timestamp: now(),
+                      timestamp: hourMinuteNow(),
                       chatSourceCommentGroups: [],
                       messageType: "reading_message",
                     });
@@ -286,7 +285,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                     id: `${lastPair.id}.reading.${lastPair.readingMessages.length}`,
                     sender: "assistant",
                     content: bufferContent,
-                    timestamp: now(),
+                    timestamp: hourMinuteNow(),
                     chatSourceCommentGroups: [],
                     messageType: "reading_message",
                   });
@@ -340,14 +339,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
       setIsEventSourceActive(false);
       setCurrentPairId(null);
     }
-  }, [
-    input,
-    isEventSourceActive,
-    workspaceId,
-    currentThreadId,
-    createThread,
-    messagePairs,
-  ]);
+  }, [input, isEventSourceActive, workspaceId, currentThreadId, messagePairs]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -388,7 +380,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => createThread()}
+            onClick={() =>
+              createEmptyThread({
+                setSelected: true,
+                includePlaceholderTitle: true,
+              })
+            }
             className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-50 group relative"
           >
             <Plus className="h-4 w-4" />
@@ -482,12 +479,5 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
     </div>
   );
 };
-
-function now(): string {
-  return new Date().toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export default ChatPanel;

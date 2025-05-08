@@ -4,6 +4,7 @@ import time
 from fastapi import (
     Body,
     FastAPI,
+    HTTPException,
     Query,
     Response,
     WebSocket,
@@ -278,16 +279,18 @@ SYSTEM_PROMPT = """
         """
 
 
-class StartThreadRequest(BaseModel):
+class SetThreadRequest(BaseModel):
     workspace_id: str = Field(alias="workspaceId")
-    title: str
+    thread_id: str = Field(alias="threadId")
 
 
-@app.post("/chat/start_thread")
-def start_thread(request: StartThreadRequest):
-    print("Starting thread", request.workspace_id)
-    thread_id = chat_library.start_thread(request.workspace_id, request.title)
-    return {"threadId": thread_id}
+@app.post("/chat/set_thread")
+def set_thread(request: SetThreadRequest):
+    print("Setting thread", request.workspace_id, request.thread_id)
+    if not chat_store.thread_exists(request.workspace_id, request.thread_id):
+        raise HTTPException(status_code=404, detail="Thread not found")
+    chat_library.set_thread(request.workspace_id, request.thread_id)
+    return chat_store.get_thread(request.workspace_id, request.thread_id)
 
 
 @app.get("/chat/threads")
@@ -479,18 +482,22 @@ def get_chat_history(
     return chat_store.get_chat_history(workspace_id, thread_id)
 
 
-class RenameThreadRequest(BaseModel):
+class UpsertThreadRequest(BaseModel):
+    workspace_id: str = Field(alias="workspaceId")
+    thread_id: str = Field(alias="threadId")
     title: str
 
 
-@app.post("/chat/thread/rename")
-def rename_thread(
-    thread_id: str = Query(..., alias="threadId"),
-    workspace_id: str = Query(..., alias="workspaceId"),
-    request: RenameThreadRequest = Body(...),
+@app.post("/chat/thread/upsert")
+def upsert_thread(
+    request: UpsertThreadRequest = Body(...),
 ):
-    print("Renaming thread", thread_id, workspace_id, request.title)
-    return chat_store.rename_thread(workspace_id, thread_id, request.title)
+    print("Upserting thread", request)
+    if not chat_store.thread_exists(request.workspace_id, request.thread_id):
+        chat_store.create_thread(request.workspace_id, request.thread_id, request.title)
+    else:
+        chat_store.rename_thread(request.workspace_id, request.thread_id, request.title)
+    return chat_store.get_thread(request.workspace_id, request.thread_id)
 
 
 @app.delete("/chat/thread")

@@ -177,9 +177,6 @@ export class ChatService {
 
   /**
    * Saves chat history for a specific thread with debouncing
-   * @param messagePairs The message pairs to save
-   * @param threadId The ID of the thread
-   * @param workspaceId The ID of the workspace
    */
   saveChatHistory(
     messagePairs: MessagePair[],
@@ -203,17 +200,28 @@ export class ChatService {
     }, 1000);
   }
 
-  /**
-   * Starts a new chat thread
-   * @returns Promise<string> The ID of the new thread
-   */
-  async startThread(workspaceId: string, title: string): Promise<string> {
-    console.log("[ChatService] Starting thread", { workspaceId, title });
-    const response = await client.post("/chat/start_thread", {
+  /** Create or update a chat thread */
+  async upsertThread(
+    workspaceId: string,
+    threadId: string,
+    title: string,
+    options: {
+      setAsActiveThreadServerSide: boolean;
+    }
+  ): Promise<Thread> {
+    console.log("[ChatService] Upserting thread", { workspaceId, title });
+    const response = await client.post("/chat/thread/upsert", {
       workspaceId,
+      threadId,
       title,
     });
-    return response.threadId;
+    if (options.setAsActiveThreadServerSide) {
+      await client.post("/chat/set_thread", {
+        workspaceId,
+        threadId,
+      });
+    }
+    return response;
   }
 
   async getThread(workspaceId: string, threadId: string): Promise<Thread> {
@@ -223,11 +231,6 @@ export class ChatService {
     return response;
   }
 
-  /**
-   * Gets all chat threads for a workspace
-   * @param workspaceId The ID of the workspace
-   * @returns Promise<string[]> Array of thread IDs
-   */
   async getThreads(workspaceId: string): Promise<Thread[]> {
     const response = await client.get(
       `/chat/threads?workspaceId=${workspaceId}`
@@ -235,62 +238,27 @@ export class ChatService {
     return response.threads;
   }
 
-  async getNextNewChatNumber(workspaceId: string): Promise<number> {
-    const threads = await this.getThreads(workspaceId);
-    const newChatPattern = /^New Chat (\d+)$/;
-    let maxNumber = 0;
-
-    threads.forEach((thread) => {
-      const match = thread.title.match(newChatPattern);
-      if (match) {
-        const number = parseInt(match[1], 10);
-        if (!isNaN(number) && number > maxNumber) {
-          maxNumber = number;
-        }
-      }
-    });
-
-    return maxNumber + 1;
-  }
-
-  /**
-   * Gets chat history for a specific thread
-   * @param threadId The ID of the thread
-   * @param workspaceId The ID of the workspace
-   * @returns Promise<{ messagePairs: MessagePair[] }>
-   */
-  async getChatHistory(threadId: string, workspaceId: string) {
-    return client.get(
+  async getChatHistory(
+    threadId: string,
+    workspaceId: string
+  ): Promise<MessagePair[]> {
+    const response = await client.get(
       `/chat/get_history?threadId=${threadId}&workspaceId=${workspaceId}`
     );
+    return response.messagePairs;
   }
 
-  /**
-   * Deletes a chat thread
-   * @param threadId The ID of the thread to delete
-   * @param workspaceId The ID of the workspace
-   */
   async deleteThread(threadId: string, workspaceId: string): Promise<void> {
     await client.delete(
       `/chat/thread?threadId=${threadId}&workspaceId=${workspaceId}`
     );
   }
 
-  /**
-   * Renames a chat thread
-   * @param threadId The ID of the thread to rename
-   * @param newTitle The new title for the thread
-   * @param workspaceId The ID of the workspace
-   */
-  async renameThread(
-    threadId: string,
-    newTitle: string,
-    workspaceId: string
-  ): Promise<void> {
-    await client.post(
-      `/chat/thread/rename?threadId=${threadId}&workspaceId=${workspaceId}`,
-      { title: newTitle }
-    );
+  async setThread(threadId: string, workspaceId: string): Promise<void> {
+    await client.post("/chat/set_thread", {
+      workspaceId,
+      threadId,
+    });
   }
 }
 
