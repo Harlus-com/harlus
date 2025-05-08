@@ -49,11 +49,11 @@ class ChatLibrary:
         self.create_chat_models()
         self.update_chat_tools()
 
-    def start_thread(self, workspace_id: str) -> str:
+    def start_thread(self, workspace_id: str, title: str) -> str:
         chat_model = self._get(workspace_id=workspace_id)
         chat_model.start_new_thread()
         thread_id = chat_model.get_current_thread_id()
-        self.chat_store.create_thread(workspace_id, thread_id)
+        self.chat_store.create_thread(workspace_id, thread_id, title)
         return thread_id
 
     def update_chat_tools(self):

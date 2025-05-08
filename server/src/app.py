@@ -280,12 +280,13 @@ SYSTEM_PROMPT = """
 
 class StartThreadRequest(BaseModel):
     workspace_id: str = Field(alias="workspaceId")
+    title: str
 
 
 @app.post("/chat/start_thread")
 def start_thread(request: StartThreadRequest):
     print("Starting thread", request.workspace_id)
-    thread_id = chat_library.start_thread(request.workspace_id)
+    thread_id = chat_library.start_thread(request.workspace_id, request.title)
     return {"threadId": thread_id}
 
 

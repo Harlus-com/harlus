@@ -620,7 +620,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     const createNewThreadIfNeeded = async () => {
       if (workspaceId && !currentThreadId) {
         try {
-          const newThreadId = await chatService.startThread(workspaceId);
+          const nextNumber = await chatService.getNextNewChatNumber(
+            workspaceId
+          );
+          const newThreadId = await chatService.startThread(
+            workspaceId,
+            `New Chat ${nextNumber}`
+          );
           onThreadChange(newThreadId);
         } catch (error) {
           console.error("Error creating new thread:", error);
@@ -661,6 +667,17 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
     const pairId = `${Date.now()}.${Math.floor(Math.random() * 100)}`;
     setCurrentPairId(pairId);
+
+    // Check if we need to rename the thread based on the first message
+    if (messagePairs.length === 0) {
+      const threads = await chatService.getThreads(workspaceId);
+      const currentThread = threads.find((t) => t.id === currentThreadId);
+      if (currentThread?.title.match(/^New Chat \d+$/)) {
+        const newTitle =
+          input.trim().slice(0, 50) + (input.trim().length > 50 ? "..." : "");
+        await chatService.renameThread(currentThreadId, newTitle, workspaceId);
+      }
+    }
 
     // create user message
     const userMessage: ChatMessage = {
@@ -941,12 +958,19 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
+                onClick={async () => {
                   if (workspaceId) {
-                    chatService.startThread(workspaceId).then(onThreadChange);
+                    const nextNumber = await chatService.getNextNewChatNumber(
+                      workspaceId
+                    );
+                    const newThreadId = await chatService.startThread(
+                      workspaceId,
+                      `New Chat ${nextNumber}`
+                    );
+                    onThreadChange(newThreadId);
                   }
                 }}
-                className="h-8 w-8 p-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50 group relative"
+                className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-50 group relative"
               >
                 <Plus className="h-4 w-4" />
                 <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
@@ -965,11 +989,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 currentThreadId={currentThreadId}
                 onThreadSelect={(threadId) => {
                   onThreadChange(threadId);
-                  setIsHistoryVisible(false);
                 }}
                 onThreadCreate={(threadId) => {
                   onThreadChange(threadId);
-                  setIsHistoryVisible(false);
                 }}
                 onThreadDelete={(threadId) => {
                   if (currentThreadId === threadId) {
@@ -977,6 +999,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                     setMessagePairs([]);
                   }
                 }}
+                messagePairs={messagePairs}
               />
             </div>
           </div>

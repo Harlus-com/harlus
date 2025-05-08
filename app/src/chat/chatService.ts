@@ -207,11 +207,19 @@ export class ChatService {
    * Starts a new chat thread
    * @returns Promise<string> The ID of the new thread
    */
-  async startThread(workspaceId: string): Promise<string> {
+  async startThread(workspaceId: string, title: string): Promise<string> {
     const response = await client.post("/chat/start_thread", {
       workspaceId,
+      title,
     });
     return response.threadId;
+  }
+
+  async getThread(workspaceId: string, threadId: string): Promise<Thread> {
+    const response = await client.get(
+      `/chat/thread?workspaceId=${workspaceId}&threadId=${threadId}`
+    );
+    return response;
   }
 
   /**
@@ -224,6 +232,24 @@ export class ChatService {
       `/chat/threads?workspaceId=${workspaceId}`
     );
     return response.threads;
+  }
+
+  async getNextNewChatNumber(workspaceId: string): Promise<number> {
+    const threads = await this.getThreads(workspaceId);
+    const newChatPattern = /^New Chat (\d+)$/;
+    let maxNumber = 0;
+
+    threads.forEach((thread) => {
+      const match = thread.title.match(newChatPattern);
+      if (match) {
+        const number = parseInt(match[1], 10);
+        if (!isNaN(number) && number > maxNumber) {
+          maxNumber = number;
+        }
+      }
+    });
+
+    return maxNumber + 1;
   }
 
   /**

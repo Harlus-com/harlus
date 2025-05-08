@@ -46,11 +46,11 @@ class ChatStore:
             threads = json.load(f)
         return list(threads.keys())
 
-    def create_thread(self, workspace_id: str, thread_id: str):
+    def create_thread(self, workspace_id: str, thread_id: str, title: str):
         """Create a new thread and save it to threads.json"""
         thread = {
             "id": thread_id,
-            "title": f"New Chat {thread_id[:8]}",
+            "title": title,
             "lastMessageAt": datetime.now().strftime("%I:%M %p"),
         }
         threads_file = self._get_chat_file_path(workspace_id, "threads.json")
