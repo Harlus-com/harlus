@@ -20,6 +20,9 @@ import { useEffect, useRef, useState } from "react";
 import { Panel, PanelGroup } from "react-resizable-panels";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChatThreadProvider } from "@/chat/ChatThreadContext";
+import { OpenFilesOptions } from "@/files/file_types";
+import { FilesToOpen } from "@/files/file_types";
+import { fileGroupCounts, getOpenFileGroupsToOpen } from "@/files/file_util";
 
 // The default sizes scale relative to each other.
 // They work best when the sum of all the default sizes is 100.
@@ -142,9 +145,9 @@ export default function Workspace() {
 
   const handleFileSelect = (
     file: WorkspaceFile,
-    groupNumber: FileGroupCount,
-    options: { showComments: boolean }
+    options: { showComments: boolean; fileGroup: FileGroupCount }
   ) => {
+    const groupNumber = options.fileGroup;
     const current = openFiles[groupNumber];
     const updates = {};
     if (current == null) {
@@ -164,6 +167,42 @@ export default function Workspace() {
     }));
   };
 
+  const handleOpenFiles = (
+    filesToOpen: FilesToOpen,
+    options: OpenFilesOptions
+  ) => {
+    setOpenFiles((prev) => {
+      const openFilesIntoGroups = getOpenFileGroupsToOpen(filesToOpen);
+      const newOpenFiles = { ...prev };
+      if (options.closeAllOtherFiles) {
+        for (const groupCount of fileGroupCounts()) {
+          newOpenFiles[groupCount] = OpenFileGroup.empty();
+        }
+      }
+      if (options.closeAllOtherFileGroups) {
+        for (const groupCount of fileGroupCounts()) {
+          if (!openFilesIntoGroups.includes(groupCount)) {
+            newOpenFiles[groupCount] = null;
+          }
+        }
+      }
+      for (const [fileId, options] of Object.entries(filesToOpen)) {
+        const currentGroup =
+          newOpenFiles[options.fileGroup] || OpenFileGroup.empty();
+        const file = files.find((f) => f.id === fileId);
+        if (!file) {
+          console.error(`File ${fileId} not found`);
+          continue;
+        }
+        newOpenFiles[options.fileGroup] = currentGroup.addFile(file, {
+          select: options.select,
+          showComments: options.showComments,
+        });
+      }
+      return newOpenFiles;
+    });
+  };
+
   return (
     <ChatThreadProvider workspaceId={workspaceId!}>
       <CommentsProvider workspaceId={workspaceId!}>
@@ -171,12 +210,11 @@ export default function Workspace() {
           <WorkspaceHeader
             workspace={workspace}
             files={files}
-            onFileGroupCountChange={handleOnFileGroupCountChange}
             togglePanelVisibility={togglePanelVisibility}
-            openFile={(file, options) =>
-              handleFileSelect(file, FileGroupCount.ONE, options)
-            }
+            setFileGroupCount={handleOnFileGroupCountChange}
+            setVisiblePanels={setVisiblePanels}
             reloadWorkspace={reloadWorkspace}
+            openFiles={handleOpenFiles}
           />
           <PanelGroup id="workspace" direction="horizontal" className="flex-1">
             <div
@@ -208,8 +246,9 @@ export default function Workspace() {
                   <FileExplorer
                     files={files}
                     onFileSelect={(file, groupNumber) =>
-                      handleFileSelect(file, groupNumber, {
+                      handleFileSelect(file, {
                         showComments: false,
+                        fileGroup: groupNumber,
                       })
                     }
                     openFiles={openFiles}
@@ -236,8 +275,9 @@ export default function Workspace() {
                 >
                   <ChatPanel
                     onSourceClicked={(file) =>
-                      handleFileSelect(file, FileGroupCount.ONE, {
+                      handleFileSelect(file, {
                         showComments: true,
+                        fileGroup: FileGroupCount.ONE,
                       })
                     }
                   />

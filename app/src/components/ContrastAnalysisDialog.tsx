@@ -14,6 +14,9 @@ import { CommentGroup } from "@/api/comment_types";
 import { useComments } from "@/comments/useComments";
 import { timestampNow } from "@/api/api_util";
 import { v4 as uuidv4 } from "uuid";
+import { FileGroupCount, TopLevelPanelId } from "./panels";
+import { FilesToOpen, OpenFilesOptions } from "@/files/file_types";
+
 export interface ContrastResult {
   fileId: string;
   claimChecks: {
@@ -32,12 +35,14 @@ export interface ContrastResult {
 
 interface ContrastAnalysisDialogProps {
   files: WorkspaceFile[];
-  openFile: (file: WorkspaceFile, options: { showComments: boolean }) => void;
+  setVisiblePanels: (panelIds: TopLevelPanelId[]) => void;
+  openFiles: (filesToOpen: FilesToOpen, options?: OpenFilesOptions) => void;
 }
 
 const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
   files,
-  openFile,
+  setVisiblePanels,
+  openFiles,
 }) => {
   const [selectedFile1, setSelectedFile1] = useState<WorkspaceFile | null>(
     null
@@ -66,7 +71,22 @@ const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
       addCommentGroup(commentGroup, { ignoreIfExists: true });
       setActiveCommentGroups([commentGroup.id]);
       await addClaimComments(result, commentGroup, { ignoreIfExists: true });
-      openFile(selectedFile1, { showComments: true });
+      setVisiblePanels([TopLevelPanelId.FILE_VIEWER]);
+      openFiles(
+        {
+          [selectedFile1.id]: {
+            showComments: true,
+            fileGroup: FileGroupCount.ONE,
+            select: true,
+          },
+          [selectedFile2.id]: {
+            showComments: true,
+            fileGroup: FileGroupCount.TWO,
+            select: true,
+          },
+        },
+        { closeAllOtherFileGroups: true }
+      );
       setIsOpen(false);
     } catch (error) {
       console.error("Error running analysis:", error);

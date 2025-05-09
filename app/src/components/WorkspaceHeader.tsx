@@ -19,23 +19,27 @@ import { TopLevelPanelId } from "./panels";
 import { Workspace, WorkspaceFile } from "@/api/workspace_types";
 import { useNavigate } from "react-router-dom";
 import ContrastAnalysisDialog from "./ContrastAnalysisDialog";
+import { OpenFilesOptions } from "@/files/file_types";
+import { FilesToOpen } from "@/files/file_types";
 
 export type WorkSpaceHeaderProps = {
   workspace: Workspace;
   files: WorkspaceFile[];
-  onFileGroupCountChange: (fileGroupCount: FileGroupCount) => void;
   togglePanelVisibility: (panelId: TopLevelPanelId) => void;
+  setFileGroupCount: (fileGroupCount: FileGroupCount) => void;
+  setVisiblePanels: (panelIds: TopLevelPanelId[]) => void;
   reloadWorkspace: () => void;
-  openFile: (file: WorkspaceFile, options: { showComments: boolean }) => void;
+  openFiles: (filesToOpen: FilesToOpen, options?: OpenFilesOptions) => void;
 };
 
 export default function WorkspaceHeader({
   workspace,
   files,
-  onFileGroupCountChange,
+  setFileGroupCount,
   togglePanelVisibility,
+  setVisiblePanels,
   reloadWorkspace,
-  openFile,
+  openFiles,
 }: WorkSpaceHeaderProps) {
   const navigate = useNavigate();
 
@@ -70,7 +74,11 @@ export default function WorkspaceHeader({
             </div>
           </Button>
 
-          <ContrastAnalysisDialog files={files} openFile={openFile} />
+          <ContrastAnalysisDialog
+            files={files}
+            openFiles={openFiles}
+            setVisiblePanels={setVisiblePanels}
+          />
         </div>
 
         <div className="flex items-center space-x-2 pl-4">
@@ -85,22 +93,22 @@ export default function WorkspaceHeader({
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem
-                onClick={() => onFileGroupCountChange(FileGroupCount.ONE)}
+                onClick={() => setFileGroupCount(FileGroupCount.ONE)}
               >
                 1 File Group
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => onFileGroupCountChange(FileGroupCount.TWO)}
+                onClick={() => setFileGroupCount(FileGroupCount.TWO)}
               >
                 2 File Groups
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => onFileGroupCountChange(FileGroupCount.THREE)}
+                onClick={() => setFileGroupCount(FileGroupCount.THREE)}
               >
                 3 File Groups
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => onFileGroupCountChange(FileGroupCount.FOUR)}
+                onClick={() => setFileGroupCount(FileGroupCount.FOUR)}
               >
                 4 File Groups
               </DropdownMenuItem>
