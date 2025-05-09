@@ -17,7 +17,7 @@ export const mockConversations: MockMessage[] = [
     ]
   },
   {
-    userMessage: "Do any sell-side reports confirm this?",
+    userMessage: "Facts",
     assistantMessage: "The capital of France is Paris. It's one of the most populous cities in Europe and serves as the country's major economic and cultural center.",
     readingMessages: [
       "Let's see if other reports confirm the decreasing iPad sales.",

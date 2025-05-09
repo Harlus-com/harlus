@@ -20,7 +20,6 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Panel, PanelGroup, ImperativePanelGroupHandle } from "react-resizable-panels";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChatThreadProvider } from "@/chat/ChatThreadContext";
-import { CommentGroup } from "@/api/comment_types";
 import { useComments } from "@/comments/useComments";
 
 // The default sizes scale relative to each other.
@@ -157,10 +156,10 @@ export default function Workspace() {
   };
 
   const sendPdfMessage = useCallback((message: string) => {
-    if (chatPanelFunctions.setInput && chatPanelFunctions.sendMessage) {
-      chatPanelFunctions.setInput(message);
-      chatPanelFunctions.sendMessage();
-    }
+    //if (chatPanelFunctions.setInput && chatPanelFunctions.sendMessage) {
+      //chatPanelFunctions.setInput(message);
+    chatPanelFunctions.sendMessage?.(message);
+    //}
   }, [chatPanelFunctions]);
 
   const handleFileSelect = (

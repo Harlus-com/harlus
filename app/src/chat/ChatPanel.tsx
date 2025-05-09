@@ -276,6 +276,7 @@ const AssistantMessage: React.FC<{
     userMessage,
   }) => {
     const { addClaimComments, addCommentGroup, setActiveCommentGroups } = useComments();
+
     const handleMockContrastAnalysis = async () => {
       try {
         const selectedFile1 = await fileService.getFileFromId("3432dee7-83ba-406f-99e5-62ad7ef5873a");
@@ -439,7 +440,7 @@ const AssistantMessage: React.FC<{
         </div>
 
         {/* Add Contrast Analysis button only for first mock message */}
-        {isFirstMockMessage && (
+        {isFirstMockMessage && !isReading && (
           <div className="mt-3">
             <Button
               variant="outline"
@@ -453,7 +454,7 @@ const AssistantMessage: React.FC<{
         )}
 
         {/* Add source badge for second mock message */}
-        {isSecondMockMessage && (
+        {isSecondMockMessage && !isReading && (
           <div className="mt-2 pt-2 border-t border-gray-100">
             <div className="flex flex-wrap gap-1.5">
               <SourceBadge
@@ -646,7 +647,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [currentPairId, setCurrentPairId] = useState<string | null>(null);
   const [isHistoryVisible, setIsHistoryVisible] = useState(false);
-  const panelGroupRef = useRef<HTMLDivElement>(null);
 
   const updateAndSaveMessages = (
     fn: (prev: MessagePair[]) => MessagePair[]
@@ -1004,12 +1004,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
                 <Send size={18} />
               </Button>
             </div>
-
-            {isEventSourceActive && (
-              <div className="text-[10px] text-gray-400 text-center">
-                Processing your request...
-              </div>
-            )}
           </div>
         </div>
       </div>

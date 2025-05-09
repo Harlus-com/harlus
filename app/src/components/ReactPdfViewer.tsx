@@ -162,7 +162,7 @@ const PdfViewer = ({ file, onSendMessage }: PdfViewerProps) => {
 
   const sendChatMessage = () => {
     // Format the message with highlighted text and question
-    const formattedMessage = `${selectedText}\n\n${inputValue}`;
+    const formattedMessage = `${selectedText}  \n${inputValue}`;
     
     // Simply call the passed handler
     onSendMessage(formattedMessage);
