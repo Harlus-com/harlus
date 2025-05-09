@@ -39,7 +39,7 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
     getAllCommentGroups,
   } = useComments();
   const selectedComment = getSelectedComment(fileId);
-  const commentGroups = getAllCommentGroups(fileId);
+  const commentGroups = getAllCommentGroups();
 
   const comments: ReadonlyComment[] = getActiveComments(fileId).filter(
     (c) => !c.isHidden
@@ -122,7 +122,7 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
                 <h3 className="text-base font-medium text-gray-800 mb-1">
                   {commentGroups.length === 0
                     ? "No comments yet"
-                    : "No threads selected"}
+                    : "No active comments"}
                 </h3>
               </div>
             ) : (

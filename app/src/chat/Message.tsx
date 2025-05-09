@@ -59,7 +59,7 @@ export const MessagePairComponent: React.FC<MessagePairProps> = ({
           createdAt: thread.createdAt,
         };
         addCommentGroup(commentGroup, { ignoreIfExists: true });
-        setActiveCommentGroups(file.id, [commentGroup.id]);
+        setActiveCommentGroups([commentGroup.id]);
         await addChatSourceComments(
           chatSourceCommentGroup.chatSourceComments,
           commentGroup,

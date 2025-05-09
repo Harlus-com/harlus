@@ -64,8 +64,7 @@ const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
         createdAt: timestampNow(),
       };
       addCommentGroup(commentGroup, { ignoreIfExists: true });
-      setActiveCommentGroups(selectedFile1.id, [commentGroup.id]);
-      setActiveCommentGroups(selectedFile2.id, [commentGroup.id]);
+      setActiveCommentGroups([commentGroup.id]);
       await addClaimComments(result, commentGroup, { ignoreIfExists: true });
       openFile(selectedFile1, { showComments: true });
       setIsOpen(false);
