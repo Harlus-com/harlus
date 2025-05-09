@@ -65,9 +65,13 @@ class CommentStore:
             with open(groups_file, "w") as f:
                 json.dump(groups, f, indent=2)
 
-        comment_file = self._get_comments_file_path(workspace_id, f"{group_id}.json")
-        if os.path.exists(comment_file):
-            os.remove(comment_file)
+        comments_dir = self._get_comments_dir(workspace_id)
+        for file_name in os.listdir(comments_dir):
+            if file_name.endswith("_comment.json"):
+                file_path = self._get_comments_file_path(workspace_id, file_name)
+                comment = json.load(open(file_path))
+                if comment["apiData"]["groupId"] == group_id:
+                    os.remove(file_path)
 
     def rename_comment_group(self, workspace_id: str, group_id: str, name: str):
         """Rename a comment group in comment_groups.json"""

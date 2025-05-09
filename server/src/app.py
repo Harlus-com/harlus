@@ -347,7 +347,7 @@ class ReactPdfAnnotation(BaseModel):
 
 cache_file_path_base = "contrast_analysis"
 # Set this to the desired cache response
-cache_file_path_target = ""
+cache_file_path_target = "contrast_analysis_1.json"
 
 
 @app.get("/contrast/analyze")

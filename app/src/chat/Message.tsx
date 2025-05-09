@@ -55,7 +55,7 @@ export const MessagePairComponent: React.FC<MessagePairProps> = ({
 
         const commentGroup: CommentGroup = {
           id: thread.id,
-          name: `[Chat] ${thread.title}`,
+          name: `${thread.title}`,
           createdAt: thread.createdAt,
         };
         addCommentGroup(commentGroup, { ignoreIfExists: true });

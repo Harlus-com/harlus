@@ -61,8 +61,8 @@ export class CommentService {
     workspaceId: string,
     commentGroupId: string,
     name: string
-  ): Promise<void> {
-    await client.post(`/comments/group/rename`, {
+  ): Promise<CommentGroup> {
+    return client.post(`/comments/group/rename`, {
       workspaceId,
       commentGroupId,
       name,

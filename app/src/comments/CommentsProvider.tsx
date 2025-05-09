@@ -179,10 +179,7 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
     }
     await commentService.createIfNotExists(workspaceId, commentGroup);
     flushSync(() => {
-      setCommentGroups((prevCommentGroups) => [
-        ...prevCommentGroups,
-        commentGroup,
-      ]);
+      setCommentGroups((prev) => [...prev, commentGroup]);
     });
   };
 
@@ -228,7 +225,12 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
     commentGroups.forEach((group) => {
       groupIdToGroup[group.id] = group;
     });
-    return groupIds.map((id) => groupIdToGroup[id]);
+    return (
+      groupIds
+        .map((id) => groupIdToGroup[id])
+        // Filter out groups that don't exist (i.e might have been deleted)
+        .filter((group) => group !== undefined)
+    );
   };
 
   const getActiveCommentGroups = (fileId: string): CommentGroup[] => {
@@ -269,12 +271,38 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
     return null;
   };
 
-  const deleteCommentGroup = (groupId: string) => {
-    // TODO
+  const deleteCommentGroup = async (groupId: string) => {
+    await commentService.deleteCommentGroup(workspaceId, groupId);
+    setCommentGroups((prev) => prev.filter((group) => group.id !== groupId));
+    setActiveCommentGroupsIds((prev) => {
+      const newActiveCommentGroupsIds = { ...prev };
+      for (const fileId in newActiveCommentGroupsIds) {
+        newActiveCommentGroupsIds[fileId] = newActiveCommentGroupsIds[
+          fileId
+        ].filter((id) => id !== groupId);
+      }
+      return newActiveCommentGroupsIds;
+    });
+    setComments((prev) => {
+      const newComments = { ...prev };
+      for (const commentId in newComments) {
+        if (newComments[commentId].apiData.groupId === groupId) {
+          delete newComments[commentId];
+        }
+      }
+      return newComments;
+    });
   };
 
-  const renameCommentGroup = (groupId: string, name: string) => {
-    // TODO
+  const renameCommentGroup = async (groupId: string, name: string) => {
+    const newCommentGroup = await commentService.renameCommentGroup(
+      workspaceId,
+      groupId,
+      name
+    );
+    setCommentGroups((prev) =>
+      prev.map((group) => (group.id === groupId ? newCommentGroup : group))
+    );
   };
 
   const value = {
