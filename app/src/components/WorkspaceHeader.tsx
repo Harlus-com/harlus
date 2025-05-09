@@ -102,16 +102,6 @@ export default function WorkspaceHeader({
               >
                 2 File Groups
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setFileGroupCount(FileGroupCount.THREE)}
-              >
-                3 File Groups
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setFileGroupCount(FileGroupCount.FOUR)}
-              >
-                4 File Groups
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <Button

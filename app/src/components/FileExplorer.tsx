@@ -15,6 +15,7 @@ import { fileService } from "@/api/fileService";
 import FileStatusIndicator from "./FileStatusIndicator";
 import { FileGroupCount } from "./panels";
 import { OpenFileGroup } from "./OpenFileGroup";
+import { fileGroupCounts } from "@/files/file_util";
 
 interface FileExplorerProps {
   files: WorkspaceFile[];
@@ -100,7 +101,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                           Open in file group
                         </DropdownMenuSubTrigger>
                         <DropdownMenuSubContent>
-                          {[1, 2, 3, 4].map((groupNumber) => (
+                          {fileGroupCounts().map((groupNumber) => (
                             <DropdownMenuItem
                               key={groupNumber}
                               onClick={() =>

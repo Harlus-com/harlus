@@ -115,17 +115,13 @@ export default function Workspace() {
   >({
     [FileGroupCount.ONE]: OpenFileGroup.empty(),
     [FileGroupCount.TWO]: null,
-    [FileGroupCount.THREE]: null,
-    [FileGroupCount.FOUR]: null,
   });
   const handleOnFileGroupCountChange = (count: FileGroupCount) => {
     const updates: Record<FileGroupCount, OpenFileGroup | null> = {
       [FileGroupCount.ONE]: null,
       [FileGroupCount.TWO]: null,
-      [FileGroupCount.THREE]: null,
-      [FileGroupCount.FOUR]: null,
     };
-    for (let group = 1; group <= FileGroupCount.FOUR; group++) {
+    for (const group of fileGroupCounts()) {
       if (group > count) {
         updates[group] = null;
       } else {
