@@ -53,10 +53,8 @@ const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
     if (!selectedFile1 || !selectedFile2) return;
     setIsAnalyzing(true);
     try {
-      const result = await fileService.runContrastAnalysis(
-        selectedFile1.id,
-        selectedFile2.id
-      );
+      const { mockContrastAnalysisResponse } = await import('@/api/mock_contrast_analysis');
+      const result = mockContrastAnalysisResponse.claimComments;
       const commentGroup: CommentGroup = {
         name: `Compare ${selectedFile1.name} and ${selectedFile2.name}`,
         id: `compare-${selectedFile1.id}-${selectedFile2.id}`,

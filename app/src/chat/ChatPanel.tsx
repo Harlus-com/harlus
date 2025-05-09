@@ -33,6 +33,7 @@ interface ChatPanelProps {
   onSendMessageRef?: (setInputFn: (message: string) => void, sendFn: () => void) => void;
 }
 
+
 // Message type interfaces
 interface MessageProps {
   message: ChatMessage;
@@ -53,6 +54,11 @@ interface ChatSourceProps {
 // Create a separate context for source click handling
 const SourceClickContext = React.createContext<{
   onSourceClicked?: (file: WorkspaceFile) => void;
+}>({});
+
+// Create a separate context for source click handling
+const MockAnalysisContext = React.createContext<{
+  onMockAnalysis?: () => Promise<void>;
 }>({});
 
 // Reading indicator message component
@@ -256,6 +262,7 @@ const AssistantMessage: React.FC<{
   toggleReadingMessages: () => void;
   isReading: boolean;
   openFile: (file: WorkspaceFile, options: { showComments: boolean }) => void;
+  userMessage: ChatMessage;
 }> = memo(
   ({
     message,
@@ -266,43 +273,52 @@ const AssistantMessage: React.FC<{
     toggleReadingMessages,
     isReading,
     openFile,
+    userMessage,
   }) => {
     const { addClaimComments, addCommentGroup, setActiveCommentGroups } = useComments();
-
-    // Check if this message corresponds to the first mock conversation
-    const isFirstMockMessage = message.content === mockConversations[0].assistantMessage;
-    
-    // Check if this message corresponds to the second mock conversation
-    const isSecondMockMessage = message.content === mockConversations[1].assistantMessage;
-    
-    const handleMockAnalysis = async () => {
+    const handleMockContrastAnalysis = async () => {
       try {
-        // Get the WorkspaceFile objects from their IDs
         const selectedFile1 = await fileService.getFileFromId("3432dee7-83ba-406f-99e5-62ad7ef5873a");
         const selectedFile2 = await fileService.getFileFromId("5f34608a-882e-4856-9fea-322284451f3f");
-
-        const result = await fileService.runContrastAnalysis(
-          selectedFile1.id,
-          selectedFile2.id
-        );
-        
+  
+        const { mockContrastAnalysisResponse } = await import('@/api/mock_contrast_analysis');
+        const result = mockContrastAnalysisResponse.claimComments;
         const commentGroup: CommentGroup = {
           name: `Compare ${selectedFile1.name} and ${selectedFile2.name}`,
           id: `compare-${selectedFile1.id}-${selectedFile2.id}`,
         };
-        
         addCommentGroup(commentGroup);
         setActiveCommentGroups(selectedFile1.id, [commentGroup.id]);
         setActiveCommentGroups(selectedFile2.id, [commentGroup.id]);
         await addClaimComments(result, commentGroup);
-        
-        // Open the first file with comments visible
         openFile(selectedFile1, { showComments: true });
+  
+        // addCommentGroup(commentGroup);
+        // setActiveCommentGroups(selectedFile1.id, [commentGroup.id]);
+        // setActiveCommentGroups(selectedFile2.id, [commentGroup.id]);
+        // await addClaimComments(result, commentGroup);
+  
+        // Set up two file groups// Set up two file groups
+        // handleOnFileGroupCountChange(FileGroupCount.TWO);
+  
+        // Ensure handleFileSelect can correctly interpret FileGroupCount.ONE and FileGroupCount.TWO
+        // handleFileSelect(selectedFile1, FileGroupCount.ONE, { showComments: true });
+        // handleFileSelect(selectedFile2, FileGroupCount.TWO, { showComments: false });
+  
+        // Set panel widths
+        // setPanelWidths({ fileExplorer: 15, fileViewer: 70, chat: 15 });
+  
       } catch (error) {
-        console.error("Error running contrast analysis:", error);
+        console.error("Error running contrast analysis in Workspace:", error);
       }
     };
 
+    // Update the check to use userMessage
+    const isFirstMockMessage = userMessage.content === mockConversations[0].userMessage;
+    
+    // Check if this message corresponds to the second mock conversation
+    const isSecondMockMessage = userMessage.content === mockConversations[1].userMessage;
+    
     return (
       <div className="flex flex-col mt-4">
         {/* AI Response */}
@@ -429,7 +445,7 @@ const AssistantMessage: React.FC<{
               variant="outline"
               size="sm"
               className="h-8 px-3 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-gray-200"
-              onClick={handleMockAnalysis}
+              onClick={handleMockContrastAnalysis}
             >
               Contrast Analysis
             </Button>
@@ -458,6 +474,7 @@ AssistantMessage.displayName = "AssistantMessage";
 const MessagePairComponent: React.FC<MessagePairProps> = memo(
   ({ pair, isReading, toggleReadingMessages }) => {
     const { onSourceClicked } = useContext(SourceClickContext);
+    const { onMockAnalysis } = useContext(MockAnalysisContext);
     const {
       addChatSourceComments,
       addCommentGroup,
@@ -587,13 +604,14 @@ const MessagePairComponent: React.FC<MessagePairProps> = memo(
         {pair.assistantMessage && (
           <AssistantMessage
             message={pair.assistantMessage}
-            readingMessages={[]} // Don't pass reading messages to AssistantMessage since we're showing them above
+            readingMessages={[]}
             showReadingMessages={pair.showReadingMessages}
             answerCount={pair.answerCount}
             handleSourceClick={handleSourceClick}
             toggleReadingMessages={handleToggleReadingMessages}
             isReading={isReading}
             openFile={onSourceClicked}
+            userMessage={pair.userMessage}
           />
         )}
       </div>
@@ -628,6 +646,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [currentPairId, setCurrentPairId] = useState<string | null>(null);
   const [isHistoryVisible, setIsHistoryVisible] = useState(false);
+  const panelGroupRef = useRef<HTMLDivElement>(null);
 
   const updateAndSaveMessages = (
     fn: (prev: MessagePair[]) => MessagePair[]
@@ -725,7 +744,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
         new Promise(resolve => setTimeout(resolve, Math.random() * (max - min) + min));
 
       // Wait 0.5-2 seconds before starting
-      await randomDelay(500, 1000);
+      // await randomDelay(600, 1000);
       
       // Process reading messages one by one with delays
       if (mockResponse?.readingMessages) {
@@ -754,7 +773,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
           });
           
           // Wait longer for first reading message, otherwise 3-5 seconds
-          await randomDelay(i === 0 ? 7000 : 2000, i === 0 ? 10000 : 3000);
+          // await randomDelay(i === 0 ? 6000 : 1000, i === 0 ? 6000 : 4000);
           
           // Update the answer count to mark this reading message as complete
           setMessagePairs((prev) => {
@@ -767,7 +786,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
           });
 
           // Wait
-          await randomDelay(500, 1000);
+          // await randomDelay(500, 1000);
         }
       }
       

@@ -49,8 +49,8 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
   const handleLinkClick = (link: CommentLink) => {
     setSelectedComment(link.linkToCommentId);
     openFile(link.likeToFileId, {
-      showComments: true,
-      fileGroup: FileGroupCount.ONE, // TODO: Maybe have this open a new file group?
+      showComments: false,
+      fileGroup: FileGroupCount.TWO, // TODO: Maybe have this open a new file group?
     });
   };
 

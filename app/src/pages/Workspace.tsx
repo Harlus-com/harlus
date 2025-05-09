@@ -20,13 +20,17 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Panel, PanelGroup, ImperativePanelGroupHandle } from "react-resizable-panels";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChatThreadProvider } from "@/chat/ChatThreadContext";
+import { CommentGroup } from "@/api/comment_types";
+import { useComments } from "@/comments/useComments";
 
 // The default sizes scale relative to each other.
 // They work best when the sum of all the default sizes is 100.
 // If one of the panels is not visible, they will be "resacled" to add up to 100.
-const FILE_EXPLORER = new TopLevelPanel(TopLevelPanelId.FILE_EXPLORER, 25);
+const FILE_EXPLORER = new TopLevelPanel(TopLevelPanelId.FILE_EXPLORER, 15);
 const FILE_VIEWER = new TopLevelPanel(TopLevelPanelId.FILE_VIEWER, 50);
-const CHAT = new TopLevelPanel(TopLevelPanelId.CHAT, 75);
+const CHAT = new TopLevelPanel(TopLevelPanelId.CHAT, 85);
+
+
 
 export default function Workspace() {
   const { workspaceId } = useParams();
@@ -41,7 +45,7 @@ export default function Workspace() {
     setInput?: (message: string) => void;
     sendMessage?: () => void;
   }>({});
-
+  
   const loadWorkspace = async () => {
     if (!workspaceId) {
       navigate("/");
@@ -64,6 +68,12 @@ export default function Workspace() {
     setFiles(syncedFiles);
     setWorkspace(workspace);
   };
+
+  const setPanelWidths = (widths: { fileExplorer?: number; fileViewer?: number; chat?: number }) => {
+    if (panelGroupRef.current) {
+      panelGroupRef.current.setLayout([widths.fileExplorer || 15, widths.fileViewer || 70, widths.chat || 15]);
+    }
+  }; 
 
   useEffect(() => {
     loadWorkspace();
@@ -118,25 +128,19 @@ export default function Workspace() {
     [FileGroupCount.THREE]: null,
     [FileGroupCount.FOUR]: null,
   });
-  const handleOnFileGroupCountChange = (count: FileGroupCount) => {
-    const updates: Record<FileGroupCount, OpenFileGroup | null> = {
-      [FileGroupCount.ONE]: null,
-      [FileGroupCount.TWO]: null,
+  const handleOnFileGroupCountChange =   (count: FileGroupCount) => {
+    const next: Record<FileGroupCount, OpenFileGroup | null> = {
+      [FileGroupCount.ONE]:   null,
+      [FileGroupCount.TWO]:   null,
       [FileGroupCount.THREE]: null,
-      [FileGroupCount.FOUR]: null,
+      [FileGroupCount.FOUR]:  null,
     };
-    for (let group = 1; group <= FileGroupCount.FOUR; group++) {
-      if (group > count) {
-        updates[group] = null;
-      } else {
-        if (openFiles[group] == null) {
-          updates[group] = OpenFileGroup.empty();
-        } else {
-          updates[group] = openFiles[group];
-        }
-      }
+  
+    for (let g = FileGroupCount.ONE; g <= FileGroupCount.FOUR; g++) {
+      next[g] = g <= count ? (openFiles[g] ?? OpenFileGroup.empty()) : null;
     }
-    setOpenFiles(() => updates);
+  
+    setOpenFiles(() => next);
   };
 
   const togglePanelVisibility = (panelId: TopLevelPanelId) => {
@@ -152,6 +156,13 @@ export default function Workspace() {
     window.location.reload();
   };
 
+  const sendPdfMessage = useCallback((message: string) => {
+    if (chatPanelFunctions.setInput && chatPanelFunctions.sendMessage) {
+      chatPanelFunctions.setInput(message);
+      chatPanelFunctions.sendMessage();
+    }
+  }, [chatPanelFunctions]);
+
   const handleFileSelect = (
     file: WorkspaceFile,
     groupNumber: FileGroupCount,
@@ -161,8 +172,8 @@ export default function Workspace() {
     if (!visiblePanels.includes(TopLevelPanelId.FILE_VIEWER)) {
       setVisiblePanels(prev => [...prev, TopLevelPanelId.FILE_VIEWER]);
     }
-
-    // Then handle the file selection as before
+  
+    // Handle file selection
     const current = openFiles[groupNumber];
     const updates = {};
     if (current == null) {
@@ -182,12 +193,15 @@ export default function Workspace() {
     }));
   };
 
-  const sendPdfMessage = useCallback((message: string) => {
-    if (chatPanelFunctions.setInput && chatPanelFunctions.sendMessage) {
-      chatPanelFunctions.setInput(message);
-      chatPanelFunctions.sendMessage();
-    }
-  }, [chatPanelFunctions]);
+  const openFile = useCallback(
+    (
+      file: WorkspaceFile,
+      opts: { showComments: boolean } = { showComments: false }
+    ) => handleFileSelect(file, FileGroupCount.ONE, opts),
+    [handleFileSelect]
+  );
+
+  const { addClaimComments, addCommentGroup, setActiveCommentGroups } = useComments();
 
   return (
     <ChatThreadProvider workspaceId={workspaceId!}>
@@ -198,9 +212,7 @@ export default function Workspace() {
             files={files}
             onFileGroupCountChange={handleOnFileGroupCountChange}
             togglePanelVisibility={togglePanelVisibility}
-            openFile={(file, options) =>
-              handleFileSelect(file, FileGroupCount.ONE, options)
-            }
+            openFile={openFile}
             reloadWorkspace={reloadWorkspace}
           />
           <PanelGroup ref={panelGroupRef} id="workspace" direction="horizontal" className="flex-1">
