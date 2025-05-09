@@ -26,8 +26,43 @@ export const CommentHistory: React.FC<CommentHistoryProps> = ({ fileId }) => {
   const activeCommentGroupIds = activeCommentGroups.map((group) => group.id);
   console.log("Comment history", commentGroups, activeCommentGroups);
 
+  const handleSelectAll = () => {
+    setActiveCommentGroups(
+      fileId,
+      commentGroups.map((group) => group.id)
+    );
+    setSelectedComment(null);
+  };
+
+  const handleDeselectAll = () => {
+    setActiveCommentGroups(fileId, []);
+    setSelectedComment(null);
+  };
+
   return (
-    <div className="h-full">
+    <div className="h-full border-b border-gray-100">
+      <div className="px-3.5 py-2 border-b border-gray-100 bg-white">
+        <div className="flex items-center justify-end">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSelectAll}
+              className="h-7 px-2 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            >
+              Select All
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDeselectAll}
+              className="h-7 px-2 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            >
+              Deselect All
+            </Button>
+          </div>
+        </div>
+      </div>
       <ScrollArea className="h-full">
         <div className="px-3.5 py-2 space-y-1">
           {commentGroups.length === 0 ? (
@@ -84,7 +119,11 @@ export const CommentHistory: React.FC<CommentHistoryProps> = ({ fileId }) => {
                       const isActive = activeCommentGroupIds.includes(group.id);
                       setActiveCommentGroups(
                         fileId,
-                        isActive ? [] : [group.id]
+                        isActive
+                          ? activeCommentGroupIds.filter(
+                              (id) => id !== group.id
+                            )
+                          : [...activeCommentGroupIds, group.id]
                       );
                       setSelectedComment(null);
                     }}

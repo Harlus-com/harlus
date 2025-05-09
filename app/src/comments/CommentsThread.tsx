@@ -1,18 +1,17 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useComments } from "./useComments";
 import { CommentLink, ReadonlyComment, CommentColor } from "./comment_ui_types";
 import { cn } from "@/lib/utils";
-import { FileText, History } from "lucide-react";
+import { ListFilter, FileText, X } from "lucide-react";
 import { FileGroupCount } from "@/components/panels";
 import CommentTagChip from "./ComentTagChip";
 import { getHighestZeroIndexedPageNumberFromHighlightArea } from "./comment_util";
 import { CommentHistory } from "./CommentHistory";
-import { PanelGroup, Panel } from "react-resizable-panels";
+import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 import PanelDivider from "@/components/PanelDivider";
 
 interface CommentsThreadProps {
@@ -24,16 +23,23 @@ interface CommentsThreadProps {
       fileGroup: FileGroupCount;
     }
   ) => void;
+  onClose?: () => void;
 }
 
 const CommentsThread: React.FC<CommentsThreadProps> = ({
   fileId,
   openFile,
+  onClose,
 }) => {
   const [showHistory, setShowHistory] = useState(false);
-  const { getActiveComments, setSelectedComment, getSelectedComment } =
-    useComments();
+  const {
+    getActiveComments,
+    setSelectedComment,
+    getSelectedComment,
+    getAllCommentGroups,
+  } = useComments();
   const selectedComment = getSelectedComment(fileId);
+  const commentGroups = getAllCommentGroups(fileId);
 
   const comments: ReadonlyComment[] = getActiveComments(fileId).filter(
     (c) => !c.isHidden
@@ -44,7 +50,7 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
   };
 
   const handleCommentClick = (comment: ReadonlyComment) => {
-    setSelectedComment(comment.id);
+    setSelectedComment(selectedComment?.id === comment.id ? null : comment.id);
   };
 
   const handleLinkClick = (link: CommentLink) => {
@@ -57,31 +63,56 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-3.5 py-2 border-b border-gray-100 pt-8">
+      <div className="flex items-center justify-between pl-3 pr-1 py-2 border-b border-gray-100">
         <h2 className="text-sm font-medium text-gray-900">Comments</h2>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowHistory(!showHistory)}
-          className={cn(
-            "h-6 w-6 p-0",
-            showHistory ? "bg-gray-100" : "hover:bg-gray-100"
-          )}
-        >
-          <History className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowHistory(!showHistory)}
+            className="h-8 px-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 group relative z-10"
+          >
+            <ListFilter className="h-4 w-4" />
+            <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              Toggle Filter
+            </div>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="h-8 px-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 group relative z-10"
+          >
+            <X className="h-4 w-4" />
+            <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              Close Comments
+            </div>
+          </Button>
+        </div>
       </div>
 
       <PanelGroup direction="vertical" className="flex-1">
         {showHistory && (
           <>
-            <Panel defaultSize={25} minSize={20}>
+            <Panel
+              defaultSize={25}
+              minSize={10}
+              id={`${fileId}-filter`}
+              order={1}
+            >
               <CommentHistory fileId={fileId} />
             </Panel>
-            <PanelDivider />
+            <PanelResizeHandle className="relative group bg-transparent cursor-row-resize">
+              <div className="absolute inset-x-0 h-px group-hover:h-1 bg-gray-300" />
+            </PanelResizeHandle>
           </>
         )}
-        <Panel defaultSize={showHistory ? 75 : 100}>
+        <Panel
+          defaultSize={showHistory ? 75 : 100}
+          minSize={15}
+          id={`${fileId}-comments`}
+          order={2}
+        >
           <ScrollArea className="h-full p-4">
             {comments.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
@@ -89,7 +120,9 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
                   <FileText className="h-5 w-5 text-blue-500" />
                 </div>
                 <h3 className="text-base font-medium text-gray-800 mb-1">
-                  No comments yet
+                  {commentGroups.length === 0
+                    ? "No comments yet"
+                    : "No threads selected"}
                 </h3>
               </div>
             ) : (
@@ -106,13 +139,13 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
                         "transition-all duration-200",
                         selectedComment?.id === comment.id
                           ? "-translate-x-4"
-                          : "cursor-pointer"
+                          : ""
                       )}
                     >
                       <Card
                         onClick={() => handleCommentClick(comment)}
                         className={cn(
-                          "w-full",
+                          "w-full cursor-pointer",
                           selectedComment?.id === comment.id
                             ? "bg-white shadow-lg"
                             : "hover:bg-gray-100 bg-gray-50",
