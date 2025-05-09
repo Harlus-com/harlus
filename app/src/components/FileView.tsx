@@ -9,6 +9,7 @@ import { MessageSquareQuote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CommentsThread from "../comments/CommentsThread";
 import { fileService } from "@/api/fileService";
+import ExcelViewer from "@/components/ExcelViewer";
 
 export interface FileViewProps {
   openFiles: Record<FileGroupCount, OpenFileGroup | null>;
@@ -210,11 +211,15 @@ function FileGroupPanel({
         >
           {selectedFile != null ? (
             <div className="flex-1 min-h-0">
-              <PdfViewer 
-                file={selectedFile} 
-                key={selectedFile.id} 
-                onSendMessage={onSendMessage}
-              />
+              {selectedFile.name === "valuation model.xls" ? (
+                <ExcelViewer key="excel-viewer" />
+              ) : (
+                <PdfViewer 
+                  file={selectedFile} 
+                  key={selectedFile.id} 
+                  onSendMessage={onSendMessage}
+                />
+              )}
             </div>
           ) : (
             <div className="flex-1 bg-white h-full flex items-center justify-center">

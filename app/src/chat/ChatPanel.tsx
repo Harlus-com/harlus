@@ -25,7 +25,8 @@ import { CommentGroup } from "@/api/comment_types";
 import { getHighestZeroIndexedPageNumber } from "@/comments/comment_util";
 import { ChatHistory } from "./ChatHistory";
 import { useChatThread } from "./ChatThreadContext";
-import { findMockResponse } from '../api/mock_chat';
+import { findMockResponse, mockConversations } from '../api/mock_chat';
+import { mockSourceCommentGroup } from '../api/mock_source';
 
 interface ChatPanelProps {
   onSourceClicked?: (file: WorkspaceFile) => void;
@@ -269,6 +270,12 @@ const AssistantMessage: React.FC<{
   }) => {
     const { addClaimComments, addCommentGroup, setActiveCommentGroups } = useComments();
 
+    // Check if this message corresponds to the first mock conversation
+    const isFirstMockMessage = message.content === mockConversations[0].assistantMessage;
+    
+    // Check if this message corresponds to the second mock conversation
+    const isSecondMockMessage = message.content === mockConversations[1].assistantMessage;
+    
     const handleMockAnalysis = async () => {
       try {
         // Get the WorkspaceFile objects from their IDs
@@ -416,26 +423,31 @@ const AssistantMessage: React.FC<{
           </div>
         </div>
 
-        {/* Sources at bottom of message */}
-        {message.chatSourceCommentGroups &&
-          message.chatSourceCommentGroups.length > 0 && (
-            <ChatSources
-              chatSourceCommentGroups={message.chatSourceCommentGroups}
-              onSourceClick={handleSourceClick}
-            />
-          )}
+        {/* Add Contrast Analysis button only for first mock message */}
+        {isFirstMockMessage && (
+          <div className="mt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-3 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-gray-200"
+              onClick={handleMockAnalysis}
+            >
+              Contrast Analysis
+            </Button>
+          </div>
+        )}
 
-        {/* Add Contrast Analysis button */}
-        <div className="mt-3">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 px-3 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-gray-200"
-            onClick={handleMockAnalysis}
-          >
-            Contrast Analysis
-          </Button>
-        </div>
+        {/* Add source badge for second mock message */}
+        {isSecondMockMessage && (
+          <div className="mt-2 pt-2 border-t border-gray-100">
+            <div className="flex flex-wrap gap-1.5">
+              <SourceBadge
+                source={mockSourceCommentGroup}
+                onClick={() => handleSourceClick(mockSourceCommentGroup)}
+              />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -686,6 +698,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
 
     // Find mock response
     const mockResponse = findMockResponse(input.trim());
+    
+    // Check if this is the second mock conversation
+    const isSecondMockMessage = mockResponse && 
+      mockResponse.userMessage === mockConversations[1].userMessage;
 
     // Add message pair to the list
     setMessagePairs((prev) => [
@@ -698,7 +714,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
           sender: "assistant",
           content: mockResponse?.assistantMessage || "I don't have a mock response for that question.",
           timestamp: now(),
-          chatSourceCommentGroups: [],
+          // Attach mock source for second message
+          chatSourceCommentGroups: isSecondMockMessage ? [mockSourceCommentGroup] : [],
           messageType: "answer_message",
         },
         readingMessages: mockResponse?.readingMessages?.map((content, index) => ({

@@ -172,7 +172,7 @@ async def load_file(request: LoadFileRequest):
             status_code=404, content={"error": f"File not found: {path}"}
         )
     file = file_store.copy_file_to_workspace(path, workspace_id)
-    await sync_queue.queue_model_sync(file)
+    # await sync_queue.queue_model_sync(file)
     return file
 
 
