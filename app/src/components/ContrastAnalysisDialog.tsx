@@ -33,6 +33,9 @@ export interface ContrastResult {
   }[];
 }
 
+// Leaving this option in case we change our mind, or want to make this configurable.
+const OPEN_SIDE_BY_SIDE = true;
+
 interface ContrastAnalysisDialogProps {
   files: WorkspaceFile[];
   setVisiblePanels: (panelIds: TopLevelPanelId[]) => void;
@@ -71,22 +74,32 @@ const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
       addCommentGroup(commentGroup, { ignoreIfExists: true });
       setActiveCommentGroups([commentGroup.id]);
       await addClaimComments(result, commentGroup, { ignoreIfExists: true });
-      setVisiblePanels([TopLevelPanelId.FILE_VIEWER]);
-      openFiles(
-        {
+      if (OPEN_SIDE_BY_SIDE) {
+        setVisiblePanels([TopLevelPanelId.FILE_VIEWER]);
+        openFiles(
+          {
+            [selectedFile1.id]: {
+              showComments: true,
+              fileGroup: FileGroupCount.ONE,
+              select: true,
+            },
+            [selectedFile2.id]: {
+              showComments: true,
+              fileGroup: FileGroupCount.TWO,
+              select: true,
+            },
+          },
+          { closeAllOtherFileGroups: true }
+        );
+      } else {
+        openFiles({
           [selectedFile1.id]: {
             showComments: true,
             fileGroup: FileGroupCount.ONE,
             select: true,
           },
-          [selectedFile2.id]: {
-            showComments: true,
-            fileGroup: FileGroupCount.TWO,
-            select: true,
-          },
-        },
-        { closeAllOtherFileGroups: true }
-      );
+        });
+      }
       setIsOpen(false);
     } catch (error) {
       console.error("Error running analysis:", error);

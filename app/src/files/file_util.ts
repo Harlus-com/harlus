@@ -1,7 +1,7 @@
 import { FileGroupCount } from "@/components/panels";
 import { FilesToOpen } from "./file_types";
 
-export function getOpenFileGroupsToOpen(
+export function getFileGroupsToOpen(
   filesToOpen: FilesToOpen
 ): FileGroupCount[] {
   return Array.from(

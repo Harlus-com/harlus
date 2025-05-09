@@ -22,7 +22,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ChatThreadProvider } from "@/chat/ChatThreadContext";
 import { OpenFilesOptions } from "@/files/file_types";
 import { FilesToOpen } from "@/files/file_types";
-import { fileGroupCounts, getOpenFileGroupsToOpen } from "@/files/file_util";
+import { fileGroupCounts, getFileGroupsToOpen } from "@/files/file_util";
 
 // The default sizes scale relative to each other.
 // They work best when the sum of all the default sizes is 100.
@@ -169,17 +169,17 @@ export default function Workspace() {
 
   const handleOpenFiles = (
     filesToOpen: FilesToOpen,
-    options: OpenFilesOptions
+    options?: OpenFilesOptions
   ) => {
     setOpenFiles((prev) => {
-      const openFilesIntoGroups = getOpenFileGroupsToOpen(filesToOpen);
+      const openFilesIntoGroups = getFileGroupsToOpen(filesToOpen);
       const newOpenFiles = { ...prev };
-      if (options.closeAllOtherFiles) {
+      if (options?.closeAllOtherFiles) {
         for (const groupCount of fileGroupCounts()) {
           newOpenFiles[groupCount] = OpenFileGroup.empty();
         }
       }
-      if (options.closeAllOtherFileGroups) {
+      if (options?.closeAllOtherFileGroups) {
         for (const groupCount of fileGroupCounts()) {
           if (!openFilesIntoGroups.includes(groupCount)) {
             newOpenFiles[groupCount] = null;
