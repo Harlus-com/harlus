@@ -261,12 +261,7 @@ export default function Workspace() {
                 >
                   <FileExplorer
                     files={files}
-                    onFileSelect={(file, groupNumber) =>
-                      handleFileSelect(file, {
-                        showComments: false,
-                        fileGroup: groupNumber,
-                      })
-                    }
+                    handleOpenFiles={handleOpenFiles}
                     openFiles={openFiles}
                     onFilesChange={setFiles}
                   />
