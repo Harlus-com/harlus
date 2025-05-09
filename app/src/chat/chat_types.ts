@@ -1,4 +1,5 @@
 import { ChatSourceComment } from "@/api/comment_types";
+import { Timestamp } from "@/api/common_api_types";
 import { ComponentData, ReadonlyComponentData } from "@/core/ui_state";
 
 export interface ChatSourceCommentGroup {
@@ -29,6 +30,7 @@ export interface Thread {
   id: string;
   title: string;
   lastMessageAt: string;
+  createdAt: Timestamp;
 }
 
 export enum ThreadSavedState {

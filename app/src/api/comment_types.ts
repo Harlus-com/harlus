@@ -1,8 +1,11 @@
 // API Response
 
+import { Timestamp } from "./common_api_types";
+
 export interface CommentGroup {
   readonly id: string;
   readonly name: string;
+  readonly createdAt: Timestamp;
 }
 
 // REMEMBER THIS HAS TO BE FOR ReactPdfVieiwer, which uses percentages

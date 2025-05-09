@@ -166,7 +166,7 @@ export default function Workspace() {
 
   return (
     <ChatThreadProvider workspaceId={workspaceId!}>
-      <CommentsProvider>
+      <CommentsProvider workspaceId={workspaceId!}>
         <div className="flex flex-col h-screen">
           <WorkspaceHeader
             workspace={workspace}

@@ -5,7 +5,7 @@ import PanelDivider from "./PanelDivider";
 import { WorkspaceFile } from "@/api/workspace_types";
 import PdfViewer from "@/components/ReactPdfViewer";
 import { OpenFileGroup } from "./OpenFileGroup";
-import { MessageSquareQuote } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CommentsThread from "../comments/CommentsThread";
 import { fileService } from "@/api/fileService";
@@ -182,17 +182,19 @@ function FileGroupPanel({
                 );
               })}
             </div>
-            <Button
-              onClick={() => onToggleComments(groupIndex, selectedFile.id)}
-              variant="ghost"
-              size="sm"
-              className="group relative"
-            >
-              <MessageSquareQuote size={16} />
-              <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                Toggle Comments
-              </div>
-            </Button>
+            {selectedFile != null && !showComments[selectedFile.id] && (
+              <Button
+                onClick={() => onToggleComments(groupIndex, selectedFile.id)}
+                variant="ghost"
+                size="sm"
+                className="group relative z-10"
+              >
+                <MessageSquare size={16} />
+                <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                  Toggle Comments
+                </div>
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -222,7 +224,11 @@ function FileGroupPanel({
               order={2}
               defaultSize={20}
             >
-              <CommentsThread fileId={selectedFile.id} openFile={openFile} />
+              <CommentsThread
+                fileId={selectedFile.id}
+                openFile={openFile}
+                onClose={() => onToggleComments(groupIndex, selectedFile.id)}
+              />
             </Panel>
           </>
         )}

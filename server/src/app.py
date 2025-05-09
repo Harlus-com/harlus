@@ -20,7 +20,8 @@ from pathlib import Path
 from llama_index.core.agent.workflow import ReActAgent
 
 from pydantic import BaseModel, ConfigDict, Field
-from src.chat_store import ChatStore
+from src.chat_store import ChatStore, JsonType
+from src.comment_store import CommentGroup, CommentStore, Timestamp
 from src.util import BoundingBoxConverter, snake_to_camel
 from src.tool_library import ToolLibrary
 from src.sync_workspace import get_workspace_sync_manager
@@ -74,6 +75,7 @@ tool_library = ToolLibrary(file_store)
 tool_library.load_tools()
 
 chat_store = ChatStore(file_store)
+comment_store = CommentStore(file_store)
 
 
 # TODO: chat_library should call update_chat_tools when new tools
@@ -345,7 +347,7 @@ class ReactPdfAnnotation(BaseModel):
 
 cache_file_path_base = "contrast_analysis"
 # Set this to the desired cache response
-cache_file_path_target = ""
+cache_file_path_target = "contrast_analysis_1.json"
 
 
 @app.get("/contrast/analyze")
@@ -516,3 +518,81 @@ def get_thread(
 ):
     print("Getting thread", thread_id, workspace_id)
     return chat_store.get_thread(workspace_id, thread_id)
+
+
+class CreateCommentGroupRequest(BaseModel):
+    workspace_id: str = Field(alias="workspaceId")
+    comment_group: CommentGroup = Field(alias="commentGroup")
+
+
+class RenameCommentGroupRequest(BaseModel):
+    workspace_id: str = Field(alias="workspaceId")
+    comment_group_id: str = Field(alias="commentGroupId")
+    name: str
+
+
+class DeleteCommentGroupRequest(BaseModel):
+    workspace_id: str = Field(alias="workspaceId")
+    comment_group_id: str = Field(alias="commentGroupId")
+
+
+class SaveCommentsRequest(BaseModel):
+    workspace_id: str = Field(alias="workspaceId")
+    comments: list[JsonType]
+
+
+@app.post("/comments/group/create")
+def create_comment_group(request: CreateCommentGroupRequest):
+    """Create a new comment group"""
+    comment_store.create_comment_group(request.workspace_id, request.comment_group)
+    return request.comment_group
+
+
+@app.get("/comments/group/get")
+def get_comment_group(
+    group_id: str = Query(..., alias="groupId"),
+    workspace_id: str = Query(..., alias="workspaceId"),
+):
+    """Get a comment group by ID"""
+    return comment_store.get_comment_group(workspace_id, group_id)
+
+
+@app.get("/comments/group/all")
+def get_all_comment_groups(
+    workspace_id: str = Query(..., alias="workspaceId"),
+):
+    """Get all comment groups for a workspace"""
+    return comment_store.get_comment_groups(workspace_id)
+
+
+@app.post("/comments/save")
+async def save_comments(request: SaveCommentsRequest):
+    """Save comments for a group"""
+    await comment_store.save_comments(request.workspace_id, request.comments)
+    return True
+
+
+@app.get("/comments/saved")
+def get_saved_comments(
+    workspace_id: str = Query(..., alias="workspaceId"),
+):
+    """Get saved comments for a group"""
+    return comment_store.get_comments(workspace_id)
+
+
+@app.post("/comments/group/rename")
+def rename_comment_group(request: RenameCommentGroupRequest):
+    """Rename a comment group"""
+    comment_store.rename_comment_group(
+        request.workspace_id, request.comment_group_id, request.name
+    )
+    return comment_store.get_comment_group(
+        request.workspace_id, request.comment_group_id
+    )
+
+
+@app.post("/comments/group/delete")
+def delete_comment_group(request: DeleteCommentGroupRequest):
+    """Delete a comment group"""
+    comment_store.delete_comment_group(request.workspace_id, request.comment_group_id)
+    return True

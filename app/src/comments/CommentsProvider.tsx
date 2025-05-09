@@ -3,7 +3,7 @@ import {
   ClaimComment,
   CommentGroup,
 } from "@/api/comment_types";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   CommentComponentData,
   ReadonlyComment,
@@ -15,15 +15,18 @@ import {
   convertClaimCommentToComments,
 } from "./comment_converters";
 import { getCommentColor, updateUiState, copyToReadonly } from "./comment_util";
-import { CommentsContext } from "./CommentsContext";
+import { CommentContextAddOptions, CommentsContext } from "./CommentsContext";
 import { flushSync } from "react-dom";
+import { commentService } from "./comment_service";
 
 interface CommentsProviderProps {
   children: React.ReactNode;
+  workspaceId: string;
 }
 
 export const CommentsProvider: React.FC<CommentsProviderProps> = ({
   children,
+  workspaceId,
 }) => {
   const [comments, setComments] = useState<{
     [key: string]: CommentComponentData;
@@ -36,22 +39,38 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
   }>({});
   const [commentGroups, setCommentGroups] = useState<CommentGroup[]>([]);
 
+  useEffect(() => {
+    const loadComments = async () => {
+      const comments = await commentService.getAllSavedComments(workspaceId);
+      const commentGroups = await commentService.getAllCommentGroups(
+        workspaceId
+      );
+      const commentsById: { [key: string]: CommentComponentData } = {};
+      comments.forEach((comment) => {
+        commentsById[comment.apiData.id] = {
+          apiData: comment.apiData,
+          uiState: {
+            isHidden: false,
+            highlightColor: "yellow",
+            color: comment.uiState.color,
+          },
+        };
+      });
+      setComments(commentsById);
+      setCommentGroups(commentGroups);
+    };
+    loadComments();
+  }, [workspaceId]);
+
   const updateComments = (
     updates: { [key: string]: CommentComponentData },
     options: {
       expectAllNew?: boolean;
       expectReplace?: boolean;
-      upsert?: boolean;
+      save?: boolean;
     } = {}
   ) => {
-    // With upsert option, we can add new comments and update existing ones without errors
-    // This simplifies adding chat source comments (the source button can be clicked multiple times)
     setComments((prevComments) => {
-      if (options.upsert) {
-        // Just merge updates without throwing errors for duplicates or missing comments
-        return { ...prevComments, ...updates };
-      }
-
       if (options.expectAllNew) {
         Object.keys(updates).forEach((key) => {
           if (prevComments[key]) {
@@ -66,15 +85,20 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
           }
         });
       }
-      return { ...prevComments, ...updates };
+      const newComments = { ...prevComments, ...updates };
+      if (options.save) {
+        commentService.saveComments(workspaceId, Object.values(newComments));
+      }
+      return newComments;
     });
   };
 
   const addClaimComments = async (
     claims: ClaimComment[],
-    group: CommentGroup
+    group: CommentGroup,
+    options: CommentContextAddOptions
   ) => {
-    const comments: Comment[] = (
+    const newComments: Comment[] = (
       await Promise.all(
         claims.map((claim) => convertClaimCommentToComments(claim, group))
       )
@@ -83,7 +107,7 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
     claims.forEach((claim) => {
       claimsById[claim.id] = claim;
     });
-    const commentComponentData: CommentComponentData[] = comments.map(
+    const commentComponentData: CommentComponentData[] = newComments.map(
       (comment) => ({
         apiData: comment,
         uiState: {
@@ -97,71 +121,22 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
     );
     const updates: { [key: string]: CommentComponentData } = {};
     for (const comment of commentComponentData) {
+      if (options.ignoreIfExists && comments[comment.apiData.id]) {
+        continue;
+      }
       updates[comment.apiData.id] = comment;
     }
-    updateComments(updates, { expectAllNew: true });
+    updateComments(updates, { expectAllNew: true, save: true });
   };
 
   const addChatSourceComments = async (
-    comments: ChatSourceComment[],
-    group: CommentGroup
+    chatSourceComments: ChatSourceComment[],
+    group: CommentGroup,
+    options: CommentContextAddOptions
   ) => {
-    // Filter out invalid comments
-    const validComments = comments.filter((comment) => {
-      if (!comment.highlightArea) {
-        console.warn("Missing highlight area in chat source comment:", comment);
-        return false;
-      }
-
-      if (
-        !comment.highlightArea.boundingBoxes ||
-        !Array.isArray(comment.highlightArea.boundingBoxes)
-      ) {
-        console.warn(
-          "Missing or invalid bounding boxes in chat source comment:",
-          comment
-        );
-        return false;
-      }
-
-      const validBoundingBoxes = comment.highlightArea.boundingBoxes.every(
-        (bbox) => {
-          if (!bbox || typeof bbox !== "object") {
-            console.warn("Invalid bounding box object:", bbox);
-            return false;
-          }
-
-          if (
-            bbox.page === undefined ||
-            bbox.left === undefined ||
-            bbox.top === undefined ||
-            bbox.width === undefined ||
-            bbox.height === undefined
-          ) {
-            console.warn("Incomplete bounding box properties:", bbox);
-            return false;
-          }
-
-          return true;
-        }
-      );
-
-      if (!validBoundingBoxes) {
-        console.warn("Invalid bounding boxes in comment:", comment.id);
-        return false;
-      }
-
-      return true;
-    });
-
-    if (validComments.length === 0) {
-      console.warn("No valid chat source comments to add");
-      return;
-    }
-
     const convertedComments: Comment[] = (
       await Promise.all(
-        validComments.map((comment) =>
+        chatSourceComments.map((comment) =>
           convertChatSourceCommentToComments(comment, group)
         )
       )
@@ -180,20 +155,31 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
 
     const updates: { [key: string]: CommentComponentData } = {};
     for (const comment of commentComponentData) {
+      console.log("Adding chat source comment", comment);
+      console.log("Comments", comments);
+      if (options.ignoreIfExists && comments[comment.apiData.id]) {
+        continue;
+      }
       updates[comment.apiData.id] = comment;
     }
-
-    // Apply updates
-    updateComments(updates, { upsert: true });
+    updateComments(updates, { expectAllNew: true, save: true });
   };
 
-  const addCommentGroup = (commentGroup: CommentGroup) => {
-    // TODO: Determine if this should also persist the group to the server
+  const addCommentGroup = async (
+    commentGroup: CommentGroup,
+    options: CommentContextAddOptions
+  ) => {
+    if (options.ignoreIfExists) {
+      const existingGroup = commentGroups.find(
+        (group) => group.id === commentGroup.id
+      );
+      if (existingGroup) {
+        return;
+      }
+    }
+    await commentService.createIfNotExists(workspaceId, commentGroup);
     flushSync(() => {
-      setCommentGroups((prevCommentGroups) => [
-        ...prevCommentGroups,
-        commentGroup,
-      ]);
+      setCommentGroups((prev) => [...prev, commentGroup]);
     });
   };
 
@@ -239,7 +225,12 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
     commentGroups.forEach((group) => {
       groupIdToGroup[group.id] = group;
     });
-    return groupIds.map((id) => groupIdToGroup[id]);
+    return (
+      groupIds
+        .map((id) => groupIdToGroup[id])
+        // Filter out groups that don't exist (i.e might have been deleted)
+        .filter((group) => group !== undefined)
+    );
   };
 
   const getActiveCommentGroups = (fileId: string): CommentGroup[] => {
@@ -280,6 +271,40 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
     return null;
   };
 
+  const deleteCommentGroup = async (groupId: string) => {
+    await commentService.deleteCommentGroup(workspaceId, groupId);
+    setCommentGroups((prev) => prev.filter((group) => group.id !== groupId));
+    setActiveCommentGroupsIds((prev) => {
+      const newActiveCommentGroupsIds = { ...prev };
+      for (const fileId in newActiveCommentGroupsIds) {
+        newActiveCommentGroupsIds[fileId] = newActiveCommentGroupsIds[
+          fileId
+        ].filter((id) => id !== groupId);
+      }
+      return newActiveCommentGroupsIds;
+    });
+    setComments((prev) => {
+      const newComments = { ...prev };
+      for (const commentId in newComments) {
+        if (newComments[commentId].apiData.groupId === groupId) {
+          delete newComments[commentId];
+        }
+      }
+      return newComments;
+    });
+  };
+
+  const renameCommentGroup = async (groupId: string, name: string) => {
+    const newCommentGroup = await commentService.renameCommentGroup(
+      workspaceId,
+      groupId,
+      name
+    );
+    setCommentGroups((prev) =>
+      prev.map((group) => (group.id === groupId ? newCommentGroup : group))
+    );
+  };
+
   const value = {
     addClaimComments,
     addChatSourceComments,
@@ -293,6 +318,8 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
     getActiveComments,
     getAllComments,
     getSelectedComment,
+    deleteCommentGroup,
+    renameCommentGroup,
   };
 
   return (

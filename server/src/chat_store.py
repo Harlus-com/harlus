@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Dict, Optional, Any
 
 from pydantic import BaseModel, ConfigDict, Field
-from src.util import snake_to_camel
+from src.util import Timestamp, snake_to_camel, timestamp_now
 from src.file_store import FileStore
 
 JsonType = Dict[str, Any]
@@ -15,6 +15,7 @@ class ChatThread(BaseModel):
     id: str
     title: str
     last_message_at: str = Field(alias="lastMessageAt")
+    created_at: Timestamp = Field(alias="createdAt")
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -51,15 +52,16 @@ class ChatStore:
 
     def create_thread(self, workspace_id: str, thread_id: str, title: str):
         """Create a new thread and save it to threads.json"""
-        thread = {
-            "id": thread_id,
-            "title": title,
-            "lastMessageAt": datetime.now().strftime("%I:%M %p"),
-        }
+        thread = ChatThread(
+            id=thread_id,
+            title=title,
+            last_message_at=datetime.now().strftime("%I:%M %p"),
+            created_at=timestamp_now(),
+        )
         threads_file = self._get_chat_file_path(workspace_id, "threads.json")
         with open(threads_file, "r") as f:
             threads = json.load(f)
-        threads[thread_id] = thread
+        threads[thread_id] = thread.model_dump()
         with open(threads_file, "w") as f:
             json.dump(threads, f, indent=2)
 
@@ -93,6 +95,7 @@ class ChatStore:
         threads_file = self._get_chat_file_path(workspace_id, "threads.json")
         with open(threads_file, "r") as f:
             threads = json.load(f)
+            print("loaded threads", threads)
         return [ChatThread.model_validate(thread) for thread in threads.values()]
 
     def get_thread(self, workspace_id: str, thread_id: str) -> Optional[ChatThread]:
@@ -103,7 +106,6 @@ class ChatStore:
         if thread_id not in threads:
             return None
         thread = threads[thread_id]
-        print("Thread", thread)
         return ChatThread.model_validate(thread)
 
     async def save_chat_history(

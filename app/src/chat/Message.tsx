@@ -1,6 +1,11 @@
-import { memo, useCallback, useContext } from "react";
+import { useCallback } from "react";
 import { fileService } from "@/api/fileService";
-import { ChatSourceCommentGroup, MessagePair } from "./chat_types";
+import {
+  ChatSourceCommentGroup,
+  MessagePair,
+  Thread,
+  ThreadSavedState,
+} from "./chat_types";
 import { AssistantMessage } from "./AssistantMessage";
 import { UserMessage } from "./UserMessage";
 import { ReadingMessage } from "./ReadingMessage";
@@ -8,7 +13,7 @@ import { ReadingMessagesToggle } from "./ReadingMessage";
 import { CommentGroup } from "@/api/comment_types";
 import { useComments } from "@/comments/useComments";
 import { WorkspaceFile } from "@/api/workspace_types";
-
+import { useChatThread } from "./ChatThreadContext";
 interface MessagePairProps {
   pair: MessagePair;
   isReading: boolean;
@@ -21,92 +26,51 @@ export const MessagePairComponent: React.FC<MessagePairProps> = ({
   toggleReadingMessages,
   onSourceClicked,
 }) => {
-  const {
-    addChatSourceComments,
-    addCommentGroup,
-    setActiveCommentGroups,
-    getAllComments,
-    getAllCommentGroups,
-  } = useComments();
-
+  const { addChatSourceComments, addCommentGroup, setActiveCommentGroups } =
+    useComments();
+  const { currentThreadId, getThread } = useChatThread();
   // Handle source clicks
-  const handleSourceClick = useCallback(
-    async (chatSourceCommentGroup: ChatSourceCommentGroup) => {
-      console.log("[MessagePair] Source clicked:", chatSourceCommentGroup);
+  const handleSourceClick = async (
+    chatSourceCommentGroup: ChatSourceCommentGroup
+  ) => {
+    console.log("[MessagePair] Source clicked:", chatSourceCommentGroup);
 
-      if (onSourceClicked) {
-        try {
-          const file = await fileService.getFileFromPath(
-            chatSourceCommentGroup.filePath
+    const thread = getThread(currentThreadId);
+    if (thread.savedState !== ThreadSavedState.SAVED_WITH_MESSAGES) {
+      throw new Error("Thread is not saved with messages");
+    }
+
+    if (onSourceClicked) {
+      try {
+        const file = await fileService.getFileFromPath(
+          chatSourceCommentGroup.filePath
+        );
+        if (!file) {
+          console.error(
+            "[MessagePair] No workspace file found:",
+            chatSourceCommentGroup
           );
-          if (!file) {
-            console.error(
-              "[MessagePair] No workspace file found:",
-              chatSourceCommentGroup
-            );
-            return;
-          }
-
-          // Create or reuse existing comment group
-          const commentGroupId = `chat-source-${chatSourceCommentGroup.filePath.replace(
-            /\//g,
-            "-"
-          )}`;
-          const commentGroup: CommentGroup = {
-            id: commentGroupId,
-            name: `Source from AI Assistant`,
-          };
-
-          // Get existing comments for this file
-          const existingComments = getAllComments(file.id);
-          const existingCommentIds = new Set(
-            existingComments.map((comment) => comment.id)
-          );
-
-          // Only add the comment group if it doesn't already exist
-          const existingGroups = getAllCommentGroups(file.id);
-          const groupExists = existingGroups.some(
-            (group) => group.id === commentGroupId
-          );
-
-          if (!groupExists) {
-            addCommentGroup(commentGroup);
-          }
-
-          // Set this as the active comment group for the file
-          setActiveCommentGroups(file.id, [commentGroupId]);
-
-          // Filter out comments that already exist
-          if (chatSourceCommentGroup.chatSourceComments) {
-            const filteredComments =
-              chatSourceCommentGroup.chatSourceComments.filter(
-                (comment) => !existingCommentIds.has(comment.id)
-              );
-
-            console.log(
-              `[MessagePair] Adding ${filteredComments.length} new comments out of ${chatSourceCommentGroup.chatSourceComments.length} total`
-            );
-
-            if (filteredComments.length > 0) {
-              await addChatSourceComments(filteredComments, commentGroup);
-            }
-          }
-
-          onSourceClicked(file);
-        } catch (error) {
-          console.error("[MessagePair] Error opening source:", error);
+          return;
         }
+
+        const commentGroup: CommentGroup = {
+          id: thread.id,
+          name: `${thread.title}`,
+          createdAt: thread.createdAt,
+        };
+        addCommentGroup(commentGroup, { ignoreIfExists: true });
+        setActiveCommentGroups(file.id, [commentGroup.id]);
+        await addChatSourceComments(
+          chatSourceCommentGroup.chatSourceComments,
+          commentGroup,
+          { ignoreIfExists: true }
+        );
+        onSourceClicked(file);
+      } catch (error) {
+        console.error("[MessagePair] Error opening source:", error);
       }
-    },
-    [
-      onSourceClicked,
-      addChatSourceComments,
-      addCommentGroup,
-      setActiveCommentGroups,
-      getAllComments,
-      getAllCommentGroups,
-    ]
-  );
+    }
+  };
 
   const handleToggleReadingMessages = useCallback(() => {
     toggleReadingMessages(pair.id);

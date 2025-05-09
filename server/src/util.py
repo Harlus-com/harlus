@@ -1,3 +1,7 @@
+import datetime
+from pydantic import BaseModel
+
+
 def snake_to_camel(s: str) -> str:
     return "".join(
         word if i == 0 else word.capitalize() for i, word in enumerate(s.split("_"))
@@ -32,3 +36,24 @@ class BoundingBoxConverter:
             "width": (w / self.page_w) * 100,
             "height": (h / self.page_h) * 100,
         }
+
+
+class Timestamp(BaseModel):
+    second: int
+    minute: int
+    hour: int
+    day: int
+    month: int
+    year: int
+
+
+def timestamp_now() -> Timestamp:
+    now = datetime.datetime.now()
+    return Timestamp(
+        second=now.second,
+        minute=now.minute,
+        hour=now.hour,
+        day=now.day,
+        month=now.month,
+        year=now.year,
+    )

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Send, BookOpen, Plus } from "lucide-react";
+import { Send, BookOpen, Plus, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { WorkspaceFile } from "@/api/workspace_types";
@@ -17,6 +17,7 @@ import { useChatThread } from "./ChatThreadContext";
 import { MessagePairComponent } from "./Message";
 import { LoadingIndicator } from "./LoadingIndicator";
 import { getTitleFromMessage, hourMinuteNow } from "./chat_util";
+import { cn } from "@/lib/utils";
 
 interface ChatPanelProps {
   onSourceClicked?: (file: WorkspaceFile) => void;
@@ -373,7 +374,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
             onClick={() => setIsHistoryVisible(!isHistoryVisible)}
             className="h-8 px-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
           >
-            <BookOpen className="h-4 w-4 mr-1.5" />
+            <History className="h-4 w-4 mr-1.5" />
             {isHistoryVisible ? "Hide History" : "History"}
           </Button>
           {/* TODO: Conditionally show this button based on whether the user is already in an empty thread */}
