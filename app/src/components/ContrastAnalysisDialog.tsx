@@ -89,7 +89,10 @@ const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
               select: true,
             },
           },
-          { closeAllOtherFileGroups: true }
+          {
+            closeAllOtherFileGroups: true,
+            resizeFileGroupOneCommentPanel: true,
+          }
         );
       } else {
         openFiles({

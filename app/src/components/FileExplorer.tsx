@@ -16,19 +16,22 @@ import FileStatusIndicator from "./FileStatusIndicator";
 import { FileGroupCount } from "./panels";
 import { OpenFileGroup } from "./OpenFileGroup";
 import { fileGroupCounts } from "@/files/file_util";
-
+import { FilesToOpen, OpenFilesOptions } from "@/files/file_types";
 interface FileExplorerProps {
   files: WorkspaceFile[];
-  onFileSelect: (file: WorkspaceFile, groupNumber: FileGroupCount) => void;
   openFiles: Record<FileGroupCount, OpenFileGroup | null>;
   onFilesChange: (files: WorkspaceFile[]) => void;
+  handleOpenFiles: (
+    filesToOpen: FilesToOpen,
+    options?: OpenFilesOptions
+  ) => void;
 }
 
 const FileExplorer: React.FC<FileExplorerProps> = ({
   files,
-  onFileSelect,
   openFiles,
   onFilesChange,
+  handleOpenFiles,
 }) => {
   const selectedFileIds: string[] = [];
   for (const fileGroup of Object.values(openFiles)) {
@@ -47,7 +50,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     file: WorkspaceFile,
     groupNumber: FileGroupCount
   ) => {
-    onFileSelect(file, groupNumber);
+    handleOpenFiles({
+      [file.id]: { fileGroup: groupNumber, showComments: false, select: true },
+    });
   };
 
   const handleForceSync = async (file: WorkspaceFile, e: React.MouseEvent) => {
@@ -76,7 +81,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 >
                   <div
                     className="flex items-center flex-1 min-w-0 cursor-pointer"
-                    onClick={() => onFileSelect(file, FileGroupCount.ONE)}
+                    onClick={() => handleOpenInGroup(file, FileGroupCount.ONE)}
                   >
                     <File
                       size={16}
