@@ -3,7 +3,7 @@ import { Timestamp } from "./common_api_types";
 export function timestampToDate(timestamp: Timestamp): Date {
   return new Date(
     timestamp.year,
-    timestamp.month,
+    timestamp.month - 1,
     timestamp.day,
     timestamp.hour,
     timestamp.minute,
@@ -14,7 +14,7 @@ export function timestampToDate(timestamp: Timestamp): Date {
 export function dateToTimestamp(date: Date): Timestamp {
   return {
     year: date.getFullYear(),
-    month: date.getMonth(),
+    month: date.getMonth() + 1,
     day: date.getDate(),
     hour: date.getHours(),
     minute: date.getMinutes(),
@@ -28,9 +28,20 @@ export function timestampNow(): Timestamp {
 
 export function formatTimestamp(timestamp: Timestamp): string {
   const date = new Date(timestamp.year, timestamp.month - 1, timestamp.day);
-  return `${timestamp.hour}:${timestamp.minute} ${todayYesterdayOrNDaysAgo(
-    date
-  )}`;
+  const amPm = toAmPm(timestamp.hour);
+  const hour = toTwoDigit(timestamp.hour);
+  const minute = toTwoDigit(timestamp.minute);
+  const day = todayYesterdayOrNDaysAgo(date);
+  return `${hour}:${minute} ${amPm} | ${day}`;
+}
+
+function toAmPm(hour: number): string {
+  return hour < 12 ? "am" : "pm";
+}
+
+function toTwoDigit(hour: number): string {
+  const twelveHour = hour % 12 === 0 ? 12 : hour % 12;
+  return twelveHour < 10 ? `0${twelveHour}` : `${twelveHour}`;
 }
 
 function todayYesterdayOrNDaysAgo(date: Date): string {

@@ -3,6 +3,6 @@ export interface Timestamp {
   readonly hour: number; // 0-23
   readonly minute: number; // 0-59
   readonly day: number; // 1-31
-  readonly month: number; // 0-11
+  readonly month: number; // 1-12
   readonly year: number; // 2024
 }
