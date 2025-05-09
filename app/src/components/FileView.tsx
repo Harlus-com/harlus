@@ -1,5 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
-import { PanelGroup, Panel } from "react-resizable-panels";
+import React, { useRef } from "react";
+import {
+  PanelGroup,
+  Panel,
+  ImperativePanelGroupHandle,
+} from "react-resizable-panels";
 import { FileGroupCount } from "./panels";
 import PanelDivider from "./PanelDivider";
 import { WorkspaceFile } from "@/api/workspace_types";
@@ -8,16 +12,27 @@ import { OpenFileGroup } from "./OpenFileGroup";
 import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CommentsThread from "../comments/CommentsThread";
-import { fileService } from "@/api/fileService";
+import { OpenFilesOptions } from "@/files/file_types";
+import { FilesToOpen } from "@/files/file_types";
 
 export interface FileViewProps {
   openFiles: Record<FileGroupCount, OpenFileGroup | null>;
+  fileGroupOneRef: React.RefObject<ImperativePanelGroupHandle>;
+  handleOpenFiles: (
+    filesToOpen: FilesToOpen,
+    options?: OpenFilesOptions
+  ) => void;
   setOpenFiles: React.Dispatch<
     React.SetStateAction<Record<FileGroupCount, OpenFileGroup | null>>
   >;
 }
 
-export default function FileView({ openFiles, setOpenFiles }: FileViewProps) {
+export default function FileView({
+  openFiles,
+  fileGroupOneRef,
+  handleOpenFiles,
+  setOpenFiles,
+}: FileViewProps) {
   const fileGroupCount = Object.values(openFiles).filter((g) => g).length;
 
   const handleSelectFile = (
@@ -50,36 +65,16 @@ export default function FileView({ openFiles, setOpenFiles }: FileViewProps) {
     });
   };
 
-  const openFile = async (
-    fileId: string,
-    options: {
-      showComments: boolean;
-      fileGroup: FileGroupCount;
-    }
-  ) => {
-    const current = openFiles[options.fileGroup] || OpenFileGroup.empty();
-    const file = await fileService.getFileFromId(fileId);
-    const updates = {};
-    if (current == null) {
-      updates[options.fileGroup] = OpenFileGroup.empty().addFile(file, {
-        select: true,
-        showComments: options.showComments,
-      });
-    } else {
-      updates[options.fileGroup] = current.addFile(file, {
-        select: true,
-        showComments: options.showComments,
-      });
-    }
-    setOpenFiles((prev) => ({
-      ...prev,
-      ...updates,
-    }));
-  };
-
   const makeFileGroup = (
     groupIndex: FileGroupCount,
-    options: { panelDivider: boolean } = { panelDivider: true }
+    options: {
+      panelDivider: boolean;
+      onlyFileOpen: boolean;
+      panelRef?: React.RefObject<ImperativePanelGroupHandle>;
+    } = {
+      panelDivider: true,
+      onlyFileOpen: false,
+    }
   ) => {
     if (!openFiles[groupIndex]) return null;
 
@@ -90,10 +85,12 @@ export default function FileView({ openFiles, setOpenFiles }: FileViewProps) {
           key={groupIndex}
           openFileGroup={openFiles[groupIndex]!}
           groupIndex={groupIndex}
+          onlyFileOpen={options.onlyFileOpen}
           onSelectFile={handleSelectFile}
           onCloseFile={handleCloseFile}
           onToggleComments={handleToggleComments}
-          openFile={openFile}
+          handleOpenFiles={handleOpenFiles}
+          panelRef={options.panelRef}
         />
       </>
     );
@@ -101,15 +98,29 @@ export default function FileView({ openFiles, setOpenFiles }: FileViewProps) {
 
   return (
     <PanelGroup id="file-groups" direction="horizontal">
-      {makeFileGroup(FileGroupCount.ONE, { panelDivider: false })}
+      {makeFileGroup(FileGroupCount.ONE, {
+        panelDivider: false,
+        onlyFileOpen: fileGroupCount === 1,
+        panelRef: fileGroupOneRef,
+      })}
 
-      {fileGroupCount > FileGroupCount.ONE && makeFileGroup(FileGroupCount.TWO)}
+      {fileGroupCount > FileGroupCount.ONE &&
+        makeFileGroup(FileGroupCount.TWO, {
+          panelDivider: true,
+          onlyFileOpen: false,
+        })}
 
       {fileGroupCount > FileGroupCount.TWO &&
-        makeFileGroup(FileGroupCount.THREE)}
+        makeFileGroup(FileGroupCount.THREE, {
+          panelDivider: true,
+          onlyFileOpen: false,
+        })}
 
       {fileGroupCount > FileGroupCount.THREE &&
-        makeFileGroup(FileGroupCount.FOUR)}
+        makeFileGroup(FileGroupCount.FOUR, {
+          panelDivider: true,
+          onlyFileOpen: false,
+        })}
     </PanelGroup>
   );
 }
@@ -117,26 +128,26 @@ export default function FileView({ openFiles, setOpenFiles }: FileViewProps) {
 interface FileGroupPanelProps {
   openFileGroup: OpenFileGroup;
   groupIndex: FileGroupCount;
+  onlyFileOpen: boolean;
   onSelectFile: (group: FileGroupCount, file: WorkspaceFile) => void;
   onCloseFile: (group: FileGroupCount, fileId: string) => void;
   onToggleComments: (group: FileGroupCount, fileId: string) => void;
-  openFile: (
-    fileId: string,
-    options: {
-      showComments: boolean;
-      jumpToSelectedComment: boolean;
-      fileGroup: FileGroupCount;
-    }
+  handleOpenFiles: (
+    filesToOpen: FilesToOpen,
+    options?: OpenFilesOptions
   ) => void;
+  panelRef?: React.RefObject<ImperativePanelGroupHandle>;
 }
 
 function FileGroupPanel({
   openFileGroup,
   groupIndex,
+  onlyFileOpen,
   onSelectFile,
   onCloseFile,
   onToggleComments,
-  openFile,
+  handleOpenFiles,
+  panelRef,
 }: FileGroupPanelProps) {
   const { files, selectedFile, showComments } = openFileGroup;
 
@@ -199,11 +210,15 @@ function FileGroupPanel({
         </div>
       )}
       {/* TODO: Autosave per file */}
-      <PanelGroup id={`file-group-${groupIndex}-viewer`} direction="horizontal">
+      <PanelGroup
+        ref={panelRef}
+        id={`file-group-${groupIndex}-viewer`}
+        direction="horizontal"
+      >
         <Panel
           id={`file-group-${groupIndex}-file`}
           order={1}
-          defaultSize={80}
+          defaultSize={onlyFileOpen ? 80 : 65}
           className="flex flex-col h-full min-h-0 overflow-auto"
         >
           {selectedFile != null ? (
@@ -222,11 +237,12 @@ function FileGroupPanel({
             <Panel
               id={`file-group-${groupIndex}-comments`}
               order={2}
-              defaultSize={20}
+              defaultSize={onlyFileOpen ? 20 : 35}
             >
               <CommentsThread
                 fileId={selectedFile.id}
-                openFile={openFile}
+                currentFileGroup={groupIndex}
+                openFiles={handleOpenFiles}
                 onClose={() => onToggleComments(groupIndex, selectedFile.id)}
               />
             </Panel>

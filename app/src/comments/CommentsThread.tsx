@@ -12,23 +12,20 @@ import CommentTagChip from "./ComentTagChip";
 import { getHighestZeroIndexedPageNumberFromHighlightArea } from "./comment_util";
 import { CommentHistory } from "./CommentHistory";
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
-import PanelDivider from "@/components/PanelDivider";
+import { FilesToOpen } from "@/files/file_types";
+import { OpenFilesOptions } from "@/files/file_types";
 
 interface CommentsThreadProps {
   fileId: string;
-  openFile: (
-    fileId: string,
-    options: {
-      showComments: boolean;
-      fileGroup: FileGroupCount;
-    }
-  ) => void;
+  currentFileGroup: FileGroupCount;
+  openFiles: (filesToOpen: FilesToOpen, options?: OpenFilesOptions) => void;
   onClose?: () => void;
 }
 
 const CommentsThread: React.FC<CommentsThreadProps> = ({
   fileId,
-  openFile,
+  currentFileGroup,
+  openFiles,
   onClose,
 }) => {
   const [showHistory, setShowHistory] = useState(false);
@@ -55,10 +52,19 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
 
   const handleLinkClick = (link: CommentLink) => {
     setSelectedComment(link.linkToCommentId);
-    openFile(link.likeToFileId, {
-      showComments: true,
-      fileGroup: FileGroupCount.ONE, // TODO: Maybe have this open a new file group?
-    });
+    openFiles(
+      {
+        [link.likeToFileId]: {
+          showComments: true,
+          fileGroup: {
+            flipToOpenFileGroup: true,
+            currentFileGroup,
+          },
+          select: true,
+        },
+      },
+      { resizeFileGroupOneCommentPanel: true }
+    );
   };
 
   return (

@@ -17,12 +17,20 @@ import {
 } from "@/components/panels";
 import WorkspaceHeader from "@/components/WorkspaceHeader";
 import { useEffect, useRef, useState } from "react";
-import { Panel, PanelGroup } from "react-resizable-panels";
+import {
+  ImperativePanelGroupHandle,
+  Panel,
+  PanelGroup,
+} from "react-resizable-panels";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChatThreadProvider } from "@/chat/ChatThreadContext";
 import { OpenFilesOptions } from "@/files/file_types";
 import { FilesToOpen } from "@/files/file_types";
-import { fileGroupCounts, getFileGroupsToOpen } from "@/files/file_util";
+import {
+  fileGroupCounts,
+  getFileGroupsToOpen,
+  getTargetFileGroup,
+} from "@/files/file_util";
 
 // The default sizes scale relative to each other.
 // They work best when the sum of all the default sizes is 100.
@@ -38,6 +46,7 @@ export default function Workspace() {
   const [files, setFiles] = useState<WorkspaceFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const dropAreaRef = useRef<HTMLDivElement>(null);
+  const fileGroupOneRef = useRef<ImperativePanelGroupHandle>(null);
 
   const loadWorkspace = async () => {
     if (!workspaceId) {
@@ -171,6 +180,12 @@ export default function Workspace() {
     filesToOpen: FilesToOpen,
     options?: OpenFilesOptions
   ) => {
+    if (options?.resizeFileGroupOneCommentPanel) {
+      const currentLayout = fileGroupOneRef.current?.getLayout();
+      if (currentLayout && currentLayout.length == 2) {
+        fileGroupOneRef.current?.setLayout([65, 35]);
+      }
+    }
     setOpenFiles((prev) => {
       const openFilesIntoGroups = getFileGroupsToOpen(filesToOpen);
       const newOpenFiles = { ...prev };
@@ -187,14 +202,19 @@ export default function Workspace() {
         }
       }
       for (const [fileId, options] of Object.entries(filesToOpen)) {
+        const targetFileGroup = getTargetFileGroup(
+          fileId,
+          options.fileGroup,
+          newOpenFiles
+        );
         const currentGroup =
-          newOpenFiles[options.fileGroup] || OpenFileGroup.empty();
+          newOpenFiles[targetFileGroup] || OpenFileGroup.empty();
         const file = files.find((f) => f.id === fileId);
         if (!file) {
           console.error(`File ${fileId} not found`);
           continue;
         }
-        newOpenFiles[options.fileGroup] = currentGroup.addFile(file, {
+        newOpenFiles[targetFileGroup] = currentGroup.addFile(file, {
           select: options.select,
           showComments: options.showComments,
         });
@@ -263,7 +283,12 @@ export default function Workspace() {
                 defaultSize={FILE_VIEWER.defaultSize}
                 minSize={FILE_VIEWER.minSize}
               >
-                <FileView openFiles={openFiles} setOpenFiles={setOpenFiles} />
+                <FileView
+                  fileGroupOneRef={fileGroupOneRef}
+                  openFiles={openFiles}
+                  setOpenFiles={setOpenFiles}
+                  handleOpenFiles={handleOpenFiles}
+                />
               </Panel>
               {visiblePanels.includes(TopLevelPanelId.CHAT) && <PanelDivider />}
               {visiblePanels.includes(TopLevelPanelId.CHAT) && (
