@@ -129,7 +129,7 @@ class FileStore:
         with self._open(workspace, "folders.json", "r") as f:
             return [Folder.model_validate(folder) for folder in json.load(f)]
 
-    def create_workspace(self, name: str) -> Workspace:
+    def create_workspace(self, name: str, company_name: str) -> Workspace:
         workspaces = self.get_workspaces().values()
         for workspace in workspaces:
             if workspace.name == name:
@@ -146,6 +146,7 @@ class FileStore:
             name=name,
             dir_name=dir_name,
             absolute_path=str(self.app_data_path.joinpath(dir_name)),
+            company_name=company_name,
         )
         os.makedirs(self.app_data_path.joinpath(workspace.dir_name), exist_ok=True)
         with open(

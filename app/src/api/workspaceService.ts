@@ -8,8 +8,8 @@ class WorkspaceService {
     return client.get("/workspace/all");
   }
 
-  createWorkspace(name: string): Promise<Workspace> {
-    return client.post("/workspace/create", { name });
+  createWorkspace(data: { name: string; companyName: string }): Promise<Workspace> {
+    return client.post("/workspace/create", data);
   }
 
   getWorkspace(id: string): Promise<Workspace> {

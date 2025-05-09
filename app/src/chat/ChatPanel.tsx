@@ -7,7 +7,7 @@ import React, {
   useContext,
   useMemo,
 } from "react";
-import { Send, FileText, X, BookOpen, Plus } from "lucide-react";
+import { Send, FileText, X, BookOpen, Plus, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { fileService } from "@/api/fileService";
@@ -125,7 +125,7 @@ const ReadingMessagesToggle: React.FC<ReadingMessagesToggleProps> = ({
   <Button
     variant="ghost"
     size="sm"
-    className="h-6 px-2.5 text-[10px] text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full flex items-center gap-1 transition-colors"
+    className="h-6 px-2.5 text-[10px] text-gray-500 hover:text-blue-600 hover:bg-gray-50 rounded-full flex items-center gap-1 transition-colors"
     onClick={onClick}
   >
     {isExpanded ? (
@@ -138,12 +138,11 @@ const ReadingMessagesToggle: React.FC<ReadingMessagesToggleProps> = ({
     ) : (
       <>
         <span className="flex items-center">
-          <FileText size={10} className="mr-1" />
-          Show
+          <Brain size={10} className="mr-1" />
+          Show reasoning
         </span>
       </>
-    )}{" "}
-    {count} document{count !== 1 ? "s" : ""} read
+    )}
   </Button>
 );
 
@@ -558,9 +557,9 @@ const MessagePairComponent: React.FC<MessagePairProps> = memo(
         {/* Reading messages section - show immediately after user message */}
         {pair.readingMessages.length > 0 && (
           <div className="mt-3 mb-3">
-            {/* Toggle for reading messages when we have enough answers */}
+            {/* Toggle for reading messages - show when we have at least 2 messages */}
             <div className="flex flex-col space-y-1.5">
-              {pair.answerCount >= 5 && (
+              {pair.readingMessages.length >= 2 && (
                 <ReadingMessagesToggle
                   count={pair.readingMessages.length}
                   isExpanded={pair.showReadingMessages}
@@ -569,13 +568,13 @@ const MessagePairComponent: React.FC<MessagePairProps> = memo(
               )}
 
               {/* Show reading messages if expanded or we don't have enough answers yet */}
-              {(pair.showReadingMessages || pair.answerCount < 5) && (
+              {(pair.showReadingMessages || pair.answerCount < pair.readingMessages.length) && (
                 <div className="flex flex-row flex-wrap gap-2 text-gray-400 mt-1">
                   {pair.readingMessages.map((readingMsg, index) => (
                     <ReadingMessage
                       key={index}
                       message={readingMsg}
-                      enoughAnswersToStop={pair.answerCount >= 12}
+                      enoughAnswersToStop={index < pair.answerCount}
                     />
                   ))}
                 </div>
@@ -680,63 +679,153 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
   }, []);
 
   // send message
-  const handleSendMessage = useCallback(async () => {
-    if (!input.trim() || isEventSourceActive || !workspaceId) return;
-    setIsLoading(true);
-
-    const pairId = `${Date.now()}.${Math.floor(Math.random() * 100)}`;
-    setCurrentPairId(pairId);
-
-    // Create user message
-    const userMessage: ChatMessage = {
-      id: `${pairId}.user`,
-      sender: "user",
-      content: input.trim(),
-      timestamp: now(),
-      chatSourceCommentGroups: [],
-    };
-
-    // Find mock response
-    const mockResponse = findMockResponse(input.trim());
+  const handleSendMessage = useCallback(
+    async (override?: string) => {
+      const text = (override ?? input).trim();
+      if (!text || isEventSourceActive || !workspaceId) return;
     
-    // Check if this is the second mock conversation
-    const isSecondMockMessage = mockResponse && 
-      mockResponse.userMessage === mockConversations[1].userMessage;
+      setIsLoading(true);
+      setIsEventSourceActive(true);
 
-    // Add message pair to the list
-    setMessagePairs((prev) => [
-      ...prev,
-      {
-        id: pairId,
-        userMessage,
-        assistantMessage: {
-          id: `${pairId}.assistant`,
-          sender: "assistant",
-          content: mockResponse?.assistantMessage || "I don't have a mock response for that question.",
-          timestamp: now(),
-          // Attach mock source for second message
-          chatSourceCommentGroups: isSecondMockMessage ? [mockSourceCommentGroup] : [],
-          messageType: "answer_message",
+      const pairId = `${Date.now()}.${Math.floor(Math.random() * 100)}`;
+      setCurrentPairId(pairId);
+
+      // Create user message
+      const userMessage: ChatMessage = {
+        id: `${pairId}.user`,
+        sender: "user",
+        content: text,
+        timestamp: now(),
+        chatSourceCommentGroups: [],
+      };
+
+      // Find mock response
+      const mockResponse = findMockResponse(text);
+      
+      // Check if this is the second mock conversation
+      const isSecondMockMessage = mockResponse && 
+        mockResponse.userMessage === mockConversations[1].userMessage;
+
+      // First, add just the user message
+      setMessagePairs((prev) => [
+        ...prev,
+        {
+          id: pairId,
+          userMessage,
+          assistantMessage: null, // Will add this later
+          readingMessages: [],    // Will add these one by one
+          answerCount: 0,
+          showReadingMessages: true,
+          readingMessageBuffer: "",
         },
-        readingMessages: mockResponse?.readingMessages?.map((content, index) => ({
-          id: `${pairId}.reading.${index}`,
-          sender: "assistant",
-          content,
-          timestamp: now(),
-          chatSourceCommentGroups: [],
-          messageType: "reading_message",
-        })) || [],
-        answerCount: 1,
-        showReadingMessages: true,
-        readingMessageBuffer: "",
-      },
-    ]);
+      ]);
 
-    setInput("");
-    setIsLoading(false);
-    setIsEventSourceActive(false);
-    setCurrentPairId(null);
-  }, [input, isEventSourceActive, workspaceId]);
+      // Helper for random delays
+      const randomDelay = (min: number, max: number) => 
+        new Promise(resolve => setTimeout(resolve, Math.random() * (max - min) + min));
+
+      // Wait 0.5-2 seconds before starting
+      await randomDelay(500, 1000);
+      
+      // Process reading messages one by one with delays
+      if (mockResponse?.readingMessages) {
+        const totalReadingMessages = mockResponse.readingMessages.length;
+        
+        for (let i = 0; i < totalReadingMessages; i++) {
+          // Add a new reading message with spinning indicator
+          setMessagePairs((prev) => {
+            const updated = [...prev];
+            const currentPair = updated.find(p => p.id === pairId);
+            if (currentPair) {
+              currentPair.readingMessages = [
+                ...currentPair.readingMessages,
+                {
+                  id: `${pairId}.reading.${i}`,
+                  sender: "assistant",
+                  content: mockResponse.readingMessages[i],
+                  timestamp: now(),
+                  chatSourceCommentGroups: [],
+                  messageType: "reading_message",
+                }
+              ];
+              currentPair.answerCount = i;
+            }
+            return updated;
+          });
+          
+          // Wait longer for first reading message, otherwise 3-5 seconds
+          await randomDelay(i === 0 ? 7000 : 2000, i === 0 ? 10000 : 3000);
+          
+          // Update the answer count to mark this reading message as complete
+          setMessagePairs((prev) => {
+            const updated = [...prev];
+            const currentPair = updated.find(p => p.id === pairId);
+            if (currentPair) {
+              currentPair.answerCount = i + 1;
+            }
+            return updated;
+          });
+
+          // Wait
+          await randomDelay(500, 1000);
+        }
+      }
+      
+      // Auto-collapse reading messages after all reading messages are done
+      setMessagePairs((prev) => {
+        const updated = [...prev];
+        const currentPair = updated.find(p => p.id === pairId);
+        if (currentPair) {
+          currentPair.showReadingMessages = false;
+        }
+        return updated;
+      });
+
+      // Then continue with streaming the assistant message...
+      const assistantContent = mockResponse?.assistantMessage || "I don't have a mock response for that question.";
+      const words = assistantContent.split(/\s+/);
+      
+      // Create initial empty message
+      setMessagePairs((prev) => {
+        const updated = [...prev];
+        const currentPair = updated.find(p => p.id === pairId);
+        if (currentPair) {
+          currentPair.assistantMessage = {
+            id: `${pairId}.assistant`,
+            sender: "assistant",
+            content: "",
+            timestamp: now(),
+            chatSourceCommentGroups: isSecondMockMessage ? [mockSourceCommentGroup] : [],
+            messageType: "answer_message",
+          };
+        }
+        return updated;
+      });
+      
+      // Stream words with small random delays
+      let currentContent = "";
+      for (const word of words) {
+        currentContent += (currentContent ? " " : "") + word;
+        
+        setMessagePairs((prev) => {
+          const updated = [...prev];
+          const currentPair = updated.find(p => p.id === pairId);
+          if (currentPair && currentPair.assistantMessage) {
+            currentPair.assistantMessage.content = currentContent;
+          }
+          return updated;
+        });
+        
+        await randomDelay(50, 150); // Small delay between words
+      }
+
+      setInput("");
+      setIsLoading(false);
+      setIsEventSourceActive(false);
+      setCurrentPairId(null);
+    }, 
+    [input, isEventSourceActive, workspaceId]
+  );
 
   // Cleanup on unmount
   useEffect(() => {
@@ -843,8 +932,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
               <div className="grid grid-cols-1 gap-2">
                 <button 
                   onClick={() => {
-                    setInput("Let's analyse the impact of the latest sell-side report on Apple's FCF!");
-                    handleSendMessage();
+                    handleSendMessage("Let's analyse the impact of the latest sell-side report on Apple's FCF!");
                   }}
                   className="text-left p-2.5 bg-gray-50 hover:bg-gray-100 rounded-md text-sm text-gray-700 border border-gray-200 transition-colors"
                 >
@@ -852,8 +940,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
                 </button>
                 <button 
                   onClick={() => {
-                    setInput("How do the trends of iPhone sales impact my investment theses?");
-                    handleSendMessage();
+                    handleSendMessage("How do the trends of iPhone sales impact my investment theses?");
                   }}
                   className="text-left p-2.5 bg-gray-50 hover:bg-gray-100 rounded-md text-sm text-gray-700 border border-gray-200 transition-colors"
                 >
@@ -861,8 +948,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
                 </button>
                 <button 
                   onClick={() => {
-                    setInput("Does Apple's latest 10K confirm managment's claims form the earlier Earnings Call?");
-                    handleSendMessage();
+                    handleSendMessage("Does Apple's latest 10K confirm managment's claims form the earlier Earnings Call?");
                   }}
                   className="text-left p-2.5 bg-gray-50 hover:bg-gray-100 rounded-md text-sm text-gray-700 border border-gray-200 transition-colors"
                 >
@@ -920,3 +1006,4 @@ function now(): string {
 }
 
 export default memo(ChatPanel);
+

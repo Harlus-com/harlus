@@ -217,12 +217,13 @@ def load_folder(request: LoadFolderRequest):
 
 class CreateWorkspaceRequest(BaseModel):
     name: str
+    companyName: str
 
 
 @app.post("/workspace/create")
 def create_workspace(request: CreateWorkspaceRequest):
     print("Creating workspace", request.name)
-    return file_store.create_workspace(request.name)
+    return file_store.create_workspace(request.name, request.companyName)
 
 
 @app.get("/workspace/get/{workspace_id}")

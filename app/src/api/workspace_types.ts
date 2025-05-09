@@ -2,6 +2,7 @@ export interface Workspace {
   id: string;
   name: string;
   dirName: string;
+  companyName: string;
 }
 export type SyncStatus = "SYNC_IN_PROGRESS" | "OUT_OF_DATE" | "SYNC_COMPLETE";
 

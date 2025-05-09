@@ -30,10 +30,13 @@ const WorkspaceNew = () => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      const workspace = await workspaceService.createWorkspace(values.ticker);
+      const workspace = await workspaceService.createWorkspace({
+        name: values.ticker,
+        companyName: values.name
+      });
       toast({
         title: "Workspace created",
-        description: `Created workspace for ${workspace.name}`,
+        description: `Created workspace for ${workspace.companyName}`,
       });
       navigate(`/workspace/${workspace.id}`);
     } catch (error) {

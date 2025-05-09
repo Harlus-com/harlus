@@ -38,7 +38,7 @@ const WorkspaceSelect = () => {
                   </div>
                 )}
               </div>
-              <p className="text-muted-foreground mb-4">Used to be name</p>
+              <p className="text-muted-foreground mb-4">{workspace.companyName}</p>
               <time className="text-sm text-muted-foreground">
                 Created {new Date().toLocaleDateString()}
               </time>
