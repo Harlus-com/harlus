@@ -21,21 +21,18 @@ export const CommentHistory: React.FC<CommentHistoryProps> = ({ fileId }) => {
   } = useComments();
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState("");
-  const commentGroups = getAllCommentGroups(fileId);
-  const activeCommentGroups = getActiveCommentGroups(fileId);
+  const commentGroups = getAllCommentGroups();
+  const activeCommentGroups = getActiveCommentGroups();
   const activeCommentGroupIds = activeCommentGroups.map((group) => group.id);
   console.log("Comment history", commentGroups, activeCommentGroups);
 
   const handleSelectAll = () => {
-    setActiveCommentGroups(
-      fileId,
-      commentGroups.map((group) => group.id)
-    );
+    setActiveCommentGroups(commentGroups.map((group) => group.id));
     setSelectedComment(null);
   };
 
   const handleDeselectAll = () => {
-    setActiveCommentGroups(fileId, []);
+    setActiveCommentGroups([]);
     setSelectedComment(null);
   };
 
@@ -118,7 +115,6 @@ export const CommentHistory: React.FC<CommentHistoryProps> = ({ fileId }) => {
                     onClick={() => {
                       const isActive = activeCommentGroupIds.includes(group.id);
                       setActiveCommentGroups(
-                        fileId,
                         isActive
                           ? activeCommentGroupIds.filter(
                               (id) => id !== group.id

@@ -29,9 +29,9 @@ interface CommentsContextType {
   hideComment: (commentId: string) => void;
   setSelectedComment: (commentId: string) => void;
 
-  getAllCommentGroups: (fileId: string) => CommentGroup[];
-  getActiveCommentGroups: (fileId: string) => CommentGroup[];
-  setActiveCommentGroups: (fileId: string, commentGroupIds: string[]) => void;
+  getAllCommentGroups: () => CommentGroup[];
+  getActiveCommentGroups: () => CommentGroup[];
+  setActiveCommentGroups: (commentGroupIds: string[]) => void;
   /** Get all comments for the active comment groups, including hidden ones */
   getActiveComments: (fileId: string) => ReadonlyComment[];
   /** Get all comments for all comments associated with the file */

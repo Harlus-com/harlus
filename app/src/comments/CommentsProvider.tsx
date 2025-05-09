@@ -34,9 +34,7 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(
     null
   );
-  const [activeCommentGroups, setActiveCommentGroupsIds] = useState<{
-    [key: string]: string[];
-  }>({});
+  const [activeCommentGroups, setActiveCommentGroups] = useState<string[]>([]);
   const [commentGroups, setCommentGroups] = useState<CommentGroup[]>([]);
 
   useEffect(() => {
@@ -214,43 +212,23 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
     setSelectedCommentId(commentId);
   };
 
-  const getAllCommentGroups = (fileId: string): CommentGroup[] => {
-    const fileComments = Object.values(comments).filter(
-      (comment) => comment.apiData.fileId === fileId
-    );
-    const groupIds = Array.from(
-      new Set(fileComments.map((comment) => comment.apiData.groupId))
-    );
-    const groupIdToGroup: { [key: string]: CommentGroup } = {};
-    commentGroups.forEach((group) => {
-      groupIdToGroup[group.id] = group;
-    });
-    return (
-      groupIds
-        .map((id) => groupIdToGroup[id])
-        // Filter out groups that don't exist (i.e might have been deleted)
-        .filter((group) => group !== undefined)
-    );
+  const getAllCommentGroups = (): CommentGroup[] => {
+    return commentGroups;
   };
 
-  const getActiveCommentGroups = (fileId: string): CommentGroup[] => {
-    const allGroups = getAllCommentGroups(fileId);
-    const activeGroups = activeCommentGroups[fileId] || [];
-    return allGroups.filter((group) => activeGroups.includes(group.id));
-  };
-
-  const setActiveCommentGroups = (fileId: string, groupIds: string[]) => {
-    setActiveCommentGroupsIds((prevActiveCommentGroupsIds) => ({
-      ...prevActiveCommentGroupsIds,
-      [fileId]: groupIds,
-    }));
+  const getActiveCommentGroups = (): CommentGroup[] => {
+    return commentGroups.filter((group) =>
+      activeCommentGroups.includes(group.id)
+    );
   };
 
   const getActiveComments = (fileId: string): ReadonlyComment[] => {
-    const activeGroups = activeCommentGroups[fileId] || [];
+    console.log("Getting active comments for file", fileId);
     return Object.values(comments)
       .filter((comment) => comment.apiData.fileId === fileId)
-      .filter((comment) => activeGroups.includes(comment.apiData.groupId))
+      .filter((comment) =>
+        activeCommentGroups.includes(comment.apiData.groupId)
+      )
       .map(copyToReadonly);
   };
 
@@ -274,15 +252,7 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
   const deleteCommentGroup = async (groupId: string) => {
     await commentService.deleteCommentGroup(workspaceId, groupId);
     setCommentGroups((prev) => prev.filter((group) => group.id !== groupId));
-    setActiveCommentGroupsIds((prev) => {
-      const newActiveCommentGroupsIds = { ...prev };
-      for (const fileId in newActiveCommentGroupsIds) {
-        newActiveCommentGroupsIds[fileId] = newActiveCommentGroupsIds[
-          fileId
-        ].filter((id) => id !== groupId);
-      }
-      return newActiveCommentGroupsIds;
-    });
+    setActiveCommentGroups((prev) => prev.filter((id) => id !== groupId));
     setComments((prev) => {
       const newComments = { ...prev };
       for (const commentId in newComments) {
