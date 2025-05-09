@@ -140,10 +140,12 @@ class SyncQueue:
         while not self.sync_queue.empty():
             sync_request = await self.sync_queue.get()
             tools_to_sync = self._get_tools_to_sync(sync_request)
+            print(f"Syncing file {sync_request.file.id} with tools {tools_to_sync}")
             if len(tools_to_sync) == 0:
                 # Sleep to simulate a load. This creates for better UI experience
-                await asyncio.sleep(1)
+                await asyncio.sleep(10)
                 self.sync_queue.task_done()
+                await self._set_sync_status(sync_request.file, SyncStatus.SYNC_COMPLETE)
                 continue
 
             if len(active_tasks) >= MAX_CONCURRENT - len(tools_to_sync):

@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { File, Trash2, MoreVertical, Columns2, RefreshCw } from "lucide-react";
-import { WorkspaceFile } from "@/api/workspace_types";
+import { SyncStatus, WorkspaceFile } from "@/api/workspace_types";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -12,11 +12,14 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { fileService } from "@/api/fileService";
-import FileStatusIndicator from "./FileStatusIndicator";
+import FileStatusIndicator, {
+  FileStatusIndicatorHandle,
+} from "./FileStatusIndicator";
 import { FileGroupCount } from "./panels";
 import { OpenFileGroup } from "./OpenFileGroup";
 import { fileGroupCounts } from "@/files/file_util";
 import { FilesToOpen, OpenFilesOptions } from "@/files/file_types";
+import { modelService } from "@/api/model_service";
 interface FileExplorerProps {
   files: WorkspaceFile[];
   openFiles: Record<FileGroupCount, OpenFileGroup | null>;
@@ -33,6 +36,16 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   onFilesChange,
   handleOpenFiles,
 }) => {
+  const statusRefs = useRef<
+    Record<string, React.RefObject<FileStatusIndicatorHandle>>
+  >({});
+  files.forEach((file) => {
+    if (!statusRefs.current[file.id]) {
+      statusRefs.current[file.id] =
+        React.createRef<FileStatusIndicatorHandle>();
+    }
+  });
+
   const selectedFileIds: string[] = [];
   for (const fileGroup of Object.values(openFiles)) {
     if (fileGroup && !!fileGroup.selectedFile) {
@@ -57,7 +70,14 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 
   const handleForceSync = async (file: WorkspaceFile, e: React.MouseEvent) => {
     e.stopPropagation();
-    await fileService.forceSyncFile(file);
+    statusRefs.current[file.id]?.current?.setStatus("SYNC_PENDING");
+    await modelService.forceSyncFile(file);
+  };
+
+  const handlePing = async (file: WorkspaceFile, e: React.MouseEvent) => {
+    e.stopPropagation();
+    statusRefs.current[file.id]?.current?.setStatus("SYNC_PENDING");
+    await modelService.startSyncFile(file);
   };
 
   return (
@@ -88,7 +108,11 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                       className="mr-2 flex-shrink-0 text-blue-500"
                     />
                     <span className="truncate text-sm flex-1">{file.name}</span>
-                    <FileStatusIndicator file={file} className="ml-2" />
+                    <FileStatusIndicator
+                      ref={statusRefs.current[file.id]}
+                      file={file}
+                      className="ml-2"
+                    />
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -126,6 +150,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                       >
                         <RefreshCw size={14} className="mr-2" />
                         Force Sync
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => handlePing(file, e)}>
+                        <RefreshCw size={14} className="mr-2" />
+                        Ping
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-red-500 focus:text-red-500"

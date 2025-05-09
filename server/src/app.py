@@ -179,15 +179,26 @@ async def load_file(request: LoadFileRequest):
     return file
 
 
+@app.get("/file/sync/status/{file_id}")
+async def get_file_sync_status(file_id: str):
+    print("Getting sync status for file", file_id)
+    status = sync_queue.get_sync_status(file_id)
+    print("Sync status for file", file_id, "is", status)
+    return status
+
+
 class ForceSyncFileRequest(BaseModel):
     file_id: str = Field(alias="fileId")
+    workspace_id: str = Field(alias="workspaceId")
+    force: bool = Field(alias="force")
 
 
-@app.post("/file/force_sync")
+@app.post("/file/sync")
 async def force_file_sync(request: ForceSyncFileRequest):
-    print("Force syncing file", request.file_id)
-    file = file_store.get_file(request.file_id)
-    await sync_queue.queue_model_sync(file, sync_type=SyncType.FORCE)
+    print("Syncing file", request)
+    file = file_store.get_file(request.file_id, request.workspace_id)
+    sync_type = SyncType.FORCE if request.force else SyncType.NORMAL
+    await sync_queue.queue_model_sync(file, sync_type=sync_type)
     return True
 
 
