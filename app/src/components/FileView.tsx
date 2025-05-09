@@ -109,18 +109,6 @@ export default function FileView({
           panelDivider: true,
           onlyFileOpen: false,
         })}
-
-      {fileGroupCount > FileGroupCount.TWO &&
-        makeFileGroup(FileGroupCount.THREE, {
-          panelDivider: true,
-          onlyFileOpen: false,
-        })}
-
-      {fileGroupCount > FileGroupCount.THREE &&
-        makeFileGroup(FileGroupCount.FOUR, {
-          panelDivider: true,
-          onlyFileOpen: false,
-        })}
     </PanelGroup>
   );
 }

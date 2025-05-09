@@ -89,10 +89,5 @@ function groupsFileIsIn(
 }
 
 export function fileGroupCounts() {
-  return [
-    FileGroupCount.ONE,
-    FileGroupCount.TWO,
-    FileGroupCount.THREE,
-    FileGroupCount.FOUR,
-  ];
+  return [FileGroupCount.ONE, FileGroupCount.TWO];
 }
