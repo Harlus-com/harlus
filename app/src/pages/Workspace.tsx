@@ -1,36 +1,19 @@
-import { fileService } from "@/api/fileService";
-import {
-  WorkspaceFile,
-  Workspace as WorkspaceType,
-} from "@/api/workspace_types";
+import { Workspace as WorkspaceType } from "@/api/workspace_types";
 import { workspaceService } from "@/api/workspaceService";
 import { CommentsProvider } from "@/comments/CommentsProvider";
 import ChatPanel from "@/chat/ChatPanel";
 import FileExplorer from "@/components/FileExplorer";
 import FileView from "@/components/FileView";
-import { OpenFileGroup } from "@/components/OpenFileGroup";
 import PanelDivider from "@/components/PanelDivider";
-import {
-  FileGroupCount,
-  TopLevelPanel,
-  TopLevelPanelId,
-} from "@/components/panels";
+import { TopLevelPanel, TopLevelPanelId } from "@/components/panels";
 import WorkspaceHeader from "@/components/WorkspaceHeader";
-import { useEffect, useRef, useState } from "react";
-import {
-  ImperativePanelGroupHandle,
-  Panel,
-  PanelGroup,
-} from "react-resizable-panels";
+import { useEffect, useState } from "react";
+import { Panel, PanelGroup } from "react-resizable-panels";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChatThreadProvider } from "@/chat/ChatThreadContext";
-import { OpenFilesOptions } from "@/files/file_types";
-import { FilesToOpen } from "@/files/file_types";
-import {
-  fileGroupCounts,
-  getFileGroupsToOpen,
-  getTargetFileGroup,
-} from "@/files/file_util";
+import { FileContextProvider } from "@/files/FileContext";
+import { FileDragAndDropOverlay } from "@/files/FileDragAndDropOverlay";
+import { FileViewContextProvider } from "@/files/FileViewContext";
 
 // The default sizes scale relative to each other.
 // They work best when the sum of all the default sizes is 100.
@@ -43,10 +26,6 @@ export default function Workspace() {
   const { workspaceId } = useParams();
   const navigate = useNavigate();
   const [workspace, setWorkspace] = useState<WorkspaceType | null>(null);
-  const [files, setFiles] = useState<WorkspaceFile[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
-  const dropAreaRef = useRef<HTMLDivElement>(null);
-  const fileGroupOneRef = useRef<ImperativePanelGroupHandle>(null);
 
   const loadWorkspace = async () => {
     if (!workspaceId) {
@@ -60,8 +39,6 @@ export default function Workspace() {
       return;
     }
 
-    const workspaceFiles = await fileService.getFiles(workspaceId);
-    setFiles(workspaceFiles);
     setWorkspace(workspace);
   };
 
@@ -69,71 +46,10 @@ export default function Workspace() {
     loadWorkspace();
   }, [workspaceId, navigate]);
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    if (!workspaceId) return;
-
-    const fileStats = await Promise.all(
-      Array.from(e.dataTransfer.files).map((file) =>
-        // @ts-ignore - Electron specific property
-        window.electron.getFileStats(file.path)
-      )
-    );
-    for (const fileStat of fileStats) {
-      if (fileStat.isDirectory) {
-        fileService.importFolder(fileStat.path, workspaceId);
-      }
-      if (fileStat.mimeType === "application/pdf") {
-        const newFile = await fileService.importFile(
-          fileStat.path,
-          workspaceId
-        );
-        console.log("newFile", newFile);
-        setFiles((prev) => [...prev, newFile]);
-      }
-    }
-  };
-
   const [visiblePanels, setVisiblePanels] = useState<TopLevelPanelId[]>([
     TopLevelPanelId.FILE_EXPLORER,
     TopLevelPanelId.FILE_VIEWER,
   ]);
-  const [openFiles, setOpenFiles] = useState<
-    Record<FileGroupCount, OpenFileGroup | null>
-  >({
-    [FileGroupCount.ONE]: OpenFileGroup.empty(),
-    [FileGroupCount.TWO]: null,
-  });
-  const handleOnFileGroupCountChange = (count: FileGroupCount) => {
-    const updates: Record<FileGroupCount, OpenFileGroup | null> = {
-      [FileGroupCount.ONE]: null,
-      [FileGroupCount.TWO]: null,
-    };
-    for (const group of fileGroupCounts()) {
-      if (group > count) {
-        updates[group] = null;
-      } else {
-        if (openFiles[group] == null) {
-          updates[group] = OpenFileGroup.empty();
-        } else {
-          updates[group] = openFiles[group];
-        }
-      }
-    }
-    setOpenFiles(() => updates);
-  };
 
   const togglePanelVisibility = (panelId: TopLevelPanelId) => {
     setVisiblePanels((prev) =>
@@ -148,161 +64,63 @@ export default function Workspace() {
     window.location.reload();
   };
 
-  const handleFileSelect = (
-    file: WorkspaceFile,
-    options: { showComments: boolean; fileGroup: FileGroupCount }
-  ) => {
-    const groupNumber = options.fileGroup;
-    const current = openFiles[groupNumber];
-    const updates = {};
-    if (current == null) {
-      updates[groupNumber] = OpenFileGroup.empty().addFile(file, {
-        select: true,
-        showComments: options.showComments,
-      });
-    } else {
-      updates[groupNumber] = current.addFile(file, {
-        select: true,
-        showComments: options.showComments,
-      });
-    }
-    setOpenFiles((prev) => ({
-      ...prev,
-      ...updates,
-    }));
-  };
-
-  const handleOpenFiles = (
-    filesToOpen: FilesToOpen,
-    options?: OpenFilesOptions
-  ) => {
-    if (options?.resizeFileGroupOneCommentPanel) {
-      const currentLayout = fileGroupOneRef.current?.getLayout();
-      if (currentLayout && currentLayout.length == 2) {
-        fileGroupOneRef.current?.setLayout([65, 35]);
-      }
-    }
-    setOpenFiles((prev) => {
-      const openFilesIntoGroups = getFileGroupsToOpen(filesToOpen);
-      const newOpenFiles = { ...prev };
-      if (options?.closeAllOtherFiles) {
-        for (const groupCount of fileGroupCounts()) {
-          newOpenFiles[groupCount] = OpenFileGroup.empty();
-        }
-      }
-      if (options?.closeAllOtherFileGroups) {
-        for (const groupCount of fileGroupCounts()) {
-          if (!openFilesIntoGroups.includes(groupCount)) {
-            newOpenFiles[groupCount] = null;
-          }
-        }
-      }
-      for (const [fileId, options] of Object.entries(filesToOpen)) {
-        const targetFileGroup = getTargetFileGroup(
-          fileId,
-          options.fileGroup,
-          newOpenFiles
-        );
-        const currentGroup =
-          newOpenFiles[targetFileGroup] || OpenFileGroup.empty();
-        const file = files.find((f) => f.id === fileId);
-        if (!file) {
-          console.error(`File ${fileId} not found`);
-          continue;
-        }
-        newOpenFiles[targetFileGroup] = currentGroup.addFile(file, {
-          select: options.select,
-          showComments: options.showComments,
-        });
-      }
-      return newOpenFiles;
-    });
-  };
-
   return (
-    <ChatThreadProvider workspaceId={workspaceId!}>
-      <CommentsProvider workspaceId={workspaceId!}>
-        <div className="flex flex-col h-screen">
-          <WorkspaceHeader
-            workspace={workspace}
-            files={files}
-            togglePanelVisibility={togglePanelVisibility}
-            setFileGroupCount={handleOnFileGroupCountChange}
-            setVisiblePanels={setVisiblePanels}
-            reloadWorkspace={reloadWorkspace}
-            openFiles={handleOpenFiles}
-          />
-          <PanelGroup id="workspace" direction="horizontal" className="flex-1">
-            <div
-              className="flex-1 flex overflow-hidden"
-              ref={dropAreaRef}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              {isDragging && (
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center backdrop-blur-sm">
-                  <div className="bg-card p-8 rounded-lg shadow-lg text-center">
-                    <div className="text-4xl mb-4">📄</div>
-                    <div className="text-xl font-medium">Drop PDFs here</div>
-                    <div className="text-muted-foreground mt-2">
-                      Files will be added to your workspace
-                    </div>
-                  </div>
-                </div>
-              )}
-              {visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER) && (
-                <Panel
-                  id={FILE_EXPLORER.id}
-                  order={1}
-                  defaultSize={FILE_EXPLORER.defaultSize}
-                  minSize={FILE_EXPLORER.minSize}
-                  className="bg-blue-50 h-full w-auto"
-                >
-                  <FileExplorer
-                    files={files}
-                    handleOpenFiles={handleOpenFiles}
-                    openFiles={openFiles}
-                    onFilesChange={setFiles}
-                  />
-                </Panel>
-              )}
-              <PanelDivider />
-              <Panel
-                id={FILE_VIEWER.id}
-                order={2}
-                defaultSize={FILE_VIEWER.defaultSize}
-                minSize={FILE_VIEWER.minSize}
+    <FileContextProvider workspaceId={workspaceId!}>
+      <FileViewContextProvider>
+        <ChatThreadProvider workspaceId={workspaceId!}>
+          <CommentsProvider workspaceId={workspaceId!}>
+            <div className="flex flex-col h-screen">
+              <WorkspaceHeader
+                workspace={workspace}
+                togglePanelVisibility={togglePanelVisibility}
+                setVisiblePanels={setVisiblePanels}
+                reloadWorkspace={reloadWorkspace}
+              />
+              <PanelGroup
+                id="workspace"
+                direction="horizontal"
+                className="flex-1"
               >
-                <FileView
-                  fileGroupOneRef={fileGroupOneRef}
-                  openFiles={openFiles}
-                  setOpenFiles={setOpenFiles}
-                  handleOpenFiles={handleOpenFiles}
-                />
-              </Panel>
-              {visiblePanels.includes(TopLevelPanelId.CHAT) && <PanelDivider />}
-              {visiblePanels.includes(TopLevelPanelId.CHAT) && (
-                <Panel
-                  id={CHAT.id}
-                  order={4}
-                  defaultSize={CHAT.defaultSize}
-                  minSize={CHAT.minSize}
-                >
-                  <ChatPanel
-                    onSourceClicked={(file) =>
-                      handleFileSelect(file, {
-                        showComments: true,
-                        fileGroup: FileGroupCount.ONE,
-                      })
-                    }
-                  />
-                </Panel>
-              )}
+                <FileDragAndDropOverlay workspaceId={workspaceId!}>
+                  {visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER) && (
+                    <Panel
+                      id={FILE_EXPLORER.id}
+                      order={1}
+                      defaultSize={FILE_EXPLORER.defaultSize}
+                      minSize={FILE_EXPLORER.minSize}
+                      className="bg-blue-50 h-full w-auto"
+                    >
+                      <FileExplorer />
+                    </Panel>
+                  )}
+                  <PanelDivider />
+                  <Panel
+                    id={FILE_VIEWER.id}
+                    order={2}
+                    defaultSize={FILE_VIEWER.defaultSize}
+                    minSize={FILE_VIEWER.minSize}
+                  >
+                    <FileView />
+                  </Panel>
+                  {visiblePanels.includes(TopLevelPanelId.CHAT) && (
+                    <PanelDivider />
+                  )}
+                  {visiblePanels.includes(TopLevelPanelId.CHAT) && (
+                    <Panel
+                      id={CHAT.id}
+                      order={4}
+                      defaultSize={CHAT.defaultSize}
+                      minSize={CHAT.minSize}
+                    >
+                      <ChatPanel />
+                    </Panel>
+                  )}
+                </FileDragAndDropOverlay>
+              </PanelGroup>
             </div>
-          </PanelGroup>
-        </div>
-      </CommentsProvider>
-    </ChatThreadProvider>
+          </CommentsProvider>
+        </ChatThreadProvider>
+      </FileViewContextProvider>
+    </FileContextProvider>
   );
 }

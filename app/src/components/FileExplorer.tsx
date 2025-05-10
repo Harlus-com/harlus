@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { File, Trash2, MoreVertical, Columns2, RefreshCw } from "lucide-react";
 import { WorkspaceFile } from "@/api/workspace_types";
 import { cn } from "@/lib/utils";
@@ -14,25 +14,17 @@ import {
 import { fileService } from "@/api/fileService";
 import FileStatusIndicator from "./FileStatusIndicator";
 import { FileGroupCount } from "./panels";
-import { OpenFileGroup } from "./OpenFileGroup";
 import { fileGroupCounts } from "@/files/file_util";
-import { FilesToOpen, OpenFilesOptions } from "@/files/file_types";
-interface FileExplorerProps {
-  files: WorkspaceFile[];
-  openFiles: Record<FileGroupCount, OpenFileGroup | null>;
-  onFilesChange: (files: WorkspaceFile[]) => void;
-  handleOpenFiles: (
-    filesToOpen: FilesToOpen,
-    options?: OpenFilesOptions
-  ) => void;
-}
+import { modelService } from "@/api/model_service";
+import { useFileContext } from "@/files/FileContext";
+import { useFileViewContext } from "@/files/FileViewContext";
 
-const FileExplorer: React.FC<FileExplorerProps> = ({
-  files,
-  openFiles,
-  onFilesChange,
-  handleOpenFiles,
-}) => {
+const FileExplorer: React.FC = () => {
+  const { getFiles, notifyFileListChanged } = useFileContext();
+  const { getOpenFiles, handleOpenFiles } = useFileViewContext();
+  const files = getFiles();
+  const openFiles = getOpenFiles();
+
   const selectedFileIds: string[] = [];
   for (const fileGroup of Object.values(openFiles)) {
     if (fileGroup && !!fileGroup.selectedFile) {
@@ -43,7 +35,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const handleDeleteFile = async (file: WorkspaceFile, e: React.MouseEvent) => {
     e.stopPropagation();
     await fileService.deleteFile(file);
-    onFilesChange(files.filter((f) => f.id !== file.id));
+    notifyFileListChanged();
   };
 
   const handleOpenInGroup = (
