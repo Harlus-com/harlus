@@ -21,27 +21,26 @@ import { useNavigate } from "react-router-dom";
 import ContrastAnalysisDialog from "./ContrastAnalysisDialog";
 import { OpenFilesOptions } from "@/files/file_types";
 import { FilesToOpen } from "@/files/file_types";
+import { useFileContext } from "@/files/FileContext";
+import { useFileViewContext } from "@/files/FileViewContext";
 
 export type WorkSpaceHeaderProps = {
   workspace: Workspace;
-  files: WorkspaceFile[];
   togglePanelVisibility: (panelId: TopLevelPanelId) => void;
-  setFileGroupCount: (fileGroupCount: FileGroupCount) => void;
   setVisiblePanels: (panelIds: TopLevelPanelId[]) => void;
   reloadWorkspace: () => void;
-  openFiles: (filesToOpen: FilesToOpen, options?: OpenFilesOptions) => void;
 };
 
 export default function WorkspaceHeader({
   workspace,
-  files,
-  setFileGroupCount,
   togglePanelVisibility,
   setVisiblePanels,
   reloadWorkspace,
-  openFiles,
 }: WorkSpaceHeaderProps) {
   const navigate = useNavigate();
+  const { getFiles } = useFileContext();
+  const { getOpenFiles, setFileGroupCount, handleOpenFiles } =
+    useFileViewContext();
 
   return (
     <header className="border-b border-border p-4 flex items-center justify-between">
@@ -75,8 +74,8 @@ export default function WorkspaceHeader({
           </Button>
 
           <ContrastAnalysisDialog
-            files={files}
-            openFiles={openFiles}
+            files={getFiles()}
+            openFiles={handleOpenFiles}
             setVisiblePanels={setVisiblePanels}
           />
         </div>

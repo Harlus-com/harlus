@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Send, BookOpen, Plus, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { WorkspaceFile } from "@/api/workspace_types";
 import { useParams } from "react-router-dom";
 import { chatService } from "@/chat/chatService";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,14 +16,11 @@ import { useChatThread } from "./ChatThreadContext";
 import { MessagePairComponent } from "./Message";
 import { LoadingIndicator } from "./LoadingIndicator";
 import { getTitleFromMessage, hourMinuteNow } from "./chat_util";
-import { cn } from "@/lib/utils";
-
-interface ChatPanelProps {
-  onSourceClicked?: (file: WorkspaceFile) => void;
-}
+import { useFileViewContext } from "@/files/FileViewContext";
+import { FileGroupCount } from "@/components/panels";
 
 // Chat panel component
-const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
+const ChatPanel: React.FC = () => {
   const { workspaceId } = useParams();
   const {
     currentThreadId,
@@ -33,6 +29,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
     renameThread,
     upgradeThreadSavedState,
   } = useChatThread();
+  const { handleFileSelect } = useFileViewContext();
   const [messagePairs, setMessagePairs] = useState<MessagePair[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -431,7 +428,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked }) => {
                   pair={pair}
                   isReading={isEventSourceActive && pair.id === currentPairId}
                   toggleReadingMessages={toggleReadingMessages}
-                  onSourceClicked={onSourceClicked}
+                  onSourceClicked={(file) =>
+                    handleFileSelect(file, {
+                      showComments: true,
+                      fileGroup: FileGroupCount.ONE,
+                    })
+                  }
                 />
               ))}
               {isLoading && currentPairId === null && <LoadingIndicator />}

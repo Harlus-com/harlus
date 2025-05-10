@@ -336,6 +336,16 @@ def get_file_status(file_id: str) -> SyncStatus:
     return sync_queue.get_sync_status(file_id)
 
 
+@app.get("/workspace/file_statuses")
+def get_workspace_file_statuses(workspace_id: str = Query(..., alias="workspaceId")):
+    """Get the current sync status of all files in a workspace"""
+    print("Getting workspace file statuses", workspace_id)
+    return {
+        file_id: sync_queue.get_sync_status(file_id)
+        for file_id in file_store.get_files(workspace_id).keys()
+    }
+
+
 class ReactPdfAnnotation(BaseModel):
     id: str  # typically the text TODO: See if we can delete this
     page: int  # zero-based

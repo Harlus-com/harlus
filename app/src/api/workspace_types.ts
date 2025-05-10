@@ -3,7 +3,12 @@ export interface Workspace {
   name: string;
   dirName: string;
 }
-export type SyncStatus = "SYNC_IN_PROGRESS" | "OUT_OF_DATE" | "SYNC_COMPLETE";
+export type SyncStatus =
+  | "SYNC_COMPLETE"
+  | "SYNC_IN_PROGRESS"
+  | "SYNC_PENDING"
+  | "SYNC_ERROR"
+  | "UNKNOWN";
 
 export interface WorkspaceFile {
   id: string;

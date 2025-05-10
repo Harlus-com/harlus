@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React from "react";
 import {
   PanelGroup,
   Panel,
@@ -6,64 +6,17 @@ import {
 } from "react-resizable-panels";
 import { FileGroupCount } from "./panels";
 import PanelDivider from "./PanelDivider";
-import { WorkspaceFile } from "@/api/workspace_types";
 import PdfViewer from "@/components/ReactPdfViewer";
 import { OpenFileGroup } from "./OpenFileGroup";
 import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CommentsThread from "../comments/CommentsThread";
-import { OpenFilesOptions } from "@/files/file_types";
-import { FilesToOpen } from "@/files/file_types";
+import { useFileViewContext } from "@/files/FileViewContext";
 
-export interface FileViewProps {
-  openFiles: Record<FileGroupCount, OpenFileGroup | null>;
-  fileGroupOneRef: React.RefObject<ImperativePanelGroupHandle>;
-  handleOpenFiles: (
-    filesToOpen: FilesToOpen,
-    options?: OpenFilesOptions
-  ) => void;
-  setOpenFiles: React.Dispatch<
-    React.SetStateAction<Record<FileGroupCount, OpenFileGroup | null>>
-  >;
-}
-
-export default function FileView({
-  openFiles,
-  fileGroupOneRef,
-  handleOpenFiles,
-  setOpenFiles,
-}: FileViewProps) {
+export default function FileView() {
+  const { getOpenFiles, getFileGroupOneRef } = useFileViewContext();
+  const openFiles = getOpenFiles();
   const fileGroupCount = Object.values(openFiles).filter((g) => g).length;
-
-  const handleSelectFile = (
-    groupIndex: FileGroupCount,
-    file: WorkspaceFile
-  ) => {
-    const group = openFiles[groupIndex] || OpenFileGroup.empty();
-    setOpenFiles((prev) => {
-      return {
-        ...prev,
-        [groupIndex]: group.setSelectedFile(file),
-      };
-    });
-  };
-
-  const handleCloseFile = (groupIndex: FileGroupCount, fileId: string) => {
-    const group = openFiles[groupIndex] || OpenFileGroup.empty();
-    setOpenFiles((prev) => {
-      return {
-        ...prev,
-        [groupIndex]: group.removeFile(fileId),
-      };
-    });
-  };
-
-  const handleToggleComments = (groupIndex: FileGroupCount, fileId: string) => {
-    const group = openFiles[groupIndex] || OpenFileGroup.empty();
-    setOpenFiles((prev) => {
-      return { ...prev, [groupIndex]: group.toggleShowComments(fileId) };
-    });
-  };
 
   const makeFileGroup = (
     groupIndex: FileGroupCount,
@@ -86,10 +39,6 @@ export default function FileView({
           openFileGroup={openFiles[groupIndex]!}
           groupIndex={groupIndex}
           onlyFileOpen={options.onlyFileOpen}
-          onSelectFile={handleSelectFile}
-          onCloseFile={handleCloseFile}
-          onToggleComments={handleToggleComments}
-          handleOpenFiles={handleOpenFiles}
           panelRef={options.panelRef}
         />
       </>
@@ -101,7 +50,7 @@ export default function FileView({
       {makeFileGroup(FileGroupCount.ONE, {
         panelDivider: false,
         onlyFileOpen: fileGroupCount === 1,
-        panelRef: fileGroupOneRef,
+        panelRef: getFileGroupOneRef(),
       })}
 
       {fileGroupCount > FileGroupCount.ONE &&
@@ -117,13 +66,6 @@ interface FileGroupPanelProps {
   openFileGroup: OpenFileGroup;
   groupIndex: FileGroupCount;
   onlyFileOpen: boolean;
-  onSelectFile: (group: FileGroupCount, file: WorkspaceFile) => void;
-  onCloseFile: (group: FileGroupCount, fileId: string) => void;
-  onToggleComments: (group: FileGroupCount, fileId: string) => void;
-  handleOpenFiles: (
-    filesToOpen: FilesToOpen,
-    options?: OpenFilesOptions
-  ) => void;
   panelRef?: React.RefObject<ImperativePanelGroupHandle>;
 }
 
@@ -131,13 +73,11 @@ function FileGroupPanel({
   openFileGroup,
   groupIndex,
   onlyFileOpen,
-  onSelectFile,
-  onCloseFile,
-  onToggleComments,
-  handleOpenFiles,
   panelRef,
 }: FileGroupPanelProps) {
   const { files, selectedFile, showComments } = openFileGroup;
+  const { handleFileSelect, closeFile, toggleComments, handleOpenFiles } =
+    useFileViewContext();
 
   return (
     <Panel
@@ -161,7 +101,12 @@ function FileGroupPanel({
                     }`}
                   >
                     <button
-                      onClick={() => onSelectFile(groupIndex, file)}
+                      onClick={() =>
+                        handleFileSelect(file, {
+                          showComments: showComments[file.id],
+                          fileGroup: groupIndex,
+                        })
+                      }
                       className={`px-3 py-1 text-sm font-medium focus:outline-none ${
                         isActive
                           ? "text-blue-600"
@@ -171,7 +116,7 @@ function FileGroupPanel({
                       {file.name}
                     </button>
                     <button
-                      onClick={() => onCloseFile(groupIndex, file.id)}
+                      onClick={() => closeFile(groupIndex, file.id)}
                       className="ml-1 text-gray-400 hover:text-gray-600 text-xs focus:outline-none"
                       aria-label={`Close ${file.name}`}
                     >
@@ -183,7 +128,7 @@ function FileGroupPanel({
             </div>
             {selectedFile != null && !showComments[selectedFile.id] && (
               <Button
-                onClick={() => onToggleComments(groupIndex, selectedFile.id)}
+                onClick={() => toggleComments(groupIndex, selectedFile.id)}
                 variant="ghost"
                 size="sm"
                 className="group relative z-10"
@@ -231,7 +176,7 @@ function FileGroupPanel({
                 fileId={selectedFile.id}
                 currentFileGroup={groupIndex}
                 openFiles={handleOpenFiles}
-                onClose={() => onToggleComments(groupIndex, selectedFile.id)}
+                onClose={() => toggleComments(groupIndex, selectedFile.id)}
               />
             </Panel>
           </>
