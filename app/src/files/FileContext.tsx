@@ -45,9 +45,7 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
     });
   });
   const loadFiles = async () => {
-    console.log("Loading files");
     const files = await fileService.getFiles(workspaceId);
-    console.log("Finished loading files", files);
     setFiles(files);
   };
 
@@ -61,7 +59,6 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
   }, [files]);
 
   const notifyFileListChanged = () => {
-    console.log("Notifying file list changed");
     loadFiles();
   };
 

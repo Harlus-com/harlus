@@ -1,5 +1,12 @@
 import React from "react";
-import { File, Trash2, MoreVertical, Columns2, RefreshCw } from "lucide-react";
+import {
+  File,
+  Trash2,
+  MoreVertical,
+  Columns2,
+  RefreshCw,
+  RotateCcw,
+} from "lucide-react";
 import { WorkspaceFile } from "@/api/workspace_types";
 import { cn } from "@/lib/utils";
 import {
@@ -23,7 +30,6 @@ const FileExplorer: React.FC = () => {
     useFileContext();
   const { getOpenFiles, openFiles } = useFileViewContext();
   const files = getFiles();
-  console.log("File explorer files", files);
   const selectedFileIds: string[] = [];
   for (const fileGroup of Object.values(getOpenFiles())) {
     if (fileGroup && !!fileGroup.selectedFile) {
@@ -117,15 +123,16 @@ const FileExplorer: React.FC = () => {
                           ))}
                         </DropdownMenuSubContent>
                       </DropdownMenuSub>
+                      <DropdownMenuItem onClick={(e) => handlePing(file, e)}>
+                        <RotateCcw size={14} className="mr-2" />
+                        Sync
+                      </DropdownMenuItem>
                       <DropdownMenuItem
+                        className="text-red-500 focus:text-red-500"
                         onClick={(e) => handleForceSync(file, e)}
                       >
                         <RefreshCw size={14} className="mr-2" />
-                        Force Sync
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => handlePing(file, e)}>
-                        <RefreshCw size={14} className="mr-2" />
-                        Ping
+                        Force Reload
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-red-500 focus:text-red-500"
