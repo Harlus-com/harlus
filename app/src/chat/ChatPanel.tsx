@@ -31,6 +31,7 @@ import { mockSourceCommentGroup } from '../api/mock_source';
 interface ChatPanelProps {
   onSourceClicked?: (file: WorkspaceFile) => void;
   onSendMessageRef?: (setInputFn: (message: string) => void, sendFn: () => void) => void;
+  // setPanelWidths?: (widths: { fileExplorer?: number; fileViewer?: number; chat?: number }) => void;
 }
 
 
@@ -307,7 +308,7 @@ const AssistantMessage: React.FC<{
         // handleFileSelect(selectedFile2, FileGroupCount.TWO, { showComments: false });
   
         // Set panel widths
-        // setPanelWidths({ fileExplorer: 15, fileViewer: 70, chat: 15 });
+        // setPanelWidths?.({ fileExplorer: 15, fileViewer: 70, chat: 15 });
   
       } catch (error) {
         console.error("Error running contrast analysis in Workspace:", error);
@@ -613,6 +614,7 @@ const MessagePairComponent: React.FC<MessagePairProps> = memo(
             isReading={isReading}
             openFile={onSourceClicked}
             userMessage={pair.userMessage}
+            // setPanelWidths={setPanelWidths}
           />
         )}
       </div>
@@ -986,7 +988,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
                     handleKeyDown(e);
                   }
                 }}
-                placeholder="Ask questions about your documents..."
+                placeholder="Ask Harlus anything..."
                 className="min-h-[52px] max-h-[120px] resize-none text-sm border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-300 py-2 px-2.5 rounded-md"
                 disabled={isLoading || isEventSourceActive}
               />

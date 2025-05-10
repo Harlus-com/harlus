@@ -33,15 +33,12 @@ const WorkspaceSelect = () => {
               <div className="flex items-center justify-between">
                 <h3 className="text-2xl font-bold mb-2">{workspace.name}</h3>
                 {workspace.name === "AAPL" && (
-                  <div className="bg-yellow-100 p-1.5 rounded-full border-[1.5px] border-yellow-500">
-                    <Bell className="w-5 h-5 text-yellow-500" />
+                  <div className="bg-yellow-100 p-1 rounded-full border-[1.5px] border-yellow-500 flex items-center justify-center">
+                    <span className="text-yellow-500 text-sm text-muted-foreground">New earnings call</span>
                   </div>
                 )}
               </div>
-              <p className="text-muted-foreground mb-4">{workspace.companyName}</p>
-              <time className="text-sm text-muted-foreground">
-                Created {new Date().toLocaleDateString()}
-              </time>
+              <p className="text-sm text-muted-foreground">{workspace.companyName}</p>
             </div>
           ))}
         </div>

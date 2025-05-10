@@ -13,6 +13,7 @@ class Workspace(BaseModel):
     name: str
     dir_name: str = Field(alias="dirName")
     absolute_path: str = Field(alias="absolutePath")
+    company_name: str = Field(alias="companyName")
 
     model_config = ConfigDict(
         populate_by_name=True,

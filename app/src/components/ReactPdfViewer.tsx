@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { WorkspaceFile } from "@/api/workspace_types";
 import { fileService } from "@/api/fileService";
-import { Worker, Viewer } from "@react-pdf-viewer/core";
+import { Worker, Viewer, SpecialZoomLevel } from "@react-pdf-viewer/core";
 import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
 import { highlightPlugin, Trigger } from "@react-pdf-viewer/highlight";
 import type { HighlightArea, RenderHighlightsProps } from "@react-pdf-viewer/highlight";
@@ -59,7 +59,8 @@ const PdfViewer = ({ file, onSendMessage }: PdfViewerProps) => {
     </>
   );
 
-  const defaultLayoutPluginInstance = defaultLayoutPlugin();
+  const defaultLayoutPluginInstance = defaultLayoutPlugin({sidebarTabs: () => [],});
+
   const highlightPluginInstance = highlightPlugin({
     renderHighlights,
     trigger: Trigger.None,
@@ -191,6 +192,7 @@ const PdfViewer = ({ file, onSendMessage }: PdfViewerProps) => {
         {fileUrl ? (
           <Viewer
             fileUrl={fileUrl}
+            defaultScale={SpecialZoomLevel.PageWidth}
             plugins={[defaultLayoutPluginInstance, highlightPluginInstance]}
           />
         ) : (

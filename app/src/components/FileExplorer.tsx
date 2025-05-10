@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { File, Trash2, MoreVertical, Columns2, RefreshCw } from "lucide-react";
+import { File, Trash2, MoreVertical, Columns2, RefreshCw, ChevronRight, ChevronDown, Folder } from "lucide-react";
 import { WorkspaceFile } from "@/api/workspace_types";
 import { cn } from "@/lib/utils";
 import {
@@ -16,6 +16,13 @@ import FileStatusIndicator from "./FileStatusIndicator";
 import { FileGroupCount } from "./panels";
 import { OpenFileGroup } from "./OpenFileGroup";
 
+interface Folder {
+  id: string;
+  name: string;
+  files: WorkspaceFile[];
+  isExpanded: boolean;
+}
+
 interface FileExplorerProps {
   files: WorkspaceFile[];
   onFileSelect: (file: WorkspaceFile, groupNumber: FileGroupCount) => void;
@@ -29,6 +36,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   openFiles,
   onFilesChange,
 }) => {
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+
   const selectedFileIds: string[] = [];
   for (const fileGroup of Object.values(openFiles)) {
     if (fileGroup && !!fileGroup.selectedFile) {
@@ -54,6 +64,108 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     await fileService.forceSyncFile(file);
   };
 
+  const toggleFolder = (folderId: string) => {
+    setExpandedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(folderId)) {
+        next.delete(folderId);
+      } else {
+        next.add(folderId);
+      }
+      return next;
+    });
+  };
+
+  const renderFile = (file: WorkspaceFile) => (
+    <div
+      key={file.id}
+      className={cn(
+        "flex items-center p-2 rounded-md",
+        "hover:bg-muted",
+        selectedFileIds.includes(file.id) && "bg-muted font-medium"
+      )}
+    >
+      <div
+        className="flex items-center flex-1 min-w-0 cursor-pointer"
+        onClick={() => onFileSelect(file, FileGroupCount.ONE)}
+      >
+        <File
+          size={16}
+          className="mr-2 flex-shrink-0 text-blue-500"
+        />
+        <span className="truncate text-sm flex-1">{file.name}</span>
+      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="p-1 hover:bg-muted rounded-md flex-shrink-0 ml-2">
+            <MoreVertical
+              size={14}
+              className="text-muted-foreground"
+            />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <Columns2 size={14} className="mr-2" />
+              Open in file group
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              {[1, 2, 3, 4].map((groupNumber) => (
+                <DropdownMenuItem
+                  key={groupNumber}
+                  onClick={() =>
+                    handleOpenInGroup(
+                      file,
+                      groupNumber as FileGroupCount
+                    )
+                  }
+                >
+                  {groupNumber}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+          <DropdownMenuItem
+            onClick={(e) => handleForceSync(file, e)}
+          >
+            <RefreshCw size={14} className="mr-2" />
+            Force Sync
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="text-red-500 focus:text-red-500"
+            onClick={(e) => handleDeleteFile(file, e)}
+          >
+            <Trash2 size={14} className="mr-2" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+
+  const renderFolder = (folder: Folder) => (
+    <div key={folder.id}>
+      <div
+        className="flex items-center p-2 rounded-md hover:bg-muted cursor-pointer"
+        onClick={() => toggleFolder(folder.id)}
+      >
+        {expandedFolders.has(folder.id) ? (
+          <ChevronDown size={16} className="mr-2 text-muted-foreground" />
+        ) : (
+          <ChevronRight size={16} className="mr-2 text-muted-foreground" />
+        )}
+        <Folder size={16} className="mr-2 text-yellow-500" />
+        <span className="text-sm">{folder.name}</span>
+      </div>
+      {expandedFolders.has(folder.id) && (
+        <div className="pl-6">
+          {folder.files.map(renderFile)}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="h-full bg-sidebar border-r border-border flex flex-col">
       <div className="flex-1 overflow-auto p-2 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300">
@@ -64,74 +176,12 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 No files yet. Drag and drop PDFs here.
               </div>
             ) : (
-              files.map((file) => (
-                <div
-                  key={file.id}
-                  className={cn(
-                    "flex items-center p-2 rounded-md",
-                    "hover:bg-muted",
-                    selectedFileIds.includes(file.id) && "bg-muted font-medium"
-                  )}
-                >
-                  <div
-                    className="flex items-center flex-1 min-w-0 cursor-pointer"
-                    onClick={() => onFileSelect(file, FileGroupCount.ONE)}
-                  >
-                    <File
-                      size={16}
-                      className="mr-2 flex-shrink-0 text-blue-500"
-                    />
-                    <span className="truncate text-sm flex-1">{file.name}</span>
-                    <FileStatusIndicator file={file} className="ml-2" />
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="p-1 hover:bg-muted rounded-md flex-shrink-0 ml-2">
-                        <MoreVertical
-                          size={14}
-                          className="text-muted-foreground"
-                        />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>
-                          <Columns2 size={14} className="mr-2" />
-                          Open in file group
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent>
-                          {[1, 2, 3, 4].map((groupNumber) => (
-                            <DropdownMenuItem
-                              key={groupNumber}
-                              onClick={() =>
-                                handleOpenInGroup(
-                                  file,
-                                  groupNumber as FileGroupCount
-                                )
-                              }
-                            >
-                              {groupNumber}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
-                      <DropdownMenuItem
-                        onClick={(e) => handleForceSync(file, e)}
-                      >
-                        <RefreshCw size={14} className="mr-2" />
-                        Force Sync
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-red-500 focus:text-red-500"
-                        onClick={(e) => handleDeleteFile(file, e)}
-                      >
-                        <Trash2 size={14} className="mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              ))
+              <>
+                {folders.map(renderFolder)}
+                {files.filter(file => !folders.some(folder => 
+                  folder.files.some(f => f.id === file.id)
+                )).map(renderFile)}
+              </>
             )}
           </div>
         </div>

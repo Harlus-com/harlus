@@ -25,11 +25,12 @@ import { useComments } from "@/comments/useComments";
 // The default sizes scale relative to each other.
 // They work best when the sum of all the default sizes is 100.
 // If one of the panels is not visible, they will be "resacled" to add up to 100.
-const FILE_EXPLORER = new TopLevelPanel(TopLevelPanelId.FILE_EXPLORER, 15);
-const FILE_VIEWER = new TopLevelPanel(TopLevelPanelId.FILE_VIEWER, 50);
-const CHAT = new TopLevelPanel(TopLevelPanelId.CHAT, 85);
+const FILE_EXPLORER = new TopLevelPanel(TopLevelPanelId.FILE_EXPLORER, 10);
+const FILE_VIEWER   = new TopLevelPanel(TopLevelPanelId.FILE_VIEWER, 50);
+const CHAT          = new TopLevelPanel(TopLevelPanelId.CHAT, 90);
 
-
+const LAYOUT_TWO_PANELS   = [10, 90] as const;    // explorer | chat
+const LAYOUT_THREE_PANELS = [10, 75, 15] as const; // explorer | viewer | chat
 
 export default function Workspace() {
   const { workspaceId } = useParams();
@@ -68,11 +69,11 @@ export default function Workspace() {
     setWorkspace(workspace);
   };
 
-  const setPanelWidths = (widths: { fileExplorer?: number; fileViewer?: number; chat?: number }) => {
-    if (panelGroupRef.current) {
-      panelGroupRef.current.setLayout([widths.fileExplorer || 15, widths.fileViewer || 70, widths.chat || 15]);
-    }
-  }; 
+  //const setPanelWidths = (widths: { fileExplorer?: number; fileViewer?: number; chat?: number }) => {
+  //  if (panelGroupRef.current) {
+  //    panelGroupRef.current.setLayout([widths.fileExplorer || 15, widths.fileViewer || 70, widths.chat || 15]);
+  //  }
+  //}; 
 
   useEffect(() => {
     loadWorkspace();
@@ -119,6 +120,16 @@ export default function Workspace() {
     TopLevelPanelId.FILE_EXPLORER,
     TopLevelPanelId.CHAT,
   ]);
+  useEffect(() => {
+    if (!panelGroupRef.current) return;
+  
+    const sizes = visiblePanels.includes(TopLevelPanelId.FILE_VIEWER)
+      ? LAYOUT_THREE_PANELS    // 15 | 70 | 15
+      : LAYOUT_TWO_PANELS;     // 15 | 85
+  
+    panelGroupRef.current.setLayout(sizes);   // push the numbers to the library
+  }, [visiblePanels]);
+
   const [openFiles, setOpenFiles] = useState<
     Record<FileGroupCount, OpenFileGroup | null>
   >({
@@ -171,7 +182,6 @@ export default function Workspace() {
     if (!visiblePanels.includes(TopLevelPanelId.FILE_VIEWER)) {
       setVisiblePanels(prev => [...prev, TopLevelPanelId.FILE_VIEWER]);
     }
-  
     // Handle file selection
     const current = openFiles[groupNumber];
     const updates = {};
@@ -199,8 +209,6 @@ export default function Workspace() {
     ) => handleFileSelect(file, FileGroupCount.ONE, opts),
     [handleFileSelect]
   );
-
-  const { addClaimComments, addCommentGroup, setActiveCommentGroups } = useComments();
 
   return (
     <ChatThreadProvider workspaceId={workspaceId!}>
