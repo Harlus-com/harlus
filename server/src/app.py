@@ -181,13 +181,16 @@ async def load_file(request: LoadFileRequest):
 
 class ForceSyncFileRequest(BaseModel):
     file_id: str = Field(alias="fileId")
+    workspace_id: str = Field(alias="workspaceId")
+    force: bool = Field(alias="force")
 
 
-@app.post("/file/force_sync")
+@app.post("/file/sync")
 async def force_file_sync(request: ForceSyncFileRequest):
-    print("Force syncing file", request.file_id)
-    file = file_store.get_file(request.file_id)
-    await sync_queue.queue_model_sync(file, sync_type=SyncType.FORCE)
+    print("Syncing file", request)
+    file = file_store.get_file(request.file_id, request.workspace_id)
+    sync_type = SyncType.FORCE if request.force else SyncType.NORMAL
+    await sync_queue.queue_model_sync(file, sync_type=sync_type)
     return True
 
 
@@ -245,16 +248,16 @@ def get_workspace_status(workspace_id: str):
 
 @app.get("/workspace/all")
 def get_workspaces() -> list[Workspace]:
-    print("Getting all workspaces")
     workspaces = list(file_store.get_workspaces().values())
-    print("Workspaces", workspaces)
     return workspaces
 
 
 @app.get("/workspace/files/{workspace_id}")
 def get_files(workspace_id: str) -> list[File]:
-    print("Getting files for workspace", workspace_id)
-    return list(file_store.get_files(workspace_id).values())
+    print("Getting files for workspace, time: ", datetime.datetime.now().isoformat())
+    files = list(file_store.get_files(workspace_id).values())
+    print("Got files, time: ", datetime.datetime.now().isoformat())
+    return files
 
 
 class SyncWorkspaceRequest(BaseModel):
@@ -334,6 +337,16 @@ def get_file_model_status(file_id: str) -> SyncStatus:
 def get_file_status(file_id: str) -> SyncStatus:
     """Get the current sync status of a file"""
     return sync_queue.get_sync_status(file_id)
+
+
+@app.get("/workspace/file_statuses")
+def get_workspace_file_statuses(workspace_id: str = Query(..., alias="workspaceId")):
+    """Get the current sync status of all files in a workspace"""
+    print("Getting workspace file statuses", workspace_id)
+    return {
+        file_id: sync_queue.get_sync_status(file_id)
+        for file_id in file_store.get_files(workspace_id).keys()
+    }
 
 
 class ReactPdfAnnotation(BaseModel):

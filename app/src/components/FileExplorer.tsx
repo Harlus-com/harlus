@@ -1,5 +1,12 @@
 import React from "react";
-import { File, Trash2, MoreVertical, Columns2, RefreshCw } from "lucide-react";
+import {
+  File,
+  Trash2,
+  MoreVertical,
+  Columns2,
+  RefreshCw,
+  RotateCcw,
+} from "lucide-react";
 import { WorkspaceFile } from "@/api/workspace_types";
 import { cn } from "@/lib/utils";
 import {
@@ -19,10 +26,10 @@ import { useFileContext } from "@/files/FileContext";
 import { useFileViewContext } from "@/files/FileViewContext";
 
 const FileExplorer: React.FC = () => {
-  const { getFiles, notifyFileListChanged } = useFileContext();
+  const { getFiles, notifyFileListChanged, forceSyncFile, startSyncFile } =
+    useFileContext();
   const { getOpenFiles, openFiles } = useFileViewContext();
   const files = getFiles();
-
   const selectedFileIds: string[] = [];
   for (const fileGroup of Object.values(getOpenFiles())) {
     if (fileGroup && !!fileGroup.selectedFile) {
@@ -47,7 +54,12 @@ const FileExplorer: React.FC = () => {
 
   const handleForceSync = async (file: WorkspaceFile, e: React.MouseEvent) => {
     e.stopPropagation();
-    await fileService.forceSyncFile(file);
+    forceSyncFile(file.id);
+  };
+
+  const handlePing = async (file: WorkspaceFile, e: React.MouseEvent) => {
+    e.stopPropagation();
+    startSyncFile(file.id);
   };
 
   return (
@@ -111,11 +123,16 @@ const FileExplorer: React.FC = () => {
                           ))}
                         </DropdownMenuSubContent>
                       </DropdownMenuSub>
+                      <DropdownMenuItem onClick={(e) => handlePing(file, e)}>
+                        <RotateCcw size={14} className="mr-2" />
+                        Sync
+                      </DropdownMenuItem>
                       <DropdownMenuItem
+                        className="text-red-500 focus:text-red-500"
                         onClick={(e) => handleForceSync(file, e)}
                       >
                         <RefreshCw size={14} className="mr-2" />
-                        Force Sync
+                        Force Reload
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-red-500 focus:text-red-500"
