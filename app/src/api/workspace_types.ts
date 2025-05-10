@@ -11,6 +11,13 @@ export interface WorkspaceFile {
   name: string;
   absolutePath: string;
   workspaceId: string;
-  appDir: string | null;
+  appDir: string[];  // This is the folder path array
   status?: SyncStatus; // TODO: Remove this should map 1:1 with the file_store.py File type.
+}
+
+export interface Folder {
+  id: string;
+  appDir: string[];
+  name: string;
+  workspaceId: string;
 }

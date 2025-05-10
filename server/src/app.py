@@ -25,7 +25,7 @@ from src.tool_library import ToolLibrary
 from src.sync_workspace import get_workspace_sync_manager
 
 # from src.stream_response import stream_generator_v2 # TODO: Delete this file
-from src.file_store import FileStore, Workspace, File
+from src.file_store import FileStore, Workspace, File, Folder
 from src.sync_queue import SyncQueue, SyncType
 from src.stream_manager import StreamManager
 from src.sync_status import SyncStatus
@@ -253,6 +253,23 @@ def get_workspaces() -> list[Workspace]:
 def get_files(workspace_id: str) -> list[File]:
     print("Getting files for workspace", workspace_id)
     return list(file_store.get_files(workspace_id).values())
+
+
+@app.get("/workspace/folders/{workspace_id}")
+def get_folders(workspace_id: str) -> list[Folder]:
+    try:
+        # Check if workspace exists first
+        if workspace_id not in file_store.get_workspaces():
+            print(f"Workspace {workspace_id} not found")
+            return []
+
+        folders = file_store.get_folders(workspace_id)
+        print("Folders", folders)
+        return folders
+    except Exception as e:
+        print(f"Error getting folders: {str(e)}")
+        # Return empty list instead of error
+        return []
 
 
 class SyncWorkspaceRequest(BaseModel):

@@ -2,6 +2,7 @@ import { fileService } from "@/api/fileService";
 import {
   WorkspaceFile,
   Workspace as WorkspaceType,
+  Folder,
 } from "@/api/workspace_types";
 import { workspaceService } from "@/api/workspaceService";
 import { CommentsProvider } from "@/comments/CommentsProvider";
@@ -37,6 +38,7 @@ export default function Workspace() {
   const navigate = useNavigate();
   const [workspace, setWorkspace] = useState<WorkspaceType | null>(null);
   const [files, setFiles] = useState<WorkspaceFile[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const dropAreaRef = useRef<HTMLDivElement>(null);
   const panelGroupRef = useRef<ImperativePanelGroupHandle>(null);
@@ -59,6 +61,8 @@ export default function Workspace() {
     }
 
     const workspaceFiles = await fileService.getFiles(workspaceId);
+    const workspaceFolders = await fileService.getFolders(workspaceId);
+    
     // Set all files to SYNC_COMPLETE
     const syncedFiles = workspaceFiles.map(file => ({
       ...file,
@@ -66,6 +70,7 @@ export default function Workspace() {
     }));
 
     setFiles(syncedFiles);
+    setFolders(workspaceFolders);
     setWorkspace(workspace);
   };
 
@@ -251,6 +256,7 @@ export default function Workspace() {
                 >
                   <FileExplorer
                     files={files}
+                    folders={folders}
                     onFileSelect={(file, groupNumber) =>
                       handleFileSelect(file, groupNumber, {
                         showComments: false,
@@ -258,6 +264,7 @@ export default function Workspace() {
                     }
                     openFiles={openFiles}
                     onFilesChange={setFiles}
+                    onFoldersChange={setFolders}
                   />
                 </Panel>
               )}

@@ -927,7 +927,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
                   <BookOpen className="h-5 w-5 text-blue-500" />
                 </div>
                 <h3 className="text-base font-medium text-gray-800 mb-1">
-                  Hey Tijs! Did you see Apple's latest sell-side report?
+                  Hey Octave! Did you see Apple's latest sell-side report?
                 </h3>
               </div>
             ) : (

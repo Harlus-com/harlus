@@ -2,7 +2,7 @@ import React from "react";
 
 const ExcelViewer: React.FC = () => {
   // Excel embed URL
-  const excelEmbedUrl = "https://harlusai-my.sharepoint.com/personal/octave_oliviers_harlus_com/_layouts/15/Doc.aspx?sourcedoc={c547898c-6057-4bba-bd97-ee19034b732e}&action=embedview&wdAllowInteractivity=False&AllowTyping=True&wdHideGridlines=True&wdHideHeaders=True&wdDownloadButton=True&wdInConfigurator=True&wdInConfigurator=True";
+  const excelEmbedUrl = "https://harlusai-my.sharepoint.com/personal/octave_oliviers_harlus_com/_layouts/15/Doc.aspx?sourcedoc={c547898c-6057-4bba-bd97-ee19034b732e}&action=embedview&wdAllowInteractivity=False&ActiveCell='FV%20Calculation'!E5&wdHideGridlines=True&wdDownloadButton=True&wdInConfigurator=True&wdInConfigurator=True";
 
   return (
     <div className="h-full w-full">

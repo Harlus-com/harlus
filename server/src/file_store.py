@@ -45,12 +45,18 @@ class Folder(BaseModel):
     Has duel purpose as key and as a folder name in the workspace
     For example, if the folder is "reports/earnings", the app_dir is ["reports", "earnings"]
     """
+    id: str = ""
     app_dir: list[str] = Field(default=[], alias="appDir")
     """Convenience field for the folder name in the workspace (will allways be the last element of the app_dir)"""
     name: str
-    workspace_id: str
+    workspace_id: str = Field(alias="workspaceId")
 
-    model_config = ConfigDict(frozen=True, populate_by_name=True)
+    model_config = ConfigDict(
+        populate_by_name=True,
+        alias_generator=snake_to_camel,
+        from_attributes=True,
+        frozen=True,
+    )
 
 
 class FileStore:
@@ -223,6 +229,7 @@ class FileStore:
         if len(app_dir) == 0:
             raise ValueError("App dir cannot be empty")
         folder = Folder(
+            id=str(uuid.uuid4()),
             app_dir=app_dir,
             name=app_dir[-1],
             workspace_id=workspace_id,
