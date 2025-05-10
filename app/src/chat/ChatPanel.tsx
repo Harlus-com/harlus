@@ -29,7 +29,7 @@ const ChatPanel: React.FC = () => {
     renameThread,
     upgradeThreadSavedState,
   } = useChatThread();
-  const { handleFileSelect } = useFileViewContext();
+  const { openFile } = useFileViewContext();
   const [messagePairs, setMessagePairs] = useState<MessagePair[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -429,7 +429,7 @@ const ChatPanel: React.FC = () => {
                   isReading={isEventSourceActive && pair.id === currentPairId}
                   toggleReadingMessages={toggleReadingMessages}
                   onSourceClicked={(file) =>
-                    handleFileSelect(file, {
+                    openFile(file, {
                       showComments: true,
                       fileGroup: FileGroupCount.ONE,
                     })

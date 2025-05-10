@@ -12,22 +12,20 @@ import CommentTagChip from "./ComentTagChip";
 import { getHighestZeroIndexedPageNumberFromHighlightArea } from "./comment_util";
 import { CommentHistory } from "./CommentHistory";
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
-import { FilesToOpen } from "@/files/file_types";
-import { OpenFilesOptions } from "@/files/file_types";
+import { useFileViewContext } from "@/files/FileViewContext";
 
 interface CommentsThreadProps {
   fileId: string;
   currentFileGroup: FileGroupCount;
-  openFiles: (filesToOpen: FilesToOpen, options?: OpenFilesOptions) => void;
   onClose?: () => void;
 }
 
 const CommentsThread: React.FC<CommentsThreadProps> = ({
   fileId,
   currentFileGroup,
-  openFiles,
   onClose,
 }) => {
+  const { openFiles } = useFileViewContext();
   const [showHistory, setShowHistory] = useState(false);
   const {
     getActiveComments,

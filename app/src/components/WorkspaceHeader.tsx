@@ -39,8 +39,7 @@ export default function WorkspaceHeader({
 }: WorkSpaceHeaderProps) {
   const navigate = useNavigate();
   const { getFiles } = useFileContext();
-  const { getOpenFiles, setFileGroupCount, handleOpenFiles } =
-    useFileViewContext();
+  const { setFileGroupCount } = useFileViewContext();
 
   return (
     <header className="border-b border-border p-4 flex items-center justify-between">
@@ -75,7 +74,6 @@ export default function WorkspaceHeader({
 
           <ContrastAnalysisDialog
             files={getFiles()}
-            openFiles={handleOpenFiles}
             setVisiblePanels={setVisiblePanels}
           />
         </div>

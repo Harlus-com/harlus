@@ -16,14 +16,11 @@ import { useFileContext } from "./FileContext";
 interface FileViewContextType {
   getOpenFiles: () => Record<FileGroupCount, OpenFileGroup | null>;
   setFileGroupCount: (count: FileGroupCount) => void;
-  handleFileSelect: (
+  openFile: (
     file: WorkspaceFile,
     options: { showComments: boolean; fileGroup: FileGroupCount }
   ) => void;
-  handleOpenFiles: (
-    filesToOpen: FilesToOpen,
-    options?: OpenFilesOptions
-  ) => void;
+  openFiles: (filesToOpen: FilesToOpen, options?: OpenFilesOptions) => void;
   getFileGroupOneRef: () => React.RefObject<ImperativePanelGroupHandle>;
   closeFile: (groupIndex: FileGroupCount, fileId: string) => void;
   toggleComments: (groupIndex: FileGroupCount, fileId: string) => void;
@@ -48,7 +45,7 @@ export const FileViewContextProvider: React.FC<
 > = ({ children }) => {
   const fileGroupOneRef = useRef<ImperativePanelGroupHandle>(null);
   const { getFile } = useFileContext();
-  const [openFiles, setOpenFiles] = useState<
+  const [openedFiles, setOpenedFiles] = useState<
     Record<FileGroupCount, OpenFileGroup | null>
   >({
     [FileGroupCount.ONE]: OpenFileGroup.empty(),
@@ -63,22 +60,22 @@ export const FileViewContextProvider: React.FC<
       if (group > count) {
         updates[group] = null;
       } else {
-        if (openFiles[group] == null) {
+        if (openedFiles[group] == null) {
           updates[group] = OpenFileGroup.empty();
         } else {
-          updates[group] = openFiles[group];
+          updates[group] = openedFiles[group];
         }
       }
     }
-    setOpenFiles(() => updates);
+    setOpenedFiles(() => updates);
   };
 
-  const handleFileSelect = (
+  const openFile = (
     file: WorkspaceFile,
     options: { showComments: boolean; fileGroup: FileGroupCount }
   ) => {
     const groupNumber = options.fileGroup;
-    const current = openFiles[groupNumber];
+    const current = openedFiles[groupNumber];
     const updates = {};
     if (current == null) {
       updates[groupNumber] = OpenFileGroup.empty().addFile(file, {
@@ -91,23 +88,20 @@ export const FileViewContextProvider: React.FC<
         showComments: options.showComments,
       });
     }
-    setOpenFiles((prev) => ({
+    setOpenedFiles((prev) => ({
       ...prev,
       ...updates,
     }));
   };
 
-  const handleOpenFiles = (
-    filesToOpen: FilesToOpen,
-    options?: OpenFilesOptions
-  ) => {
+  const openFiles = (filesToOpen: FilesToOpen, options?: OpenFilesOptions) => {
     if (options?.resizeFileGroupOneCommentPanel) {
       const currentLayout = fileGroupOneRef.current?.getLayout();
       if (currentLayout && currentLayout.length == 2) {
         fileGroupOneRef.current?.setLayout([65, 35]);
       }
     }
-    setOpenFiles((prev) => {
+    setOpenedFiles((prev) => {
       const openFilesIntoGroups = getFileGroupsToOpen(filesToOpen);
       const newOpenFiles = { ...prev };
       if (options?.closeAllOtherFiles) {
@@ -145,15 +139,15 @@ export const FileViewContextProvider: React.FC<
   };
 
   const getOpenFiles = () => {
-    return openFiles;
+    return openedFiles;
   };
 
   const getFileGroupOneRef = () => {
     return fileGroupOneRef;
   };
   const closeFile = (groupIndex: FileGroupCount, fileId: string) => {
-    const group = openFiles[groupIndex] || OpenFileGroup.empty();
-    setOpenFiles((prev) => {
+    const group = openedFiles[groupIndex] || OpenFileGroup.empty();
+    setOpenedFiles((prev) => {
       return {
         ...prev,
         [groupIndex]: group.removeFile(fileId),
@@ -162,8 +156,8 @@ export const FileViewContextProvider: React.FC<
   };
 
   const toggleComments = (groupIndex: FileGroupCount, fileId: string) => {
-    const group = openFiles[groupIndex] || OpenFileGroup.empty();
-    setOpenFiles((prev) => {
+    const group = openedFiles[groupIndex] || OpenFileGroup.empty();
+    setOpenedFiles((prev) => {
       return { ...prev, [groupIndex]: group.toggleShowComments(fileId) };
     });
   };
@@ -171,8 +165,8 @@ export const FileViewContextProvider: React.FC<
   const value = {
     getOpenFiles,
     setFileGroupCount,
-    handleFileSelect,
-    handleOpenFiles,
+    openFile,
+    openFiles,
     getFileGroupOneRef,
     closeFile,
     toggleComments,

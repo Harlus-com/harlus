@@ -62,20 +62,3 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
     </FileContext.Provider>
   );
 };
-
-function hasFileSyncStatusesChanged(
-  prev: Record<string, SyncStatus>,
-  current: Record<string, SyncStatus>
-) {
-  for (const [key, value] of Object.entries(prev)) {
-    if (value !== current[key]) {
-      return true;
-    }
-  }
-  for (const [key, value] of Object.entries(current)) {
-    if (value !== prev[key]) {
-      return true;
-    }
-  }
-  return false;
-}

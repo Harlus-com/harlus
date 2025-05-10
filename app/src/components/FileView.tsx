@@ -76,8 +76,7 @@ function FileGroupPanel({
   panelRef,
 }: FileGroupPanelProps) {
   const { files, selectedFile, showComments } = openFileGroup;
-  const { handleFileSelect, closeFile, toggleComments, handleOpenFiles } =
-    useFileViewContext();
+  const { openFile, closeFile, toggleComments } = useFileViewContext();
 
   return (
     <Panel
@@ -102,7 +101,7 @@ function FileGroupPanel({
                   >
                     <button
                       onClick={() =>
-                        handleFileSelect(file, {
+                        openFile(file, {
                           showComments: showComments[file.id],
                           fileGroup: groupIndex,
                         })
@@ -175,7 +174,6 @@ function FileGroupPanel({
               <CommentsThread
                 fileId={selectedFile.id}
                 currentFileGroup={groupIndex}
-                openFiles={handleOpenFiles}
                 onClose={() => toggleComments(groupIndex, selectedFile.id)}
               />
             </Panel>

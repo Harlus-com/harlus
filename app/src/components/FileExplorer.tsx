@@ -15,18 +15,16 @@ import { fileService } from "@/api/fileService";
 import FileStatusIndicator from "./FileStatusIndicator";
 import { FileGroupCount } from "./panels";
 import { fileGroupCounts } from "@/files/file_util";
-import { modelService } from "@/api/model_service";
 import { useFileContext } from "@/files/FileContext";
 import { useFileViewContext } from "@/files/FileViewContext";
 
 const FileExplorer: React.FC = () => {
   const { getFiles, notifyFileListChanged } = useFileContext();
-  const { getOpenFiles, handleOpenFiles } = useFileViewContext();
+  const { getOpenFiles, openFiles } = useFileViewContext();
   const files = getFiles();
-  const openFiles = getOpenFiles();
 
   const selectedFileIds: string[] = [];
-  for (const fileGroup of Object.values(openFiles)) {
+  for (const fileGroup of Object.values(getOpenFiles())) {
     if (fileGroup && !!fileGroup.selectedFile) {
       selectedFileIds.push(fileGroup.selectedFile!.id);
     }
@@ -42,7 +40,7 @@ const FileExplorer: React.FC = () => {
     file: WorkspaceFile,
     groupNumber: FileGroupCount
   ) => {
-    handleOpenFiles({
+    openFiles({
       [file.id]: { fileGroup: groupNumber, showComments: false, select: true },
     });
   };
