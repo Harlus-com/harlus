@@ -16,6 +16,7 @@ import { timestampNow } from "@/api/api_util";
 import { v4 as uuidv4 } from "uuid";
 import { FileGroupCount, TopLevelPanelId } from "./panels";
 import { FilesToOpen, OpenFilesOptions } from "@/files/file_types";
+import { useFileViewContext } from "@/files/FileViewContext";
 
 export interface ContrastResult {
   fileId: string;
@@ -39,14 +40,13 @@ const OPEN_SIDE_BY_SIDE = true;
 interface ContrastAnalysisDialogProps {
   files: WorkspaceFile[];
   setVisiblePanels: (panelIds: TopLevelPanelId[]) => void;
-  openFiles: (filesToOpen: FilesToOpen, options?: OpenFilesOptions) => void;
 }
 
 const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
   files,
   setVisiblePanels,
-  openFiles,
 }) => {
+  const { openFiles } = useFileViewContext();
   const [selectedFile1, setSelectedFile1] = useState<WorkspaceFile | null>(
     null
   );
