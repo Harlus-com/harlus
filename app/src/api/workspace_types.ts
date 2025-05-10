@@ -3,7 +3,12 @@ export interface Workspace {
   name: string;
   dirName: string;
 }
-export type SyncStatus = "SYNC_IN_PROGRESS" | "OUT_OF_DATE" | "SYNC_COMPLETE";
+export type SyncStatus =
+  | "SYNC_COMPLETE"
+  | "SYNC_IN_PROGRESS"
+  | "SYNC_PENDING"
+  | "SYNC_ERROR"
+  | "UNKNOWN";
 
 export interface WorkspaceFile {
   id: string;
@@ -11,5 +16,4 @@ export interface WorkspaceFile {
   absolutePath: string;
   workspaceId: string;
   appDir: string | null;
-  status?: SyncStatus; // TODO: Remove this should map 1:1 with the file_store.py File type.
 }

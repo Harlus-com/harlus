@@ -15,7 +15,6 @@ import { useComments } from "@/comments/useComments";
 import { timestampNow } from "@/api/api_util";
 import { v4 as uuidv4 } from "uuid";
 import { FileGroupCount, TopLevelPanelId } from "./panels";
-import { FilesToOpen, OpenFilesOptions } from "@/files/file_types";
 import { useFileViewContext } from "@/files/FileViewContext";
 
 export interface ContrastResult {

@@ -13,9 +13,9 @@ export const FileDragAndDropOverlay = ({
   workspaceId,
   children,
 }: FileDragAndDropOverlayProps) => {
+  const { notifyFileListChanged, startSyncFile } = useFileContext();
   const dropAreaRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const { notifyFileListChanged } = useFileContext();
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();

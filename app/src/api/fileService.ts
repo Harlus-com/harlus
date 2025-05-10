@@ -27,14 +27,10 @@ class FileService {
 
   // Get all files in the workspace
   async getFiles(workspaceId?: string): Promise<WorkspaceFile[]> {
+    console.log("Getting files for workspace", workspaceId);
     const files = await client.get(`/workspace/files/${workspaceId}`);
-    const statuses = await Promise.all(
-      files.map((file) => client.get(`/file/get/status/${file.id}`))
-    );
-    return files.map((file, index) => ({
-      ...file,
-      status: statuses[index],
-    }));
+    console.log("Got files", files);
+    return files;
   }
 
   deleteFile(file: WorkspaceFile): Promise<boolean> {

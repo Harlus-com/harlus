@@ -19,10 +19,11 @@ import { useFileContext } from "@/files/FileContext";
 import { useFileViewContext } from "@/files/FileViewContext";
 
 const FileExplorer: React.FC = () => {
-  const { getFiles, notifyFileListChanged } = useFileContext();
+  const { getFiles, notifyFileListChanged, forceSyncFile, startSyncFile } =
+    useFileContext();
   const { getOpenFiles, openFiles } = useFileViewContext();
   const files = getFiles();
-
+  console.log("File explorer files", files);
   const selectedFileIds: string[] = [];
   for (const fileGroup of Object.values(getOpenFiles())) {
     if (fileGroup && !!fileGroup.selectedFile) {
@@ -47,7 +48,12 @@ const FileExplorer: React.FC = () => {
 
   const handleForceSync = async (file: WorkspaceFile, e: React.MouseEvent) => {
     e.stopPropagation();
-    await fileService.forceSyncFile(file);
+    forceSyncFile(file.id);
+  };
+
+  const handlePing = async (file: WorkspaceFile, e: React.MouseEvent) => {
+    e.stopPropagation();
+    startSyncFile(file.id);
   };
 
   return (
@@ -116,6 +122,10 @@ const FileExplorer: React.FC = () => {
                       >
                         <RefreshCw size={14} className="mr-2" />
                         Force Sync
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => handlePing(file, e)}>
+                        <RefreshCw size={14} className="mr-2" />
+                        Ping
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-red-500 focus:text-red-500"
