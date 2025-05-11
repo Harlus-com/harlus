@@ -202,15 +202,15 @@ const SourceBadge: React.FC<SourceBadgeProps> = ({ source, onClick }) => {
   );
 };
 
-// User message component
+// User message component with rounder bubble style
 const UserMessage: React.FC<{ message: ChatMessage }> = memo(({ message }) => {
   return (
-    <div className="flex flex-col">
-      <div className="bg-white border border-gray-100 rounded-lg px-3.5 py-2.5 text-[13px] text-gray-800 leading-relaxed shadow-sm">
+    <div className="flex flex-col items-end">
+      <div className="bg-white border border-gray-100 rounded-xl px-3 py-2.5 text-[13px] text-gray-800 leading-relaxed shadow-sm max-w-[85%]">
         {message.content}
       </div>
       {message.timestamp && (
-        <div className="text-[9px] text-gray-400 mt-1 ml-1">
+        <div className="text-[9px] text-gray-400 mt-1 mr-1">
           {message.timestamp}
         </div>
       )}
@@ -650,6 +650,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
   const [currentPairId, setCurrentPairId] = useState<string | null>(null);
   const [isHistoryVisible, setIsHistoryVisible] = useState(false);
 
+  const MAX_CONTENT_WIDTH = "42rem"; // ~672px - good max width for readability
+
   const updateAndSaveMessages = (
     fn: (prev: MessagePair[]) => MessagePair[]
   ) => {
@@ -882,26 +884,22 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
   return (
     <SourceClickContext.Provider value={{ onSourceClicked }}>
       <div className="h-full flex flex-col border-l border-gray-100 bg-gray-50">
-        <div className="py-2.5 px-3.5 font-medium border-b border-gray-100 bg-white flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm text-gray-800">Chat</span>
-          </div>
+        {/* Header stays the same */}
+        <div className="py-2 px-3 border-b border-gray-100 bg-white flex items-center justify-end">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsHistoryVisible(!isHistoryVisible)}
-              className="h-8 px-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              className="h-7 w-7 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
             >
-              <BookOpen className="h-4 w-4 mr-1.5" />
-              {isHistoryVisible ? "Hide History" : "History"}
+              <BookOpen className="h-4 w-4" />
             </Button>
-            {/* TODO: Conditionally show this button based on whether the user is already in an empty thread */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => createThread()}
-              className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-50 group relative"
+              className="h-7 w-7 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-50 group relative"
             >
               <Plus className="h-4 w-4" />
               <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
@@ -920,9 +918,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
         )}
 
         <ScrollArea className="flex-1 px-3.5 pt-3.5 pb-2">
-          <div ref={chatContainerRef} className="space-y-6">
+          <div ref={chatContainerRef} className="space-y-6 mx-auto" style={{ maxWidth: MAX_CONTENT_WIDTH }}>
             {messagePairs.length === 0 ? (
-              <div className="text-center py-10 bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+              <div className="text-center py-8 px-4">
                 <div className="inline-flex rounded-full bg-blue-50 p-2 mb-3">
                   <BookOpen className="h-5 w-5 text-blue-500" />
                 </div>
@@ -946,16 +944,17 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
           </div>
         </ScrollArea>
 
-        <div className="p-3 border-t border-gray-100 bg-white">
-          <div className="flex flex-col space-y-3 max-w-[80%] mx-auto">
-            {/* Prompt suggestions - only show when no messages */}
+        {/* Modified input area with grey background */}
+        <div className="p-2 bg-gray-50">
+          <div className="flex flex-col space-y-4 w-full mx-auto" style={{ maxWidth: MAX_CONTENT_WIDTH }}>
+            {/* Prompt suggestions with white bubbles */}
             {messagePairs.length === 0 && (
               <div className="grid grid-cols-1 gap-2">
                 <button 
                   onClick={() => {
                     handleSendMessage("Let's analyse the impact of the latest sell-side report on Apple's FCF!");
                   }}
-                  className="text-left p-2.5 bg-gray-50 hover:bg-gray-100 rounded-md text-sm text-gray-700 border border-gray-200 transition-colors"
+                  className="text-left p-2.5 bg-white hover:bg-gray-50 rounded-xl text-sm text-gray-700 border border-gray-100 transition-colors shadow-sm"
                 >
                   Let's analyse the impact of the latest sell-side report on Apple's FCF!
                 </button>
@@ -963,7 +962,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
                   onClick={() => {
                     handleSendMessage("How do the trends of iPhone sales impact my investment theses?");
                   }}
-                  className="text-left p-2.5 bg-gray-50 hover:bg-gray-100 rounded-md text-sm text-gray-700 border border-gray-200 transition-colors"
+                  className="text-left p-2.5 bg-white hover:bg-gray-50 rounded-xl text-sm text-gray-700 border border-gray-100 transition-colors shadow-sm"
                 >
                   How do the trends of iPhone sales impact my investment theses?
                 </button>
@@ -971,15 +970,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
                   onClick={() => {
                     handleSendMessage("Does Apple's latest 10K confirm managment's claims form the earlier Earnings Call?");
                   }}
-                  className="text-left p-2.5 bg-gray-50 hover:bg-gray-100 rounded-md text-sm text-gray-700 border border-gray-200 transition-colors"
+                  className="text-left p-2.5 bg-white hover:bg-gray-50 rounded-xl text-sm text-gray-700 border border-gray-100 transition-colors shadow-sm"
                 >
                   Does Apple's latest 10K confirm managment's claims form the earlier Earnings Call?
                 </button>
               </div>
             )}
 
-            {/* Input box */}
-            <div className="flex items-end space-x-2">
+            {/* Input box as a white bubble with the send button inside */}
+            <div className="relative">
               <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -989,13 +988,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
                   }
                 }}
                 placeholder="Ask Harlus anything..."
-                className="min-h-[52px] max-h-[120px] resize-none text-sm border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-300 py-2 px-2.5 rounded-md"
+                className="min-h-[60px] pr-14 max-h-[120px] resize-none text-sm bg-white border-gray-100 shadow-sm 
+                  focus:border-transparent focus:ring-0 focus:outline-none py-3 px-4 rounded-xl w-full"
                 disabled={isLoading || isEventSourceActive}
               />
               <Button
                 variant="default"
                 size="icon"
-                className="h-[52px] w-[52px] shrink-0 bg-blue-600 hover:bg-blue-700 rounded-md"
+                className="absolute top-1/2 right-3 transform -translate-y-1/2 h-9 w-9 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center"
                 onClick={() => {
                   if (!isLoading && !isEventSourceActive) {
                     handleSendMessage();
@@ -1003,7 +1003,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
                 }}
                 disabled={!input.trim() || isLoading || isEventSourceActive}
               >
-                <Send size={18} />
+                <Send size={15} />
               </Button>
             </div>
           </div>

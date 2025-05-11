@@ -226,11 +226,11 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
         </div>
       </div>
 
-      <div className="p-3 border-t border-border">
+      {/*<div className="p-3 border-t border-border">
         <div className="text-xs text-muted-foreground">
-          Drag PDF files here to analyze
+          Drag PDF files here
         </div>
-      </div>
+      </div>*/}
     </div>
   );
 };

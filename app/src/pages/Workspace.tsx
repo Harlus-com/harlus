@@ -17,7 +17,7 @@ import {
   TopLevelPanelId,
 } from "@/components/panels";
 import WorkspaceHeader from "@/components/WorkspaceHeader";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useLayoutEffect } from "react";
 import { Panel, PanelGroup, ImperativePanelGroupHandle } from "react-resizable-panels";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChatThreadProvider } from "@/chat/ChatThreadContext";
@@ -27,8 +27,8 @@ import { useComments } from "@/comments/useComments";
 // They work best when the sum of all the default sizes is 100.
 // If one of the panels is not visible, they will be "resacled" to add up to 100.
 const FILE_EXPLORER = new TopLevelPanel(TopLevelPanelId.FILE_EXPLORER, 10);
-const FILE_VIEWER   = new TopLevelPanel(TopLevelPanelId.FILE_VIEWER, 50);
-const CHAT          = new TopLevelPanel(TopLevelPanelId.CHAT, 90);
+const FILE_VIEWER   = new TopLevelPanel(TopLevelPanelId.FILE_VIEWER, 75);
+const CHAT          = new TopLevelPanel(TopLevelPanelId.CHAT, 15);
 
 const LAYOUT_TWO_PANELS   = [10, 90] as const;    // explorer | chat
 const LAYOUT_THREE_PANELS = [10, 75, 15] as const; // explorer | viewer | chat
@@ -125,12 +125,12 @@ export default function Workspace() {
     TopLevelPanelId.FILE_EXPLORER,
     TopLevelPanelId.CHAT,
   ]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!panelGroupRef.current) return;
   
     const sizes = visiblePanels.includes(TopLevelPanelId.FILE_VIEWER)
-      ? LAYOUT_THREE_PANELS    // 15 | 70 | 15
-      : LAYOUT_TWO_PANELS;     // 15 | 85
+      ? LAYOUT_THREE_PANELS
+      : LAYOUT_TWO_PANELS;
   
     panelGroupRef.current.setLayout(sizes);   // push the numbers to the library
   }, [visiblePanels]);
@@ -214,6 +214,23 @@ export default function Workspace() {
     ) => handleFileSelect(file, FileGroupCount.ONE, opts),
     [handleFileSelect]
   );
+
+// Hide viewer when the last file is closed
+useEffect(() => {
+  const allFilesClosed = Object.values(openFiles).every(
+    group =>
+      group === null ||
+      (group.selectedFile === null && Object.keys(group.files).length === 0)
+  );
+
+  if (allFilesClosed && visiblePanels.includes(TopLevelPanelId.FILE_VIEWER)) {
+    // 👉 Only update visiblePanels – the other effect
+    //    will resize to [10, 90] after this re-render.
+    setVisiblePanels(prev =>
+      prev.filter(id => id !== TopLevelPanelId.FILE_VIEWER)
+    );
+  }
+}, [openFiles, visiblePanels]);
 
   return (
     <ChatThreadProvider workspaceId={workspaceId!}>
