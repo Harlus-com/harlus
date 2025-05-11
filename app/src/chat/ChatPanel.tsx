@@ -7,7 +7,7 @@ import React, {
   useContext,
   useMemo,
 } from "react";
-import { Send, FileText, X, BookOpen, Plus, Brain } from "lucide-react";
+import { Send, FileText, X, BookOpen, Plus, Brain, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { fileService } from "@/api/fileService";
@@ -280,8 +280,8 @@ const AssistantMessage: React.FC<{
 
     const handleMockContrastAnalysis = async () => {
       try {
-        const selectedFile1 = await fileService.getFileFromId("3432dee7-83ba-406f-99e5-62ad7ef5873a");
-        const selectedFile2 = await fileService.getFileFromId("5f34608a-882e-4856-9fea-322284451f3f");
+        const selectedFile1 = await fileService.getFileFromId("2a9f906f-4b52-4cc3-9d54-ef2232afa5f1");
+        const selectedFile2 = await fileService.getFileFromId("e4dfc09b-3714-4f21-b201-afdc7156451a");
   
         const { mockContrastAnalysisResponse } = await import('@/api/mock_contrast_analysis');
         const result = mockContrastAnalysisResponse.claimComments;
@@ -294,21 +294,6 @@ const AssistantMessage: React.FC<{
         setActiveCommentGroups(selectedFile2.id, [commentGroup.id]);
         await addClaimComments(result, commentGroup);
         openFile(selectedFile1, { showComments: true });
-  
-        // addCommentGroup(commentGroup);
-        // setActiveCommentGroups(selectedFile1.id, [commentGroup.id]);
-        // setActiveCommentGroups(selectedFile2.id, [commentGroup.id]);
-        // await addClaimComments(result, commentGroup);
-  
-        // Set up two file groups// Set up two file groups
-        // handleOnFileGroupCountChange(FileGroupCount.TWO);
-  
-        // Ensure handleFileSelect can correctly interpret FileGroupCount.ONE and FileGroupCount.TWO
-        // handleFileSelect(selectedFile1, FileGroupCount.ONE, { showComments: true });
-        // handleFileSelect(selectedFile2, FileGroupCount.TWO, { showComments: false });
-  
-        // Set panel widths
-        // setPanelWidths?.({ fileExplorer: 15, fileViewer: 70, chat: 15 });
   
       } catch (error) {
         console.error("Error running contrast analysis in Workspace:", error);
@@ -446,7 +431,7 @@ const AssistantMessage: React.FC<{
             <Button
               variant="outline"
               size="sm"
-              className="h-8 px-3 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-gray-200"
+              className="h-auto py-1 px-2.5 text-[11px] gap-1 mr-0 inline-flex items-center bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 rounded-full"
               onClick={handleMockContrastAnalysis}
             >
               Contrast Analysis
@@ -925,7 +910,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
                   <BookOpen className="h-5 w-5 text-blue-500" />
                 </div>
                 <h3 className="text-base font-medium text-gray-800 mb-1">
-                  Hey Octave! Did you see Apple's latest sell-side report?
+                  Hey Octave! Did you see Apple's latest earnings call transcript?
                 </h3>
               </div>
             ) : (
@@ -952,11 +937,25 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
               <div className="grid grid-cols-1 gap-2">
                 <button 
                   onClick={() => {
-                    handleSendMessage("Let's analyse the impact of the latest sell-side report on Apple's FCF!");
+                    handleSendMessage("Does the new earnings call confirm last quarter's hypotheses?");
                   }}
-                  className="text-left p-2.5 bg-white hover:bg-gray-50 rounded-xl text-sm text-gray-700 border border-gray-100 transition-colors shadow-sm"
+                  className="text-left p-2.5 bg-white hover:bg-gray-50 rounded-xl text-sm text-gray-700 border border-gray-100 transition-colors shadow-sm flex items-center justify-between"
                 >
-                  Let's analyse the impact of the latest sell-side report on Apple's FCF!
+                  <span>Does the new earnings call confirm last quarter's hypotheses?</span>
+                  <div className="ml-2 flex-shrink-0 w-5 h-5 bg-yellow-100 rounded-full border-[0px] border-yellow-500 flex items-center justify-center">
+                    <Bell size={13} className="text-yellow-500" />
+                  </div>
+                </button>
+                <button 
+                  onClick={() => {
+                    handleSendMessage("Do sell-side reports confirm managment's claims from the latest earnings call??");
+                  }}
+                  className="text-left p-2.5 bg-white hover:bg-gray-50 rounded-xl text-sm text-gray-700 border border-gray-100 transition-colors shadow-sm flex items-center justify-between"
+                >
+                  <span>Do sell-side reports confirm managment's claims from the latest earnings call?</span>
+                  <div className="ml-2 flex-shrink-0 w-5 h-5 bg-yellow-100 rounded-full border-[0px] border-yellow-500 flex items-center justify-center">
+                    <Bell size={13} className="text-yellow-500" />
+                  </div>
                 </button>
                 <button 
                   onClick={() => {
@@ -965,14 +964,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
                   className="text-left p-2.5 bg-white hover:bg-gray-50 rounded-xl text-sm text-gray-700 border border-gray-100 transition-colors shadow-sm"
                 >
                   How do the trends of iPhone sales impact my investment theses?
-                </button>
-                <button 
-                  onClick={() => {
-                    handleSendMessage("Does Apple's latest 10K confirm managment's claims form the earlier Earnings Call?");
-                  }}
-                  className="text-left p-2.5 bg-white hover:bg-gray-50 rounded-xl text-sm text-gray-700 border border-gray-100 transition-colors shadow-sm"
-                >
-                  Does Apple's latest 10K confirm managment's claims form the earlier Earnings Call?
                 </button>
               </div>
             )}

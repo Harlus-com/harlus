@@ -15,10 +15,10 @@ from harlus_contrast_tool import (
 )
 
 loaders = [
-    DocToolLoader(),
-    ClaimQueryEngineToolLoader(),
-    VerdictQueryEngineToolLoader(),
-    SentenceRetrieverToolLoader(),
+    #DocToolLoader(),
+    #ClaimQueryEngineToolLoader(),
+    #VerdictQueryEngineToolLoader(),
+    #SentenceRetrieverToolLoader(),
 ]
 
 

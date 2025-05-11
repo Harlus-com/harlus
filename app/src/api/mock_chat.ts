@@ -6,7 +6,7 @@ export interface MockMessage {
 
 export const mockConversations: MockMessage[] = [
   {
-    userMessage: "Let's analyse the impact of the latest sell-side report on Apple's FCF!",
+    userMessage: "Does the new earnings call confirm last quarter's hypotheses?",
     assistantMessage: "I analysed the report and contrassted it to your investment theses from last quarter.\nI found that <summary> but difference on <detail>.",
     readingMessages: [
       "Generating a plan...",
@@ -18,13 +18,22 @@ export const mockConversations: MockMessage[] = [
   },
   {
     userMessage: "Facts",
-    assistantMessage: "The capital of France is Paris. It's one of the most populous cities in Europe and serves as the country's major economic and cultural center.",
+    assistantMessage: "Apple has been relatively resilient in China despite harsh U.S.-China tech tariffs, reporting only a 2% decline in Greater China revenue for the March quarter. In contrast, other major U.S. hardware firms—like Cisco (-25%) and Nvidia (-13%)—have seen significantly larger sales drops. Apple stands out for weathering the tariff and export-control storm more effectively than peers hit with multi-billion dollar losses and inventory write-offs.",
     readingMessages: [
-      "Let's see if other reports confirm the decreasing iPad sales.",
+      "Let's see how Apple's sales in China compare to other U.S. hardware firms.",
       "Searching Bloomberg terminal for iPad sales...",
-      "Comparing KPIs to current values in financial_model.xls..."
+      "Searching Bloomberg terminal for iPad sales..."
+    ]
+  },
+  {
+    userMessage: "Reduce the growth estimates in my valuation model and adapt my report to the new facts",
+    assistantMessage: "I made suggestions in the valuation model. Let me know if you'd like to discuss them.",
+    readingMessages: [
+      "Updating model.xls...",
+      "Updating report.docx..."
     ]
   }
+
   // Add more mock conversations as needed
 ];
 

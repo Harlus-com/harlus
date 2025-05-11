@@ -1,12 +1,25 @@
 import { WorkspaceFile } from "@/api/workspace_types";
 
 export class OpenFileGroup {
+  files: { [fileId: string]: WorkspaceFile };
+  fileOrder: Set<string>;
+  selectedFile: WorkspaceFile | null;
+  showComments: { [fileId: string]: boolean };
+  initialPages: { [fileId: string]: number };
+
   constructor(
-    readonly files: { [key: string]: WorkspaceFile },
-    readonly fileOrder: Set<string>,
-    readonly selectedFile: WorkspaceFile | null,
-    readonly showComments: { [key: string]: boolean }
-  ) {}
+    files: { [fileId: string]: WorkspaceFile },
+    fileOrder: Set<string>,
+    selectedFile: WorkspaceFile | null,
+    showComments: { [fileId: string]: boolean },
+    initialPages: { [fileId: string]: number }
+  ) {
+    this.files = files;
+    this.fileOrder = fileOrder;
+    this.selectedFile = selectedFile;
+    this.showComments = showComments;
+    this.initialPages = initialPages;
+  }
 
   toggleShowComments(fileId: string) {
     const newShowComments = { ...this.showComments };
@@ -15,13 +28,14 @@ export class OpenFileGroup {
       this.files,
       this.fileOrder,
       this.selectedFile,
-      newShowComments
+      newShowComments,
+      this.initialPages
     );
   }
 
   addFile(
     file: WorkspaceFile,
-    options: { select: boolean; showComments?: boolean }
+    options: { select: boolean; showComments?: boolean; initialPage?: number }
   ) {
     const newFiles = this.shallowCopyFiles();
     newFiles[file.id] = file;
@@ -30,11 +44,16 @@ export class OpenFileGroup {
     const newSelectedFile = options.select ? file : this.selectedFile;
     const newShowComments = { ...this.showComments };
     newShowComments[file.id] = !!options.showComments;
+    const newInitialPages = { ...this.initialPages };
+    if (options.initialPage !== undefined) {
+      newInitialPages[file.id] = options.initialPage;
+    }
     return new OpenFileGroup(
       newFiles,
       newFileOrder,
       newSelectedFile,
-      newShowComments
+      newShowComments,
+      newInitialPages
     );
   }
 
@@ -53,7 +72,8 @@ export class OpenFileGroup {
       newFiles,
       newFileOrder,
       newSelectedFile,
-      this.showComments
+      this.showComments,
+      this.initialPages
     );
   }
 
@@ -72,7 +92,8 @@ export class OpenFileGroup {
       this.shallowCopyFiles(),
       this.shallowCopyFileOrder(),
       file,
-      this.showComments
+      this.showComments,
+      this.initialPages
     );
   }
 
@@ -91,6 +112,6 @@ export class OpenFileGroup {
   }
 
   static empty() {
-    return new OpenFileGroup({}, new Set(), null, {});
+    return new OpenFileGroup({}, new Set(), null, {}, {});
   }
 }

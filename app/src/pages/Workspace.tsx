@@ -224,8 +224,6 @@ useEffect(() => {
   );
 
   if (allFilesClosed && visiblePanels.includes(TopLevelPanelId.FILE_VIEWER)) {
-    // 👉 Only update visiblePanels – the other effect
-    //    will resize to [10, 90] after this re-render.
     setVisiblePanels(prev =>
       prev.filter(id => id !== TopLevelPanelId.FILE_VIEWER)
     );

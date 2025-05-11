@@ -139,10 +139,10 @@ def find_fuzzy_bounding_boxes(
     for r in rects:
         x0, y0 = r.x0, r.y0
         w, h = r.width, r.height
-        x0_pct = (x0 / p_width) * 100
-        y0_pct = (y0 / p_height) * 100
-        w_pct = (w / p_width) * 100
-        h_pct = (h / p_height) * 100
+        x0_pct = round((x0 / p_width) * 100, 2)
+        y0_pct = round((y0 / p_height) * 100, 2)
+        w_pct = round((w / p_width) * 100, 2)
+        h_pct = round((h / p_height) * 100, 2)
         output.append(
             BoundingBox(
                 left=x0_pct,

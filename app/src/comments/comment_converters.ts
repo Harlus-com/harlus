@@ -49,10 +49,13 @@ async function convertLinkCommentToLink(
   const file = await fileService.getFileFromPath(comment.filePath);
   return {
     linkToCommentId: comment.id,
-    text: `${file.name}, page ${
+    text: `${file.appDir}/${file.name}, page ${
       getHighestZeroIndexedPageNumber(comment.highlightArea.boundingBoxes) + 1
     }`,
-    likeToFileId: file.id,
+    linkToFileId: file.id,
+    linkToPageNumber: getHighestZeroIndexedPageNumber(
+      comment.highlightArea.boundingBoxes
+    ),
   };
 }
 
@@ -81,7 +84,10 @@ async function convertLinkCommentToComment(
             parentComment.highlightArea.boundingBoxes
           ) + 1
         }`,
-        likeToFileId: parentFile.id,
+        linkToFileId: parentFile.id,
+        linkToPageNumber: getHighestZeroIndexedPageNumber(
+          comment.highlightArea.boundingBoxes
+        ),
       },
     ],
   };

@@ -22,6 +22,7 @@ import { useComments } from "@/comments/useComments";
 
 interface PdfViewerProps {
   file: WorkspaceFile;
+  initialPage?: number;
   /** Callback invoked when the user presses ENTER inside the inline input */
   onSendMessage?: (message: string) => void;
 }
@@ -31,7 +32,7 @@ interface PdfViewerProps {
  */
 type Highlight = HighlightArea & { color: string };
 
-const PdfViewer = ({ file, onSendMessage }: PdfViewerProps) => {
+const PdfViewer = ({ file, onSendMessage, initialPage=0 }: PdfViewerProps) => {
   /* ------------------------------------------------------------------ */
   /*                               STATE                                */
   /* ------------------------------------------------------------------ */
@@ -214,6 +215,7 @@ const PdfViewer = ({ file, onSendMessage }: PdfViewerProps) => {
             fileUrl={fileUrl}
             defaultScale={SpecialZoomLevel.PageWidth}
             plugins={[defaultLayoutPluginInstance, highlightPluginInstance]}
+            initialPage={initialPage ? initialPage : 0}
           />
         ) : (
           <div className="flex items-center justify-center h-full">

@@ -14,9 +14,9 @@ export interface DocxViewerProps {
 }
 
 const DEFAULT_SRC =
-  "https://harlusai-my.sharepoint.com/personal/octave_oliviers_harlus_com/_layouts/15/Doc.aspx?sourcedoc={cc203af2-c6f7-493a-9c5a-da3730f475af}&action=embedview";
+  "https://harlusai.sharepoint.com/sites/documents/_layouts/15/Doc.aspx?sourcedoc={a3a61cad-9daa-41d7-8e18-126dab07ca7f}&action=embedview";
 const DEFAULT_UPDATED_SRC =
-  "https://harlusai-my.sharepoint.com/personal/octave_oliviers_harlus_com/_layouts/15/Doc.aspx?sourcedoc={6742a637-7c49-478e-85f6-135a3cb98e8b}&action=embedview";
+  "https://harlusai.sharepoint.com/sites/documents/_layouts/15/Doc.aspx?sourcedoc={b0a586b5-210b-4abf-ac5a-afd274541960}&action=embedview";
 
 export default function DocxViewer({
   src = DEFAULT_SRC,

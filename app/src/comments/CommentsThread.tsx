@@ -22,6 +22,7 @@ interface CommentsThreadProps {
     options: {
       showComments: boolean;
       fileGroup: FileGroupCount;
+      initialPage?: number;
     }
   ) => void;
 }
@@ -48,9 +49,13 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
 
   const handleLinkClick = (link: CommentLink) => {
     setSelectedComment(link.linkToCommentId);
-    openFile(link.likeToFileId, {
+    
+    const pageNumber = link.linkToPageNumber;
+    
+    openFile(link.linkToFileId, {
       showComments: false,
-      fileGroup: FileGroupCount.TWO, // TODO: Maybe have this open a new file group?
+      fileGroup: FileGroupCount.TWO,
+      initialPage: pageNumber,
     });
   };
 
@@ -101,57 +106,39 @@ const CommentsThread: React.FC<CommentsThreadProps> = ({
                           : "#E5E7EB",
                     }}
                   >
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start space-x-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-blue-100 text-blue-600">
-                            {comment.author[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col flex-1">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <CardTitle className="text-sm font-medium text-gray-800">
-                                {comment.author}
-                              </CardTitle>
-                            </div>
-                            {comment.tag && (
-                              <CommentTagChip tag={comment.tag} />
-                            )}
-                          </div>
-                          {zeroIndexPageNumber !== null && (
-                            <span className="text-[10px] text-gray-500 mt-0.5">
-                              Page {zeroIndexPageNumber + 1}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pb-3">
-                      <p className="text-sm text-gray-700 leading-relaxed">
-                        {comment.body}
-                      </p>
-                      {comment.links.length > 0 && (
-                        <div className="mt-2 pt-2 border-t border-gray-100">
-                          <div className="flex flex-wrap gap-1.5">
-                            {comment.links.map((link) => (
-                              <Button
-                                key={link.linkToCommentId}
-                                variant="outline"
-                                size="sm"
-                                className="h-auto py-1 px-2.5 text-[11px] gap-1 mr-0 mb-1.5 inline-flex items-center bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 rounded-full"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleLinkClick(link);
-                                }}
-                              >
-                                <FileText size={10} className="shrink-0" />
-                                <span className="truncate">{link.text}</span>
-                              </Button>
-                            ))}
-                          </div>
+                    <CardContent className="py-2 px-3 relative">
+                      {comment.tag && (
+                        <div className="absolute top-2 right-3">
+                          <CommentTagChip tag={comment.tag} />
                         </div>
                       )}
+                      
+                      <div className={cn(comment.tag && "mt-6")}>
+                        <p className="text-sm text-gray-700 leading-relaxed">
+                          {comment.body}
+                        </p>
+                        {comment.links.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-gray-100">
+                            <div className="flex flex-wrap gap-1.5">
+                              {comment.links.map((link) => (
+                                <Button
+                                  key={link.linkToCommentId}
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-auto py-1 px-2.5 text-[11px] gap-1 mr-0 mb-1.5 inline-flex items-center bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 rounded-full"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleLinkClick(link);
+                                  }}
+                                >
+                                  <FileText size={10} className="shrink-0" />
+                                  <span className="truncate">{link.text}</span>
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 </div>

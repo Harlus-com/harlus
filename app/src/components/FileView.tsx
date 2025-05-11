@@ -58,6 +58,7 @@ export default function FileView({ openFiles, setOpenFiles, onSendMessage }: Fil
     options: {
       showComments: boolean;
       fileGroup: FileGroupCount;
+      initialPage?: number;
     }
   ) => {
     const current = openFiles[options.fileGroup] || OpenFileGroup.empty();
@@ -67,11 +68,13 @@ export default function FileView({ openFiles, setOpenFiles, onSendMessage }: Fil
       updates[options.fileGroup] = OpenFileGroup.empty().addFile(file, {
         select: true,
         showComments: options.showComments,
+        initialPage: options.initialPage,
       });
     } else {
       updates[options.fileGroup] = current.addFile(file, {
         select: true,
         showComments: options.showComments,
+        initialPage: options.initialPage,
       });
     }
     setOpenFiles((prev) => ({
@@ -130,6 +133,7 @@ interface FileGroupPanelProps {
       showComments: boolean;
       jumpToSelectedComment: boolean;
       fileGroup: FileGroupCount;
+      initialPage?: number;
     }
   ) => void;
   onSendMessage?: (message: string) => void;
@@ -229,7 +233,8 @@ function FileGroupPanel({
                     return (
                       <PdfViewer 
                         file={selectedFile} 
-                        key={selectedFile.id} 
+                        key={selectedFile.id}
+                        initialPage={openFileGroup.initialPages[selectedFile.id] ?? 0}
                         onSendMessage={onSendMessage}
                       />
                     );
@@ -248,9 +253,14 @@ function FileGroupPanel({
             <Panel
               id={`file-group-${groupIndex}-comments`}
               order={2}
-              defaultSize={20}
+              minSize={30}
+              maxSize={30}
+              defaultSize={30}
+              collapsible={false}
             >
-              <CommentsThread fileId={selectedFile.id} openFile={openFile} />
+              <div className="h-full overflow-y-auto">
+                <CommentsThread fileId={selectedFile.id} openFile={openFile} />
+              </div>
             </Panel>
           </>
         )}
