@@ -18,7 +18,15 @@ export const mockConversations: MockMessage[] = [
   },
   {
     userMessage: "Facts",
-    assistantMessage: "Apple has been relatively resilient in China despite harsh U.S.-China tech tariffs, reporting only a 2% decline in Greater China revenue for the March quarter. In contrast, other major U.S. hardware firms—like Cisco (-25%) and Nvidia (-13%)—have seen significantly larger sales drops. Apple stands out for weathering the tariff and export-control storm more effectively than peers hit with multi-billion dollar losses and inventory write-offs.",
+    assistantMessage: `
+While Apple saw only a slight dip in China sales, other U.S. hardware makers were hit much harder:
+
+- **Cisco**: China revenue plunged **25% YoY**.  
+- **Nvidia**: Sales dropped **13%**, with a **$5.5B charge** tied to export bans.  
+- **AMD**: Took a **$1.5B write-down** on stranded GPU inventory.  
+- **Intel**: Lost **$1B in revenue** from Huawei license revocation.  
+- **Overall impact**: U.S. firms lost **$7B in China sales** in 1H 2025; over **$25B remains at risk** for FY 2026.
+`,
     readingMessages: [
       "Let's see how Apple's sales in China compare to other U.S. hardware firms.",
       "Searching Bloomberg terminal for iPad sales...",
@@ -29,8 +37,8 @@ export const mockConversations: MockMessage[] = [
     userMessage: "Reduce the growth estimates in my valuation model and adapt my report to the new facts",
     assistantMessage: "I made suggestions in the valuation model. Let me know if you'd like to discuss them.",
     readingMessages: [
-      "Updating model.xls...",
-      "Updating report.docx..."
+      "Updating models/valuation.xls...",
+      "Updating updates/25-Q2.docx..."
     ]
   }
 
@@ -40,7 +48,9 @@ export const mockConversations: MockMessage[] = [
 // Helper function to find a matching response
 export function findMockResponse(userMessage: string): MockMessage | undefined {
   // Simple exact match for now - you can make this more sophisticated
-  return mockConversations.find(conv => 
-    conv.userMessage.toLowerCase() === userMessage.toLowerCase()
-  );
+  return mockConversations.find(conv => {
+    const firstWord = conv.userMessage.trim().split(/\s+/)[0].toLowerCase();
+    const inputFirstWord = userMessage.trim().split(/\s+/)[0].toLowerCase();
+    return firstWord === inputFirstWord;
+  });
 }

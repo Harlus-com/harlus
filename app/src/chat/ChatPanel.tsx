@@ -30,6 +30,7 @@ import { mockSourceCommentGroup } from '../api/mock_source';
 
 interface ChatPanelProps {
   onSourceClicked?: (file: WorkspaceFile) => void;
+  onFileClicked?: (file: WorkspaceFile) => void;
   onSendMessageRef?: (setInputFn: (message: string) => void, sendFn: () => void) => void;
   // setPanelWidths?: (widths: { fileExplorer?: number; fileViewer?: number; chat?: number }) => void;
 }
@@ -55,12 +56,9 @@ interface ChatSourceProps {
 // Create a separate context for source click handling
 const SourceClickContext = React.createContext<{
   onSourceClicked?: (file: WorkspaceFile) => void;
+  onFileClicked?: (file: WorkspaceFile) => void;
 }>({});
 
-// Create a separate context for source click handling
-const MockAnalysisContext = React.createContext<{
-  onMockAnalysis?: () => Promise<void>;
-}>({});
 
 // Reading indicator message component
 interface ReadingMessageProps {
@@ -161,7 +159,8 @@ interface SourceBadgeProps {
 
 const SourceBadge: React.FC<SourceBadgeProps> = ({ source, onClick }) => {
   // TODO: Get the Actual File Name
-  const fileName = source.filePath.split("/").slice(-2, -1)[0] || "Unknown";
+  //const fileName = source.filePath.split("/").slice(-2, -1)[0] || "Unknown";
+  const fileName = "Telescope research on China tarrifs"
 
   // Extract page numbers if available
   const pageNumbers = useMemo(() => {
@@ -262,6 +261,7 @@ const AssistantMessage: React.FC<{
   handleSourceClick: (source: ChatSourceCommentGroup) => void;
   toggleReadingMessages: () => void;
   isReading: boolean;
+  openSource: (file: WorkspaceFile, options: { showComments: boolean }) => void;
   openFile: (file: WorkspaceFile, options: { showComments: boolean }) => void;
   userMessage: ChatMessage;
 }> = memo(
@@ -273,6 +273,7 @@ const AssistantMessage: React.FC<{
     handleSourceClick,
     toggleReadingMessages,
     isReading,
+    openSource,
     openFile,
     userMessage,
   }) => {
@@ -293,19 +294,17 @@ const AssistantMessage: React.FC<{
         setActiveCommentGroups(selectedFile1.id, [commentGroup.id]);
         setActiveCommentGroups(selectedFile2.id, [commentGroup.id]);
         await addClaimComments(result, commentGroup);
-        openFile(selectedFile1, { showComments: true });
+        openSource(selectedFile1, { showComments: true });
   
       } catch (error) {
         console.error("Error running contrast analysis in Workspace:", error);
       }
     };
 
-    // Update the check to use userMessage
-    const isFirstMockMessage = userMessage.content === mockConversations[0].userMessage;
-    
-    // Check if this message corresponds to the second mock conversation
-    const isSecondMockMessage = userMessage.content === mockConversations[1].userMessage;
-    
+    const isFirstMockMessage = userMessage.content.trim().split(/\s+/)[0].toLowerCase() === "does";
+    const isSecondMockMessage = userMessage.content.trim().split(/\s+/)[0].toLowerCase() === "facts";
+    const isThirdMockMessage = userMessage.content.trim().split(/\s+/)[0].toLowerCase() === "reduce";
+
     return (
       <div className="flex flex-col mt-4">
         {/* AI Response */}
@@ -434,7 +433,7 @@ const AssistantMessage: React.FC<{
               className="h-auto py-1 px-2.5 text-[11px] gap-1 mr-0 inline-flex items-center bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 rounded-full"
               onClick={handleMockContrastAnalysis}
             >
-              Contrast Analysis
+              Analysis
             </Button>
           </div>
         )}
@@ -450,6 +449,34 @@ const AssistantMessage: React.FC<{
             </div>
           </div>
         )}
+
+        {/* Add Contrast Analysis button only for first mock message */}
+        {isThirdMockMessage && !isReading && (
+          <div className="mt-3 flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-auto py-1 px-2.5 text-[11px] gap-1 mr-0 inline-flex items-center bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 rounded-full"
+              onClick={async () => {
+                const file = await fileService.getFileFromId("1b8b3774-58a8-42a5-a6a7-ccb34cdd93c6");
+                openFile(file, { showComments: false });
+              }}
+            >
+              models/valuation.xls
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-auto py-1 px-2.5 text-[11px] gap-1 mr-0 inline-flex items-center bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 rounded-full"
+              onClick={async () => {
+                const file = await fileService.getFileFromId("96feeef0-8e2a-42a1-a141-80c1046ea321");
+                openFile(file, { showComments: false });
+              }}
+            >
+              updates/25-Q2.docx
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
@@ -460,8 +487,7 @@ AssistantMessage.displayName = "AssistantMessage";
 // Message pair component
 const MessagePairComponent: React.FC<MessagePairProps> = memo(
   ({ pair, isReading, toggleReadingMessages }) => {
-    const { onSourceClicked } = useContext(SourceClickContext);
-    const { onMockAnalysis } = useContext(MockAnalysisContext);
+    const { onSourceClicked, onFileClicked } = useContext(SourceClickContext);
     const {
       addChatSourceComments,
       addCommentGroup,
@@ -597,9 +623,9 @@ const MessagePairComponent: React.FC<MessagePairProps> = memo(
             handleSourceClick={handleSourceClick}
             toggleReadingMessages={handleToggleReadingMessages}
             isReading={isReading}
-            openFile={onSourceClicked}
+            openSource={onSourceClicked}
+            openFile={onFileClicked}
             userMessage={pair.userMessage}
-            // setPanelWidths={setPanelWidths}
           />
         )}
       </div>
@@ -624,7 +650,7 @@ const LoadingIndicator: React.FC = memo(() => (
 LoadingIndicator.displayName = "LoadingIndicator";
 
 // Chat panel component
-const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef }) => {
+const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onFileClicked, onSendMessageRef }) => {
   const { workspaceId } = useParams();
   const { currentThreadId, createThread, renameThread } = useChatThread();
   const [messagePairs, setMessagePairs] = useState<MessagePair[]>([]);
@@ -733,7 +759,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
         new Promise(resolve => setTimeout(resolve, Math.random() * (max - min) + min));
 
       // Wait 0.5-2 seconds before starting
-      // await randomDelay(600, 1000);
+      //await randomDelay(600, 1000);
       
       // Process reading messages one by one with delays
       if (mockResponse?.readingMessages) {
@@ -762,7 +788,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
           });
           
           // Wait longer for first reading message, otherwise 3-5 seconds
-          // await randomDelay(i === 0 ? 6000 : 1000, i === 0 ? 6000 : 4000);
+          // await randomDelay(i === 0 ? 6000 : 3000, i === 0 ? 6000 : 6000);
           
           // Update the answer count to mark this reading message as complete
           setMessagePairs((prev) => {
@@ -791,7 +817,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
 
       // Then continue with streaming the assistant message...
       const assistantContent = mockResponse?.assistantMessage || "I don't have a mock response for that question.";
-      const words = assistantContent.split(/\s+/);
+      // Split by lines to preserve markdown structure
+      const chunks = assistantContent.split(/(\n)/);
       
       // Create initial empty message
       setMessagePairs((prev) => {
@@ -812,8 +839,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
       
       // Stream words with small random delays
       let currentContent = "";
-      for (const word of words) {
-        currentContent += (currentContent ? " " : "") + word;
+      for (const chunk of chunks) {
+        currentContent += chunk;
         
         setMessagePairs((prev) => {
           const updated = [...prev];
@@ -824,7 +851,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
           return updated;
         });
         
-        await randomDelay(50, 150); // Small delay between words
+        // Larger delay for line breaks to create a more natural typing effect
+        await randomDelay(chunk === "\n" ? 100 : 20, chunk === "\n" ? 300 : 60);
       }
 
       setInput("");
@@ -867,7 +895,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onSendMessageRef
 
   // render chat panel
   return (
-    <SourceClickContext.Provider value={{ onSourceClicked }}>
+    <SourceClickContext.Provider value={{ onSourceClicked, onFileClicked }}>
       <div className="h-full flex flex-col border-l border-gray-100 bg-gray-50">
         {/* Header stays the same */}
         <div className="py-2 px-3 border-b border-gray-100 bg-white flex items-center justify-end">

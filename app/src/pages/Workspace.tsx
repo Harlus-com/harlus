@@ -312,6 +312,11 @@ useEffect(() => {
                         showComments: true,
                       })
                     }
+                    onFileClicked={(file) =>
+                      handleFileSelect(file, FileGroupCount.ONE, {
+                        showComments: false,
+                      })
+                    }
                     onSendMessageRef={(setInput, sendMessage) => {
                       setChatPanelFunctions({ setInput, sendMessage });
                     }}

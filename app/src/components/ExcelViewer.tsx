@@ -6,9 +6,9 @@ export interface ExcelViewerProps {
 }
 
 const DEFAULT_SRC =
-  "https://harlusai.sharepoint.com/sites/documents/_layouts/15/Doc.aspx?sourcedoc={728989a7-bda1-4217-8f77-226c717c6481}&action=embedview&wdAllowInteractivity=False&AllowTyping=True&ActiveCell='FCF%20Estimates'!A1&wdHideGridlines=True&wdHideHeaders=True&wdInConfigurator=True&wdInConfigurator=True";
+  "https://harlusai.sharepoint.com/sites/documents/_layouts/15/Doc.aspx?sourcedoc={728989a7-bda1-4217-8f77-226c717c6481}&action=embedview&wdAllowInteractivity=False&AllowTyping=True&ActiveCell='FCF%20Estimates'!G1&wdHideGridlines=True&wdHideHeaders=True&wdInConfigurator=True&wdInConfigurator=True";
 const DEFAULT_UPDATED_SRC =
-  "https://harlusai.sharepoint.com/sites/documents/_layouts/15/Doc.aspx?sourcedoc={edfb08fc-d8b8-4fda-88c5-71be1b84df29}&action=embedview&wdAllowInteractivity=False&AllowTyping=True&ActiveCell='FCF%20Estimates'!A1&wdHideGridlines=True&wdHideHeaders=True&wdInConfigurator=True&wdInConfigurator=True";
+  "https://harlusai.sharepoint.com/sites/documents/_layouts/15/Doc.aspx?sourcedoc={edfb08fc-d8b8-4fda-88c5-71be1b84df29}&action=embedview&wdAllowInteractivity=False&AllowTyping=True&ActiveCell='FCF%20Estimates'!G1&wdHideGridlines=True&wdHideHeaders=True&wdInConfigurator=True&wdInConfigurator=True";
 
 export default function ExcelViewer({
   src = DEFAULT_SRC,

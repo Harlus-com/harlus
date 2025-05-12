@@ -3,10 +3,10 @@ import { ChatSourceCommentGroup } from "@/chat/chat_types";
 
 // Mock bounding box for highlighting text
 const mockBoundingBox: BoundingBox = {
-  left: 5,
+  left: 10,
   top: 35,
-  width: 85,
-  height: 30,
+  width: 80,
+  height: 38,
   page: 0 // First page (0-indexed)
 };
 
@@ -22,7 +22,7 @@ const mockSourceComment: ChatSourceComment = {
   threadId: "mock-thread-1",
   messageId: "mock-message-1",
   commentGroupId: "mock-comment-group-1",
-  text: "Apple",
+  text: "Apple was less impacted by the tarrifs than other U.S. hardware firms",
   highlightArea: mockHighlightArea,
   nextChatCommentId: ""
 };
