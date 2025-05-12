@@ -1,18 +1,17 @@
-from llama_parse import LlamaParse
+#from llama_parse import LlamaParse
 
 from llama_index.core.extractors import (
     SummaryExtractor,
     KeywordExtractor,
 )
 
-from llama_index.core.node_parser import (
-    MarkdownElementNodeParser,
-    SentenceWindowNodeParser,
-)
+from llama_index.node_parser.docling import DoclingNodeParser
+
 
 from llama_index.core.schema import Node
 
-import os
+from llama_index.readers.docling import DoclingReader
+
 import json
 
 from .node_parse import *
@@ -56,24 +55,20 @@ class NodePipeline:
         self.nodes = []
 
     async def execute(self) -> tuple[str, str, list[Node]]:
-
-        # TODO: test if simpler markdown parser is better
-
         print(f"Creating nodes for {self.file_path} ...")
-        print(" - parsing PDF to JSON...")
-        json_ = LlamaParse(api_key=LLAMA_CLOUD_API_KEY).get_json_result(self.file_path)
 
-        print(" - creating nodes from JSON...")
-        nodes = create_nodes_from_llamaparse_json(json_, self.file_path)
 
-        print(" - adding node relationships...")
-        nodes = add_node_relationships(nodes)
+        # TODO: Docling gives us control over which models we use.
+        # We can use remote OpenAI LLMs or a remote open source model "SmolDocling"
+        # Default configuration should be a local set-up. 
+        print(" - reading document with Docling...")
+        reader = DoclingReader(export_type=DoclingReader.ExportType.JSON)
+        documents = reader.load_data(self.file_path)
 
-        print(" - splitting tables...")
-        markdown_parser = MarkdownElementNodeParser(
-            show_progress=True, llm=FASTLLM, num_workers=5
-        )  # do not show progress as these will be run in parallel
-        nodes = await split_table_nodes(nodes, markdown_parser)
+        print(" - creating nodes from documents...")
+        node_parser = DoclingNodeParser()
+        nodes = node_parser.get_nodes_from_documents(documents)
+
 
         print(" - adding metadata to nodes...")
         extractor_list = [
@@ -82,14 +77,6 @@ class NodePipeline:
         ]
         nodes = await add_metadata_to_nodes(nodes, extractor_list)
 
-        print(" - splitting text nodes...")
-        sentence_window_parser = SentenceWindowNodeParser.from_defaults(
-            window_size=3,
-            window_metadata_key="window",
-            original_text_metadata_key="original_text",
-        )
-        nodes = split_text_nodes(nodes, sentence_window_parser)
-
         print(" - adding file path to nodes...")
         nodes_out = []
         for node in nodes:
@@ -97,7 +84,7 @@ class NodePipeline:
             nodes_out.append(node)
 
         return (
-            json.dumps(json_, indent=2),
+            "",
             json.dumps(nodes_to_json_obj(nodes_out), indent=2),
             nodes_out,
         )
