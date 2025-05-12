@@ -62,7 +62,6 @@ class BasicToolNode:
             full_answer: str
         """
 
-        print("[harlus_chat] calling basic tool node")
         # Get the last message
         if messages := inputs.get("messages", []):
             message = messages[-1]
@@ -98,7 +97,6 @@ class BasicToolNode:
                     doc_items = retrieved_node.metadata.get("doc_items", [])
                     for doc_item in doc_items:
                         positions = doc_item.get("prov", [])
-                        print("positions: ", positions)
                         for position in positions:
                             page_nb = position.get("page_no", 0)
                             bbox = position.get("bbox", None)
