@@ -15,6 +15,10 @@ class WorkspaceService {
   getWorkspace(id: string): Promise<Workspace> {
     return client.get(`/workspace/get/${id}`);
   }
+
+  deleteWorkspace(id: string): Promise<void> {
+    return client.delete(`/workspace/delete/${id}`);
+  }
 }
 
 export const workspaceService = new WorkspaceService();

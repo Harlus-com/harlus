@@ -121,6 +121,17 @@ class FileStore:
                 ]
             }
 
+    def delete_workspace(self, workspace_id) -> bool:
+        workspaces = self.get_workspaces()
+        workspace = workspaces[workspace_id]
+        workspace_path = Path(workspace.absolute_path)
+        if workspace_path.exists():
+            shutil.rmtree(workspace_path)
+        updated_workspaces = [w for w in workspaces.values() if w.id != workspace_id]
+        with open(self.app_data_path.joinpath("workspaces.json"), "w") as f:
+            json.dump([w.model_dump() for w in updated_workspaces], f, indent=2)
+        return True
+
     def get_folders(self, workspace_id: str) -> list[Folder]:
         workspace = self.get_workspaces()[workspace_id]
         with self._open(workspace, "folders.json", "r") as f:

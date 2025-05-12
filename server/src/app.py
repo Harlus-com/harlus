@@ -252,6 +252,12 @@ def get_workspaces() -> list[Workspace]:
     return workspaces
 
 
+@app.delete("/workspace/delete/{workspace_id}")
+def delete_workspace(workspace_id: str):
+    """Delete a workspace and all its associated files"""
+    file_store.delete_workspace(workspace_id)
+
+
 @app.get("/workspace/files/{workspace_id}")
 def get_files(workspace_id: str) -> list[File]:
     print("Getting files for workspace, time: ", datetime.datetime.now().isoformat())
