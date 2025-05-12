@@ -13,7 +13,7 @@ from llama_index.core.retrievers import (
     KeywordTableSimpleRetriever,
 )
 from llama_index.core.query_engine import RetrieverQueryEngine, SubQuestionQueryEngine
-from llama_index.core.postprocessor import LLMRerank, MetadataReplacementPostProcessor
+from llama_index.core.postprocessor import LLMRerank
 from llama_index.core.question_gen import LLMQuestionGenerator
 from llama_index.core.question_gen.prompts import DEFAULT_SUB_QUESTION_PROMPT_TMPL
 from typing import List
@@ -51,7 +51,7 @@ class DocSearchToolWrapper(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
-    
+# TODO: nb. retrieved nodes is important parameter. Should pull this into an application config file.    
 class DocumentPipeline:
 
     def __init__(
@@ -87,7 +87,7 @@ class DocumentPipeline:
         vector_index = VectorStoreIndex(self.nodes, embed_model=EMBEDDING_MODEL)
 
         print(" - building vector retriever ...")
-        vector_retriever = VectorIndexRetriever(index=vector_index, similarity_top_k=7)
+        vector_retriever = VectorIndexRetriever(index=vector_index, similarity_top_k=15)
 
         print(" - building keyword index ...")
         storage_context = StorageContext.from_defaults()
@@ -102,7 +102,7 @@ class DocumentPipeline:
 
         print(" - building keyword retriever ...")
         keyword_retriever = KeywordTableSimpleRetriever(
-            index=keyword_index, similarity_top_k=7
+            index=keyword_index, similarity_top_k=8
         )
 
         print(" - building mix keyword vector retriever ...")
@@ -119,7 +119,6 @@ class DocumentPipeline:
         )
 
         node_postprocessors = [
-            MetadataReplacementPostProcessor(target_metadata_key="window"),
             LLMRerank(choice_batch_size=15, top_n=8, llm=FASTLLM),
         ]
 
@@ -138,13 +137,11 @@ class DocumentPipeline:
         summary_query_engine = summary_index.as_query_engine(llm=LLM)
 
         print(" - extracting metadata from query engines...")
-        # Create a mapping of queries to their corresponding metadata names
         query_to_metadata = {
             self.metadata_summary_query: "summary",
             **{query: name for name, query in self.metadata_queries.items()}
         }
 
-        # Create tasks with their corresponding metadata names
         tasks = {
             query: query_engine.aquery(query)
             for query, query_engine in [
@@ -153,7 +150,6 @@ class DocumentPipeline:
             ]
         }
 
-        # Process responses and map them to metadata
         for query, task in tqdm(
             tasks.items(), total=len(tasks), desc="Extracting metadata"
         ):
@@ -194,6 +190,12 @@ class DocumentPipeline:
         )
 
         return doc_search_tool_wrapper 
+    
+
+        # TODO: Evaluate whether we use subquestion query engine. It helps decrease false negatives in retrieved nodes, but slows down the query engine too much. 
+        # should try to use async (i.e. launch barebone query engine, then subquestion query engine)
+
+        # TODO: We should add a summery query engine tool. Without SubQuestionQueryEngine in between, we should give summary tools to top-level LLM.
 
         # print(" - building summary query engine tool...")
         # summary_query_engine_tool = QueryEngineTool(
