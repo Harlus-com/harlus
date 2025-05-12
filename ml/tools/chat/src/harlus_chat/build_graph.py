@@ -294,7 +294,9 @@ class ChatAgentGraph:
 
     def start_new_thread(self):
         self.config["configurable"]["thread_id"] = str(uuid.uuid4())
+    
 
+    # TODO: resolve double naming requitement in app.py
     def resume_thread(self, thread_id: str):
         self.config["configurable"]["thread_id"] = thread_id
 
@@ -338,7 +340,6 @@ class ChatAgentGraph:
             """),
             *state["messages"],
         ]
-        print("[harlus_chat] calling tools")
         return {
             "messages": [await self.TOOL_LLM.ainvoke(prompt)],
             "sources": state["sources"],

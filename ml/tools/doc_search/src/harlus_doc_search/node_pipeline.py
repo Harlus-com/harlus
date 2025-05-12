@@ -83,6 +83,7 @@ class NodePipeline:
             node.metadata["file_path"] = self.file_path
             nodes_out.append(node)
 
+        # TODO: extract parsed json from DoclingReader
         return (
             "",
             json.dumps(nodes_to_json_obj(nodes_out), indent=2),
