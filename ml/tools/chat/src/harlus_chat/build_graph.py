@@ -38,8 +38,7 @@ from llama_index.core.schema import NodeWithScore
 from langchain_tavily import TavilySearch
 import fitz
 
-
-# TODO: split this file into multiple files
+from langgraph.config import get_stream_writer
 
 
 class BasicToolNode:
@@ -50,42 +49,41 @@ class BasicToolNode:
     
     """
 
-    def __init__(self, tools: list, tool_name_to_type: dict) -> None:
+    def __init__(self, 
+                 tools: list, 
+                 tool_name_to_metadata: dict
+                 ) -> None:
+        
+
         self.tools_by_name = {tool.name: tool for tool in tools}
-        self.tool_name_to_type = tool_name_to_type
+        self.tool_name_to_metadata = tool_name_to_metadata
 
-    def __call__(self, inputs: dict):
-        """
-        inputs (GraphState), currently corresponding to:
-            messages: list[tuple[str, str]]
-            retrieved_nodes: list[list[any]]
-            full_answer: str
-        """
+    async def __call__(self, state: dict) -> AsyncIterator[dict | AIMessageChunk]:
+        
+        # TODO: test if this interferes when using multiple simultaneous calls
+        writer = get_stream_writer()
 
-        # Get the last message
-        if messages := inputs.get("messages", []):
+        if messages := state.get("messages", []):
             message = messages[-1]
         else:
             raise ValueError("No message found in input")
         outputs = []
 
-        # Get the tool calls
 
         for tool_call in message.tool_calls:
 
-            # get the current tool (DocSearchToolWrapper or TavilySearchTool)
             tool = self.tools_by_name[tool_call["name"]]
             sources_list = []
 
-            
-            print("[harlus_chat] processing tool calls")
-
-            # tool is a DocSearchToolWrapper
-            if self.tool_name_to_type[tool_call["name"]] == "doc_search":
+            if self.tool_name_to_metadata[tool_call["name"]]["type"] == "doc_search":
                 print("- executing doc search tool call: ", tool_call["name"])
 
-                tool_result = tool.invoke(tool_call["args"])
-                
+                tool_friendly_name = self.tool_name_to_metadata[tool_call["name"]]["friendly_name"]
+
+                writer({"reading_message" : f"Reading {tool_friendly_name} ... "})
+
+                tool_result = await tool.ainvoke(tool_call["args"])
+
                 for retrieved_node in tool_result.raw_output.source_nodes:
 
                     # assert that the retrieved node is a NodeWithScore
@@ -131,40 +129,30 @@ class BasicToolNode:
             # Tool is TavilySearchTool
             elif tool_call.get("name", "") == "tavily_search":
                 print("- executing tavily search tool call: ", tool_call["name"])
-                try:
-                    tool_result = tool.invoke(tool_call["args"])
-                    content = json.dumps(tool_result)
-                    for result in tool_result.get("results", []):
-                        tavily_tool_metadata = TavilyToolRetrievedWebsite(
-                            title=result.get("title", ""),
-                            url=result.get("url", ""),
-                            content=result.get("content", ""),
-                        )
-                        sources_list.append(tavily_tool_metadata)
-                    outputs.append(ToolMessage(
-                        content=content,
-                        name=tool_call["name"],
-                        tool_call_id=tool_call["id"],
-                    ))
-                except:
-                    raise ValueError(f"[Harlus_chat] Failed to extract retrieved nodes from {tool_call['name']} failed")
+                tool_friendly_name = self.tool_name_to_metadata[tool_call["name"]]["friendly_name"]
+                writer({"tool": f"Searching {tool_friendly_name} ... "})
+                tool_result = await tool.ainvoke(tool_call["args"])
+                content = json.dumps(tool_result)
+                for result in tool_result.get("results", []):
+                    tavily_tool_metadata = TavilyToolRetrievedWebsite(
+                        title=result.get("title", ""),
+                        url=result.get("url", ""),
+                        content=result.get("content", ""),
+                    )
+                    sources_list.append(tavily_tool_metadata)
+                outputs.append(ToolMessage(
+                    content=content,
+                    name=tool_call["name"],
+                    tool_call_id=tool_call["id"],
+                ))
         
             
-        return {
+        yield {
             "messages": outputs,
-            "sources": inputs.get("sources", []) + sources_list,
-            "full_answer": inputs.get("full_answer", "")
+            "sources": state.get("sources", []) + sources_list,
+            "full_answer": state.get("full_answer", "")
         }
 
-
-
-
-class AsyncToolNode:
-    def __init__(self, tools, tool_name_to_type):
-        self.tools = BasicToolNode(tools, tool_name_to_type)
-
-    async def __call__(self, state: GraphState) -> dict:
-        return self.tools(state)
 
 def sanitize_tool_name(name):
     return re.sub(r"[^a-zA-Z0-9_-]", "_", name)
@@ -173,78 +161,22 @@ def sanitize_tool_name(name):
 # TODO: summarize long-term memorys
 # https://langchain-ai.github.io/langgraph/concepts/memory/#writing-memories-in-the-background
 class ChatAgentGraph:
-    """
-    ChatAgentGraph represents the agent behind the chat interface.
-    
-    This agent can be instantiated with a list of tools. After instantiating the agent, you must call the `build()` method.
-
-    ```
-    agent = ChatAgentGraph(tools=[tool1, tool2, tool3])
-    agent.build()
-    ```
-
-    After building the agent, you can use the `stream()` method to start the chat. This method requires two arguments:
-    - `user_message`: The message to send to the agent.
-    - `thread_id`: The id of the thread to use. This is used to identify the thread in the database.
-
-    ```
-    async for message_chunk in agent.stream(user_message="Hello, how are you?", thread_id="1"):
-        print(message_chunk)
-    ```
-
-    The `stream()` method acts as an EventSource stream. It outputs events with the following format:
-
-    ```
-    data: {"text": "Hello, how are you?"}
-    event: "message"
-
-
-    ```
-
-    Currently, the stream supports the following events:
-    - "message": A message from the agent. Data will have the following format:
-    ```
-    data: {"text": "Hello, how are you?"}
-    event: "message"
-    ```
-    - "sources": A list of source annotations. Data will have the following format:
-    ```
-    data: [ChatSourceComment.model_dump(), ChatSourceComment.model_dump(), ...]
-    event: "sources"
-    ```
-    - "complete": The stream is complete. Data will have the following format:
-    ```
-    data: "n.a."
-    event: "complete"
-    ```
-
-
-    """
-
 
     def __init__(self,  persist_dir: str):
         
-        # set LLM 
         self.LLM = LLM
 
-        # set thread 
-        self.config = {"configurable": {"thread_id": "n.a.", "user_id": "n.a."}}
+        self.config = {"configurable": {"thread_id": "n.a.", "user_id": "n.a."}, "stream_events": True}
 
-
-        # set persist dir and create it if it doesn't exist
         self.persist_dir = persist_dir
         os.makedirs(self.persist_dir, exist_ok=True)
         
-        # Create the database path
         self.db_path = os.path.join(self.persist_dir, "langgraph.db")
         
-        # Create the checkpointer
         self.memory = None
 
-        # set an empty tool node
-        self.tool_node = AsyncToolNode(tools=[], tool_name_to_type={})
+        self.tool_node = BasicToolNode(tools=[], tool_name_to_metadata={})
 
-        # build graph
         self.graph = None
         self.build()
 
@@ -252,24 +184,24 @@ class ChatAgentGraph:
     def update_tools(self, tools: List[any]):
 
 
-        # parse tools 
         self.tools = []
-        self.tool_name_to_type = {}
+        self.tool_name_to_metadata = {}
         print("[harlus_chat] adding tools")
         for tool in tools:
 
-            # tool is a Langgraph BaseTool
             if isinstance(tool, TavilySearch):
                 print(" - adding tavily search tool")
                 self.tools.append(tool)
-                self.tool_name_to_type[sanitize_tool_name(tool.name)] = "tavily_search"
+                self.tool_name_to_metadata.update({sanitize_tool_name(tool.name): {"type": "tavily_search",
+                                                                                   "friendly_name": "the web"}})
 
-            # tool is a DocSearchToolWrapper
             elif hasattr(tool, 'tool_class') and tool.tool_class == "DocSearchToolWrapper":
                 print(" - adding doc search tool")
                 lctool = tool.tool.to_langchain_tool()
                 self.tools.append(lctool)
-                self.tool_name_to_type[sanitize_tool_name(lctool.name)] = "doc_search"
+                self.tool_name_to_metadata.update({sanitize_tool_name(lctool.name): {"type": "doc_search",
+                                                                                      "friendly_name": tool.metadata.friendly_name}})
+
             else:
                 raise ValueError(f" - {tool} is not a recognized tool.")
     
@@ -277,16 +209,12 @@ class ChatAgentGraph:
             tool.name = sanitize_tool_name(tool.name)
         
 
-        # describe tools to LLM 
         self.tools_descriptions_string = "\n - " + "\n -".join([f"{tool.name}: {tool.description}" for tool in tools])
 
-        # bind tools to LLM
         self.TOOL_LLM = LLM.bind_tools(self.tools)
 
-        # create tool execution node:
-        self.tool_node = AsyncToolNode(tools=self.tools, tool_name_to_type=self.tool_name_to_type)
+        self.tool_node = BasicToolNode(tools=self.tools, tool_name_to_metadata=self.tool_name_to_metadata)
 
-        # re-build graph
         self.build()
 
     def get_current_thread_id(self):
@@ -316,18 +244,18 @@ class ChatAgentGraph:
             *state["messages"], 
             HumanMessage(content="Provide a plan for your next step.")
         ]
-
+        writer = get_stream_writer()
         final = ""
         async for chunk in self.LLM.astream(prompt):
             delta = chunk.content or ""
+            writer({"planning_message": delta})
             final += delta
         yield {
             "messages": state["messages"] + [AIMessage(content=final)],
-            "sources": state.get("sources", []),
+            "sources": [], # reset sources
             "full_answer": state.get("full_answer", ""),
         }
-        
-
+    
 
     async def _call_tools(self, state: GraphState) -> AsyncIterator[dict]:
         prompt = [
@@ -340,11 +268,38 @@ class ChatAgentGraph:
             """),
             *state["messages"],
         ]
-        return {
-            "messages": [await self.TOOL_LLM.ainvoke(prompt)],
+
+        assistant_msg = await self.TOOL_LLM.ainvoke(prompt)
+        
+        yield {
+            "messages": [assistant_msg],
             "sources": state["sources"],
             "full_answer": state["full_answer"],
         }
+    
+
+    async def _communicate_result(self, state: GraphState) -> AsyncIterator[dict]:
+        prompt = [
+            SystemMessage(content=f"""
+            Answer the latest user-message based on the information given from the previous nodes. 
+            """),
+            *state["messages"],
+        ]
+
+        writer = get_stream_writer()
+        final = ""
+        async for chunk in self.LLM.astream(prompt):
+            delta = chunk.content or ""
+            writer({"answer_message": delta})
+            final += delta
+        
+        yield {
+            "messages": state["messages"] + [AIMessage(content=final)],
+            "sources": state["sources"],
+            "full_answer": state["full_answer"],
+        }
+
+
 
     @staticmethod
     def _custom_tools_condition(state: GraphState) -> str:
@@ -356,46 +311,25 @@ class ChatAgentGraph:
             return "no_tools"
 
 
-    # async def _communicate_output(self, state: GraphState) -> AsyncIterator[dict]:
-    #     prompt = [
-    #         SystemMessage(content=f"""
-    #         You will summarize an answer to the last Human Message based on the subsequent tool calls and AI messages
-    #         """),
-    #         *state["messages"]
-    #     ]
-    #     final = ""
-    #     async for chunk in self.LLM.astream(prompt):
-    #         delta = chunk.content or ""
-    #         final += delta
-
-    #     yield {
-    #         "messages": state["messages"] + [AIMessage(content=final)],
-    #         "sources": state.get("sources", []),
-    #         "full_answer": state.get("full_answer", "") + final,
-    #     }
-
 
     def build(self):
 
-        # graph builder
         graph_builder = StateGraph(GraphState)
 
-        # nodes
         graph_builder.add_node("communicate_plan", self._communicate_plan, metadata={"name": "communicate_plan"})
         graph_builder.add_node("call_tools", self._call_tools, metadata={"name": "call_tools"})
+        graph_builder.add_node("communicate_result", self._communicate_result, metadata={"name": "communicate_result"})
         graph_builder.add_node("tools", self.tool_node, metadata={"name": "tools"})
 
-        # fixed edges
         graph_builder.add_edge(START, "communicate_plan")
         graph_builder.add_edge("communicate_plan", "call_tools")
-        #graph_builder.add_edge(START, "call_tools")
-        graph_builder.add_edge("tools", "call_tools")
+        graph_builder.add_edge("tools", "communicate_result")
+        graph_builder.add_edge("communicate_result", END)
 
-        # conditional edges
         graph_builder.add_conditional_edges(
             "call_tools",
             self._custom_tools_condition,
-            {"tools":"tools", "no_tools":END}
+            {"tools":"tools", "no_tools":"communicate_result"}
         )
 
         self.graph_builder = graph_builder
@@ -480,6 +414,16 @@ class ChatAgentGraph:
     
 
     async def stream(self, user_message: str):
+        """
+        Stream output in EventSource format.
+        Current events are:
+        - planning_message
+        - answer_message
+        - reading_message
+        - sources
+        - complete
+        
+        """
         input_state = {
             "messages": [("user", user_message)], 
             "retrieved_nodes": [], 
@@ -492,49 +436,32 @@ class ChatAgentGraph:
         
             # 1. stream the answer 
             print("[harlus_chat] Streaming answer...")
-            async for message_chunk, metadata in graph.astream(
+            async for message_chunk in graph.astream(
                 input_state,
-                stream_mode="messages",
+                stream_mode="custom",
                 config = self.config
             ):
-                try:
-                    # stream only message chunks
-                    if isinstance(message_chunk, AIMessageChunk):
-                        # stream reading message
-                        if metadata.get("langgraph_node") == "communicate_plan":
-                            response = '\n'.join([
-                                f'data: {json.dumps({"text": message_chunk.content})}',
-                                f'event: {"reading_message"}',
-                                '\n\n'
-                            ])
-                        # stream answer message
-                        elif metadata.get("langgraph_node") == "call_tools":
-                            response = '\n'.join([
-                                f'data: {json.dumps({"text": message_chunk.content})}',
-                                f'event: {"answer_message"}',
-                                '\n\n'
-                            ])
-                        else:
-                            print(f"[harlus_chat] Ignoring stream from unknown node: {metadata.get('langgraph_node')}")
-                    
-                        yield response
-                except Exception as e:
-                    print(f"Streaming error: {e}")
+                for key, value in message_chunk.items():
+                    response = '\n'.join([
+                        f'data: {json.dumps({"text": value})}',
+                        f'event: {key}',
+                        '\n\n'
+                    ])
+                    yield response
+                
                 
             # 2. stream the source annotations
             print("[harlus_chat] Streaming source annotations...")
-            try:
-                data = await self._get_chat_source_comments(graph)
-                data = [d.model_dump() for d in data]
-                response = '\n'.join([
-                        f'data: {json.dumps(data)}',
-                        f'event: {"sources"}',
-                        '\n\n'
-                ])
-                print(f"[harlus_chat] Sent {len(data)} source annotations")
-                yield response
-            except Exception as e:
-                print(f"[harlus_chat] Error sending source annotations: {e}")
+            data = await self._get_chat_source_comments(graph)
+            data = [d.model_dump() for d in data]
+            response = '\n'.join([
+                    f'data: {json.dumps(data)}',
+                    f'event: {"sources"}',
+                    '\n\n'
+            ])
+            print(f"[harlus_chat] Sent {len(data)} source annotations")
+            yield response
+            
 
             # 3. stream the completion
             response = '\n'.join([
@@ -543,5 +470,4 @@ class ChatAgentGraph:
                         '\n\n'
                 ])
             yield response
-    
-    
+

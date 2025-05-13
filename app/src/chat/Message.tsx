@@ -10,10 +10,12 @@ import { AssistantMessage } from "./AssistantMessage";
 import { UserMessage } from "./UserMessage";
 import { ReadingMessage } from "./ReadingMessage";
 import { ReadingMessagesToggle } from "./ReadingMessage";
+import { PlanningMessage } from "./PlanningMessage";
 import { CommentGroup } from "@/api/comment_types";
 import { useComments } from "@/comments/useComments";
 import { WorkspaceFile } from "@/api/workspace_types";
 import { useChatThread } from "./ChatThreadContext";
+
 interface MessagePairProps {
   pair: MessagePair;
   isReading: boolean;
@@ -79,6 +81,11 @@ export const MessagePairComponent: React.FC<MessagePairProps> = ({
   return (
     <div className="space-y-1">
       <UserMessage message={pair.userMessage} />
+
+      {/* Planning message - show until a different message type appears */}
+      {pair.planningMessage && (
+        <PlanningMessage message={pair.planningMessage} />
+      )}
 
       {/* Reading messages section - show immediately after user message */}
       {pair.readingMessages.length > 0 && (

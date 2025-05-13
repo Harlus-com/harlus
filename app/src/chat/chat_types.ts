@@ -13,7 +13,7 @@ export interface ChatMessage {
   content: string;
   timestamp?: string;
   chatSourceCommentGroups: ChatSourceCommentGroup[];
-  messageType?: "reading_message" | "answer_message";
+  messageType?: "reading_message" | "answer_message" | "planning_message";
 }
 
 export interface MessagePair {
@@ -21,6 +21,7 @@ export interface MessagePair {
   userMessage: ChatMessage;
   assistantMessage: ChatMessage | null;
   readingMessages: ChatMessage[];
+  planningMessage: ChatMessage | null;
   answerCount: number;
   showReadingMessages: boolean;
   readingMessageBuffer: string; // Buffer to accumulate reading message content
