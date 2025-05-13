@@ -18,7 +18,6 @@ class ToolLibrary:
     def __init__(self, file_store: FileStore):
         self.file_tools: dict[str, list[ToolWrapper]] = defaultdict(list)
         self.file_store = file_store
-        self.universal_tools = []
 
     def delete_file_tools(self, file: File):
         if file.absolute_path in self.file_tools:
@@ -31,8 +30,14 @@ class ToolLibrary:
         for file_name, tools in self.file_tools.items():
             print(f"Loaded tools for {file_name}: {[t.get_tool_name() for t in tools]}")
 
-    def get_tool_for_all_files(self, tool_name: str):
-        return [t for t in self.universal_tools if t.get_tool_name() == tool_name]
+    def get_tool_for_all_files(self, workspace_id: str, tool_name: str):
+        file_paths_in_workspace = self.file_store.get_file_path_to_id(
+            workspace_id
+        ).keys()
+        all_tools = []
+        for file_path in file_paths_in_workspace:
+            all_tools.extend(self.file_tools[file_path])
+        return [t for t in all_tools if t.get_tool_name() == tool_name]
 
     def get_tool(self, file_path: str, tool_name: str):
         matching_tools = [
@@ -90,4 +95,3 @@ class ToolLibrary:
                 tool = dill.load(f)
                 tool_wrapper = ToolWrapper(tool, tool_dir, debug_info={})
                 self.file_tools[file_path].append(tool_wrapper)
-                self.universal_tools.append(tool_wrapper)
