@@ -7,29 +7,23 @@ from fastapi import (
     HTTPException,
     Query,
     Response,
-    WebSocket,
 )
 import os
 import asyncio
 import nest_asyncio
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
-from openai import OpenAI
 from platformdirs import user_data_dir
 from pathlib import Path
-from llama_index.core.agent.workflow import ReActAgent
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 from src.chat_store import ChatStore, JsonType
 from src.comment_store import CommentGroup, CommentStore, Timestamp
-from src.util import BoundingBoxConverter, snake_to_camel
 from src.tool_library import ToolLibrary
-from src.sync_workspace import get_workspace_sync_manager
 
 # from src.stream_response import stream_generator_v2 # TODO: Delete this file
 from src.file_store import FileStore, Workspace, File
 from src.sync_queue import SyncQueue, SyncType
-from src.stream_manager import StreamManager
 from src.sync_status import SyncStatus
 from src.chat_library import ChatLibrary
 from harlus_contrast_tool import ContrastTool, ClaimComment
@@ -86,27 +80,7 @@ comment_store = CommentStore(file_store)
 chat_library = ChatLibrary(file_store, tool_library, chat_store)
 chat_library.load()  # initialize a chat for each workspace, load from disk to memory
 
-stream_manager = StreamManager(file_store)
-
-sync_queue = SyncQueue(stream_manager, file_store, tool_library)
-
-
-@app.websocket("/workspace/events/stream/{workspace_id}")
-async def websocket_workspace_events(websocket: WebSocket, workspace_id: str):
-    """WebSocket endpoint for streaming workspace events"""
-    workspace_sync_manager = get_workspace_sync_manager(
-        stream_manager, sync_queue, file_store, workspace_id
-    )
-    await workspace_sync_manager.open(websocket)
-
-
-@app.get("/workspace/events/stream/close/{workspace_id}")
-async def close_workspace_events(workspace_id: str):
-    """Close the workspace events stream"""
-    workspace_sync_manager = get_workspace_sync_manager(
-        stream_manager, sync_queue, file_store, workspace_id
-    )
-    await workspace_sync_manager.close()
+sync_queue = SyncQueue(file_store, tool_library)
 
 
 @app.get("/file/handle/{file_id}")
@@ -248,15 +222,6 @@ def get_workspace(workspace_id: str):
     return file_store.get_workspaces()[workspace_id]
 
 
-@app.get("/workspace/status/{workspace_id}")
-def get_workspace_status(workspace_id: str):
-    """Get the current sync status of a workspace"""
-    workspace_sync_manager = get_workspace_sync_manager(
-        stream_manager, sync_queue, file_store, workspace_id
-    )
-    return workspace_sync_manager.get_workspace_status()
-
-
 @app.get("/workspace/all")
 def get_workspaces() -> list[Workspace]:
     workspaces = list(file_store.get_workspaces().values())
@@ -284,10 +249,8 @@ class SyncWorkspaceRequest(BaseModel):
 @app.post("/workspace/sync")
 async def sync_workspace(request: SyncWorkspaceRequest):
     print("Syncing workspace", request.workspace_id)
-    workspace_sync_manager = get_workspace_sync_manager(
-        stream_manager, sync_queue, file_store, request.workspace_id
-    )
-    await workspace_sync_manager.sync_workspace()
+    for file in file_store.get_files(request.workspace_id).values():
+        await sync_queue.queue_model_sync(file)
     return True
 
 
