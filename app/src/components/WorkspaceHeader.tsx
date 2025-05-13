@@ -71,11 +71,6 @@ export default function WorkspaceHeader({
               Reload
             </div>
           </Button>
-
-          <ContrastAnalysisDialog
-            files={getFiles()}
-            setVisiblePanels={setVisiblePanels}
-          />
         </div>
 
         <div className="flex items-center space-x-2 pl-4">

@@ -8,17 +8,9 @@ from src.tool_library import ToolLibrary
 from src.file_store import File, FileStore
 from src.sync_status import SyncStatus
 from harlus_doc_search import DocToolLoader
-from harlus_contrast_tool import (
-    ClaimQueryEngineToolLoader,
-    VerdictQueryEngineToolLoader,
-    SentenceRetrieverToolLoader,
-)
 
 loaders = [
     DocToolLoader(),
-    ClaimQueryEngineToolLoader(),
-    VerdictQueryEngineToolLoader(),
-    SentenceRetrieverToolLoader(),
 ]
 
 
