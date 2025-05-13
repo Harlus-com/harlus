@@ -45,7 +45,11 @@ class SyncRequest:
 
 
 class SyncTask:
-    def __init__(self, sync_request: SyncRequest, tools: list[str]):
+    def __init__(
+        self,
+        sync_request: SyncRequest,
+        tools: list[str],
+    ):
         self.sync_request = sync_request
         self.lock = threading.Lock()
         self.tool_syncs: dict[str, SyncStatus] = {

@@ -18,14 +18,12 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 from src.chat_store import ChatStore, JsonType
-from src.comment_store import CommentGroup, CommentStore, Timestamp
+from src.comment_store import CommentGroup, CommentStore
 from src.tool_library import ToolLibrary
 
-# from src.stream_response import stream_generator_v2 # TODO: Delete this file
 from src.file_store import FileStore, Workspace, File
 from src.sync_queue import SyncQueue, SyncType
 from src.sync_status import SyncStatus
-from src.chat_library import ChatLibrary
 from harlus_contrast_tool import ContrastTool, ClaimComment
 
 
@@ -68,18 +66,8 @@ file_store = FileStore(APP_DATA_PATH)
 tool_library = ToolLibrary(file_store)
 tool_library.load_tools()
 
-chat_store = ChatStore(file_store)
+chat_store = ChatStore(file_store, tool_library)
 comment_store = CommentStore(file_store)
-
-
-# TODO: chat_library should call update_chat_tools when new tools
-# are added to the tool_library to ensure chat has access to all tools
-# within the workspace.
-# TODO: (also mentioned in chat/stream). We should integrate the frontend to start new threads.
-# TODO: Once we start having longer conversations, we should summarize the history regularly.
-chat_library = ChatLibrary(file_store, tool_library, chat_store)
-chat_library.load()  # initialize a chat for each workspace, load from disk to memory
-
 sync_queue = SyncQueue(file_store, tool_library)
 
 
@@ -204,13 +192,13 @@ class CreateWorkspaceRequest(BaseModel):
 async def create_workspace(request: CreateWorkspaceRequest):
     print("Creating workspace", request.name)
     workspace = file_store.create_workspace(request.name)
+    chat_store.add_workspace(workspace)
+    comment_store.add_workspace(workspace)
     for path in request.initial_file_paths:
         if os.path.isdir(path):
             file_store.copy_folder_to_workspace(path, workspace.id)
         else:
             file_store.copy_file_to_workspace(path, workspace.id)
-    chat_store.add_workspace(workspace)
-    comment_store.add_workspace(workspace)
     for file in file_store.get_files(workspace.id).values():
         await sync_queue.queue_model_sync(file)
     return workspace
@@ -274,7 +262,6 @@ def set_thread(request: SetThreadRequest):
     print("Setting thread", request.workspace_id, request.thread_id)
     if not chat_store.thread_exists(request.workspace_id, request.thread_id):
         raise HTTPException(status_code=404, detail="Thread not found")
-    chat_library.set_thread(request.workspace_id, request.thread_id)
     return chat_store.get_thread(request.workspace_id, request.thread_id)
 
 
@@ -291,11 +278,7 @@ async def stream_chat(
     thread_id: str = Query(..., alias="threadId"),
 ):
     print("Streaming chat", workspace_id, query, thread_id)
-    # TODO: add endpoint to manage threads
-    # A new thread can be started by calling chat_model.start_new_thread()
-    # A thread can be resumed by calling chat_model.resume_thread(thread_id)
-    # A list of threads can be retrieved by calling chat_model.get_thread_ids()
-    chat_model = chat_library.get_and_resume_thread(workspace_id, thread_id)
+    chat_model = chat_store.get_chat_model(workspace_id, thread_id)
     response = StreamingResponse(
         chat_model.stream(query),
         media_type="text/event-stream",
