@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "path";
 import fs from "fs";
 import { spawn } from "child_process";
+import mime from "mime";
 
 const logPath = "/tmp/harlus.txt"; // TODO: Put this somewhere more acceptable and cross-platform enabled
 const logStream = fs.createWriteStream(logPath, { flags: "a" });
@@ -93,10 +94,13 @@ function setupIPCHandlers() {
     try {
       const stats = await fs.promises.stat(filePath);
       return {
+        path: filePath,
         size: stats.size,
         mtime: stats.mtime,
         ctime: stats.ctime,
         birthtime: stats.birthtime,
+        isDirectory: stats.isDirectory(),
+        mimeType: mime.getType(filePath) || null,
       };
     } catch (error) {
       console.error("Error getting file stats:", error);
