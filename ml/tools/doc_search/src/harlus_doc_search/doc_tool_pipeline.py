@@ -34,7 +34,7 @@ class DocSearchToolMetadata(BaseModel):
     ticker: str
     keywords: str
     source_name: str
-    title: str
+    friendly_name: str
     company_name: str
     summary: str
     file_path: str
@@ -74,7 +74,7 @@ class DocumentPipeline:
             "ticker": "Find the ticker of the stock discussed in this document (if any). The format should be like this: 'AAPL'.",
             "keywords": "Give 5-10 keywords that describe the document.",
             "source_name": "Find the source of this document. This should be one of the following: sec_filings, earning_call, investor_relations_release, other_third_party, internal",
-            "title": "Provide a title for this document.",
+            "friendly_name": "Provide a friendly name for this document. The friendly name should indicate source, ticker and date. For example: '10-K for AAPL on 2022-01-01' or 'Earning Call for AAPL on 2022-01-01'.",
             "company_name": "Find the name of the company which is the subject of this document. The format should be like this: 'Apple Inc.'.",
         }
         self.metadata_summary_query = "Extract a 3-5 line summary of the document."
@@ -167,12 +167,13 @@ class DocumentPipeline:
             query_engine=mix_query_engine,
             metadata=ToolMetadata(
                 name=f"doc_search_{self.file_name}",
-                description=f"""Use this tool to answer specific questions about the document.
+                description=f"""
+Use this tool to answer specific questions about the document.
 
-                This document has the following metadata:
-                {metadata_description}
+This document has the following metadata:
+{metadata_description}
 
-                """,
+""",
             ),
         )
 

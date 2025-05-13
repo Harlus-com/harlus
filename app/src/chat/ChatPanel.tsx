@@ -125,6 +125,7 @@ const ChatPanel: React.FC = () => {
           messageType: "answer_message",
         },
         readingMessages: [],
+        planningMessage: null,
         answerCount: 0,
         showReadingMessages: true,
         readingMessageBuffer: "",
@@ -146,7 +147,30 @@ const ChatPanel: React.FC = () => {
             const currentPair = newPairs.find((pair) => pair.id === pairId);
 
             if (currentPair) {
-              if (messageType === "reading_message") {
+              if (messageType === "planning_message") {
+                // If planning message already exists, append to it, otherwise create a new one
+                if (currentPair.planningMessage) {
+                  currentPair.planningMessage = {
+                    ...currentPair.planningMessage,
+                    content: currentPair.planningMessage.content + newContent,
+                  };
+                } else {
+                  currentPair.planningMessage = {
+                    id: `${pairId}.planning`,
+                    sender: "assistant",
+                    content: newContent,
+                    timestamp: hourMinuteNow(),
+                    chatSourceCommentGroups: [],
+                    messageType: "planning_message",
+                  };
+                }
+              }
+              else if (messageType === "reading_message") {
+                // Hide planning message when reading messages start
+                if (currentPair.planningMessage) {
+                  currentPair.planningMessage = null;
+                }
+                
                 // Add to the buffer and process the updated content
                 currentPair.readingMessageBuffer += newContent;
 
@@ -215,7 +239,13 @@ const ChatPanel: React.FC = () => {
                     });
                   }
                 }
-              } else if (messageType === "answer_message") {
+              } 
+              else if (messageType === "answer_message") {
+                // Hide planning message when answer starts
+                if (currentPair.planningMessage) {
+                  currentPair.planningMessage = null;
+                }
+                
                 // Add to main answer
                 currentPair.assistantMessage = {
                   ...currentPair.assistantMessage!,
