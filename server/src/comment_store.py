@@ -5,7 +5,7 @@ from typing import Dict, Optional, Any
 
 from pydantic import BaseModel, ConfigDict, Field
 from src.util import Timestamp, snake_to_camel
-from src.file_store import FileStore
+from src.file_store import FileStore, Workspace
 
 JsonType = Dict[str, Any]
 
@@ -29,13 +29,10 @@ class CommentStore:
         self.lock = asyncio.Lock()
 
         for workspace in self.file_store.get_workspaces().values():
-            comments_dir = os.path.join(workspace.absolute_path, "comments")
-            if not os.path.exists(comments_dir):
-                os.makedirs(comments_dir)
-            groups_file = os.path.join(comments_dir, "comment_groups.json")
-            if not os.path.exists(groups_file):
-                with open(groups_file, "w") as f:
-                    json.dump({}, f, indent=2)
+            add_workspace(workspace)
+
+    def add_workspace(self, workspace):
+        add_workspace(workspace)
 
     def get_comment_group_ids(self, workspace_id: str) -> list[str]:
         groups_file = self._get_comments_file_path(workspace_id, "comment_groups.json")
@@ -131,3 +128,13 @@ class CommentStore:
 
     def _get_comments_file_path(self, workspace_id: str, file_name: str) -> str:
         return os.path.join(self._get_comments_dir(workspace_id), file_name)
+
+
+def add_workspace(workspace: Workspace):
+    comments_dir = os.path.join(workspace.absolute_path, "comments")
+    if not os.path.exists(comments_dir):
+        os.makedirs(comments_dir)
+    groups_file = os.path.join(comments_dir, "comment_groups.json")
+    if not os.path.exists(groups_file):
+        with open(groups_file, "w") as f:
+            json.dump({}, f, indent=2)

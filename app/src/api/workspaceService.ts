@@ -8,8 +8,11 @@ class WorkspaceService {
     return client.get("/workspace/all");
   }
 
-  createWorkspace(name: string): Promise<Workspace> {
-    return client.post("/workspace/create", { name });
+  createWorkspace(name: string, files: FileStats[]): Promise<Workspace> {
+    return client.post("/workspace/create", {
+      name,
+      initialFilePaths: files.map((file) => file.path),
+    });
   }
 
   getWorkspace(id: string): Promise<Workspace> {

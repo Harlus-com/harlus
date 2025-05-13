@@ -1,6 +1,7 @@
 import asyncio
 import threading
 from typing import Callable
+import traceback
 
 from src.tool_library import ToolLibrary
 from src.stream_manager import StreamManager
@@ -192,6 +193,8 @@ class SyncQueue:
             sync_task.mark_complete(tool_name)
         except Exception as e:
             print(f"Error syncing file {file.id}: {e}")
+            print("Full stack trace:")
+            traceback.print_exc()
             sync_task.mark_error(tool_name)
         finally:
             if sync_task.is_complete():

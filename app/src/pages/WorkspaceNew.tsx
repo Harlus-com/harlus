@@ -59,7 +59,10 @@ const WorkspaceNew = () => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      const workspace = await workspaceService.createWorkspace(values.ticker);
+      const workspace = await workspaceService.createWorkspace(
+        values.ticker,
+        files
+      );
 
       // TODO: Implement file upload logic here
       // You'll need to modify the workspaceService to handle file uploads

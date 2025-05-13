@@ -6,7 +6,7 @@ from typing import Dict, Optional, Any
 
 from pydantic import BaseModel, ConfigDict, Field
 from src.util import Timestamp, snake_to_camel, timestamp_now
-from src.file_store import FileStore
+from src.file_store import FileStore, Workspace
 
 JsonType = Dict[str, Any]
 
@@ -33,13 +33,10 @@ class ChatStore:
         self.lock = asyncio.Lock()
 
         for workspace in self.file_store.get_workspaces().values():
-            chat_dir = os.path.join(workspace.absolute_path, "chat")
-            if not os.path.exists(chat_dir):
-                os.makedirs(chat_dir)
-            threads_file = os.path.join(chat_dir, "threads.json")
-            if not os.path.exists(threads_file):
-                with open(threads_file, "w") as f:
-                    json.dump({}, f, indent=2)
+            add_workspace(workspace)
+
+    def add_workspace(self, workspace: Workspace):
+        add_workspace(workspace)
 
     def get_thread_ids(self, workspace_id: str) -> list[str]:
         threads_file = self._get_chat_file_path(workspace_id, "threads.json")
@@ -144,3 +141,13 @@ class ChatStore:
 
     def _get_chat_file_path(self, workspace_id: str, file_name: str) -> str:
         return os.path.join(self._get_chat_dir(workspace_id), file_name)
+
+
+def add_workspace(workspace: Workspace):
+    chat_dir = os.path.join(workspace.absolute_path, "chat")
+    if not os.path.exists(chat_dir):
+        os.makedirs(chat_dir)
+    threads_file = os.path.join(chat_dir, "threads.json")
+    if not os.path.exists(threads_file):
+        with open(threads_file, "w") as f:
+            json.dump({}, f, indent=2)

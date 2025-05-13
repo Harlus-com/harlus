@@ -63,7 +63,8 @@ const WorkspaceSelect = () => {
           {workspaces.map((workspace) => (
             <div
               key={workspace.id}
-              className="p-6 bg-card rounded-lg border hover:border-primary transition-colors"
+              className="p-6 bg-card rounded-lg border hover:border-primary transition-colors cursor-pointer"
+              onClick={() => navigate(`/workspace/${workspace.id}`)}
             >
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-2xl font-bold">{workspace.name}</h3>

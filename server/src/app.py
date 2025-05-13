@@ -223,12 +223,23 @@ def load_folder(request: LoadFolderRequest):
 
 class CreateWorkspaceRequest(BaseModel):
     name: str
+    initial_file_paths: list[str] = Field(alias="initialFilePaths")
 
 
 @app.post("/workspace/create")
-def create_workspace(request: CreateWorkspaceRequest):
+async def create_workspace(request: CreateWorkspaceRequest):
     print("Creating workspace", request.name)
-    return file_store.create_workspace(request.name)
+    workspace = file_store.create_workspace(request.name)
+    for path in request.initial_file_paths:
+        if os.path.isdir(path):
+            file_store.copy_folder_to_workspace(path, workspace.id)
+        else:
+            file_store.copy_file_to_workspace(path, workspace.id)
+    chat_store.add_workspace(workspace)
+    comment_store.add_workspace(workspace)
+    for file in file_store.get_files(workspace.id).values():
+        await sync_queue.queue_model_sync(file)
+    return workspace
 
 
 @app.get("/workspace/get/{workspace_id}")
