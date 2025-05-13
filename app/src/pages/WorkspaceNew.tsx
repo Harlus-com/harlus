@@ -64,9 +64,6 @@ const WorkspaceNew = () => {
         files
       );
 
-      // TODO: Implement file upload logic here
-      // You'll need to modify the workspaceService to handle file uploads
-
       toast({
         title: "Workspace created",
         description: `Created workspace for ${workspace.name}`,
