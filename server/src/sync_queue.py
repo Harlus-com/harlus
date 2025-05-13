@@ -180,7 +180,19 @@ class SyncQueue:
         try:
             loader = loaders_by_name[tool_name]
             print(f"Loading tool {tool_name} for file {file.name}")
-            tool_wrapper = await loader.load(file.absolute_path, file.name)
+
+            async def async_load():
+                return await loader.load(file.absolute_path, file.name)
+
+            loop = asyncio.get_running_loop()
+
+            # Run the blocking loader.load in a background thread
+            tool_wrapper = await loop.run_in_executor(
+                None,  # Default thread pool
+                lambda: asyncio.run(
+                    async_load()
+                ),  # TOOD: make loader.load sync and call it directly rather than using asyncio.run
+            )
             print(f"Tool {tool_name} loaded for file {file.name}")
             self.tool_library.add_tool(
                 file.absolute_path,
