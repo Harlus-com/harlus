@@ -17,8 +17,8 @@ beforeBuild: ./scripts/beforebuild.js
 # Executable cannot go in the asar archive
 # (Hopefully this will be platform independent TBD on windows)
 extraResources:
-  - from: dist-electron/server/fastapi-server
-    to: server/fastapi-server
+  - from: dist-electron/server
+    to: server
 
 mac:
   category: public.app-category.finance
