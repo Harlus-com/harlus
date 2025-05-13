@@ -1,0 +1,8 @@
+{
+  "name": "harlus-electron",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "mime": "^4.0.7"
+  }
+}

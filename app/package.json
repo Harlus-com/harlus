@@ -15,7 +15,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "electron": "node scripts/electron-start.js",
-    "electron:build": "rm -rf dist-electron && node scripts/electron-tscompile.cjs",
+    "electron:build": "rm -rf dist-electron && node scripts/electron-compile-main.cjs && node scripts/electron-compile-preload.cjs",
     "electron:prod": "npm run build && npm run electron:build && electron .",
     "package:mac": "npm run build && npm run electron:build && npx electron-builder --mac",
     "package:win": "npm run build && npm run electron:build && npx electron-builder --win",
