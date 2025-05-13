@@ -4,7 +4,9 @@ import asyncio
 from datetime import datetime
 from typing import Dict, Optional, Any
 
+from harlus_chat.build_graph import ChatAgentGraph
 from pydantic import BaseModel, ConfigDict, Field
+from src.tool_library import ToolLibrary
 from src.util import Timestamp, snake_to_camel, timestamp_now
 from src.file_store import FileStore, Workspace
 
@@ -26,8 +28,10 @@ class ChatThread(BaseModel):
 
 
 class ChatStore:
-    def __init__(self, file_store: FileStore):
+    def __init__(self, file_store: FileStore, tool_library: ToolLibrary):
         self.file_store = file_store
+        self.tool_library = tool_library
+        self.chat_models: dict[str, ChatAgentGraph] = {}
         self.last_save: Dict[str, JsonType] = {}  # thread_id -> json
         self.save_task: Optional[asyncio.Task] = None
         self.lock = asyncio.Lock()
@@ -37,6 +41,28 @@ class ChatStore:
 
     def add_workspace(self, workspace: Workspace):
         add_workspace(workspace)
+
+    # TODO: Probably worth moving this somewhere else
+    def get_chat_model(self, workspace_id: str, thread_id: str) -> ChatAgentGraph:
+        """
+        Get a chat model, and set the active thread to the given thread_id.
+        """
+        if workspace_id not in self.chat_models:
+            workspace = self.file_store.get_workspaces()[workspace_id]
+            chat_dir = os.path.join(workspace.absolute_path, "chat")
+            self.chat_models[workspace_id] = ChatAgentGraph(persist_dir=chat_dir)
+        chat_model = self.chat_models[workspace_id]
+        if not self.thread_exists(workspace_id, thread_id):
+            raise ValueError(f"Thread {thread_id} not found")
+        if chat_model.get_current_thread_id() != thread_id:
+            chat_model.set_thread(thread_id)
+        doc_search_tools = [
+            tool.get()
+            for tool in self.tool_library.get_tool_for_all_files("doc_search")
+        ]
+        chat_model.update_tools(doc_search_tools)
+
+        return chat_model
 
     def get_thread_ids(self, workspace_id: str) -> list[str]:
         threads_file = self._get_chat_file_path(workspace_id, "threads.json")
