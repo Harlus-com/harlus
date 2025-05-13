@@ -38,24 +38,54 @@ function createWindow() {
   });
 }
 
-function startApi() {
-  console.log("startApi");
-  const userDataPath = app.getPath("userData");
-  console.log("userDataPath", userDataPath);
-
-  const serverBinary = path.join(
+function getServerRoot() {
+  // production: resourcesPath points at <YourApp>.app/Contents/Resources
+  const base = path.join(process.resourcesPath, "server");
+  const unpacked = path.join(
     process.resourcesPath,
-    "server",
-    "fastapi-server"
+    "app.asar.unpacked",
+    "server"
   );
 
-  console.log("serverBinary", serverBinary);
+  if (fs.existsSync(unpacked)) return unpacked;
+  if (fs.existsSync(base)) return base;
 
-  const apiProcess = spawn(serverBinary, ["--port", "8002"], {
+  throw new Error(
+    `Cannot find server folder in Resources: looked at\n  • ${unpacked}\n  • ${base}`
+  );
+}
+
+function startApi() {
+  console.log("startApi");
+
+  const serverDir = getServerRoot();
+  const venvBin =
+    process.platform === "win32"
+      ? path.join(serverDir, ".venv", "Scripts")
+      : path.join(serverDir, ".venv", "bin");
+
+  const pythonExec =
+    process.platform === "win32"
+      ? path.join(venvBin, "python.exe")
+      : path.join(venvBin, "python3.13");
+
+  // quick sanity check
+  console.log("Will spawn:", pythonExec, "exists?", fs.existsSync(pythonExec));
+  console.log("serverDir", serverDir);
+
+  const apiProcess = spawn(pythonExec, ["main.py", "--port", "8002"], {
+    cwd: serverDir,
     env: {
-      APP_DATA_PATH: userDataPath,
+      ...process.env,
+      PATH: `${venvBin}${path.delimiter}${process.env.PATH}`,
+      VIRTUAL_ENV: path.join(serverDir, ".venv"),
     },
   });
+
+  apiProcess.on("error", (error) => {
+    console.error("Error starting API:", error);
+  });
+
   apiProcess.stdout.on("data", (data) => {
     console.log(`[API STDOUT]: ${data}`);
   });

@@ -1,42 +1,40 @@
-import path from "path";
 import fs from "fs";
+import path from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Helper file that runs before packaging the electron app.
-// It copies the fastapi-server executable into the dist-electron/server directory.
-// In turn electron packaging puts that in the app bundle, as a resource.
+// === Paths ===
+const projectRoot = path.resolve(__dirname, "..", ".."); // harlus/
+const serverSource = path.join(projectRoot, "server"); // harlus/server
+const destServerDir = path.join(projectRoot, "app", "dist-electron", "server");
+const venvDir = path.join(destServerDir, ".venv");
 
-export default async function (context) {
-  const isWindows = context.platform.nodeName !== "darwin";
-  const binaryName = isWindows ? "fastapi-server.exe" : "fastapi-server";
-
-  const sourceBinary = path.resolve(
-    __dirname,
-    "..",
-    "..",
-    "server",
-    "dist",
-    binaryName
-  );
-  const destDir = path.join(__dirname, "..", "dist-electron", "server");
-
-  if (!fs.existsSync(sourceBinary)) {
-    throw new Error(`Cannot find FastAPI binary at: ${sourceBinary}`);
+// === Helpers ===
+function copy(src, dest) {
+  if (!fs.existsSync(src)) {
+    throw new Error(`Missing: ${src}`);
   }
+  fs.cpSync(src, dest, { recursive: true });
+}
 
-  if (!fs.existsSync(destDir)) {
-    fs.mkdirSync(destDir, { recursive: true });
+// === Main ===
+export default async function beforeBuild() {
+  console.log("🔧 Setting up embedded FastAPI server…");
+
+  if (fs.existsSync(destServerDir)) {
+    fs.rmSync(destServerDir, { recursive: true, force: true });
   }
+  fs.mkdirSync(destServerDir, { recursive: true });
 
-  const destBinary = path.join(destDir, binaryName);
-  fs.copyFileSync(sourceBinary, destBinary);
+  console.log("📂 Copying source files…");
+  copy(path.join(serverSource, "main.py"), path.join(destServerDir, "main.py"));
+  copy(path.join(serverSource, "src"), path.join(destServerDir, "src"));
 
-  if (!isWindows) {
-    fs.chmodSync(destBinary, 0o755);
-  }
+  // TODO: We should really be createing this from sctach...
+  console.log("🐍 Copying pre-built virtual environment…");
+  copy(path.join(projectRoot, "python", "env", ".venv"), venvDir);
 
-  console.log(`Copied FastAPI binary to: ${destBinary}`);
+  console.log("✅ Embedded FastAPI server is ready.");
 }
