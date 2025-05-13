@@ -9,7 +9,7 @@ export const mockContrastAnalysisResponse: { claimComments: ClaimComment[] } = {
       filePath:
         "C:\\Users\\info\\AppData\\Local\\electron\\Electron\\Harlus\\AAPL\\25_Q1_update_pdf\\content.pdf",
       commentGroupId: "g1",
-      text: "Markets with Apple Intelligence have stronger iPhone sales.",
+      text: "Markets with Apple Intelligence have stronger iPhone sales. The integration of Intelligence into the iPad should similarly boost its sales.",
       highlightArea: {
         boundingBoxes: [
           { left: 58.60, top: 57.60, width: 26.67, height: 1.70, page: 0 },
@@ -84,7 +84,7 @@ export const mockContrastAnalysisResponse: { claimComments: ClaimComment[] } = {
       filePath:
       "C:\\Users\\info\\AppData\\Local\\electron\\Electron\\Harlus\\AAPL\\25_Q1_update_pdf\\content.pdf",
       commentGroupId: "g1",
-      text: "Ongoing legislation and Digital Market Acts was discussed during earnings call.",
+      text: "Ongoing legislation and Digital Market Acts was discussed during earnings call. Tim Cook does not agree with the court's decision.",
       highlightArea: {
         boundingBoxes: [
           { left: 70.97, top: 61.48, width: 14.74, height: 1.70, page: 0 },
@@ -119,7 +119,7 @@ export const mockContrastAnalysisResponse: { claimComments: ClaimComment[] } = {
       filePath:
       "C:\\Users\\info\\AppData\\Local\\electron\\Electron\\Harlus\\AAPL\\25_Q1_update_pdf\\content.pdf",
       commentGroupId: "g1",
-      text: "Further decline in China sales with 2%.",
+      text: "Further decline in China sales with 2%, but Apple has an advantae over competitors in the market.",
       highlightArea: {
         boundingBoxes: [
           { left: 37.02, top: 67.35, width: 48.21, height: 1.70, page: 0 },
@@ -166,7 +166,7 @@ export const mockContrastAnalysisResponse: { claimComments: ClaimComment[] } = {
       filePath:
       "C:\\Users\\info\\AppData\\Local\\electron\\Electron\\Harlus\\AAPL\\25_Q1_update_pdf\\content.pdf",
       commentGroupId: "g1",
-      text: "Impact from tarrifs for Q2 estimated at $900M.",
+      text: "Impact from tarrifs for Q2 estimated at $900M if the current situation persists.",
       highlightArea: {
         boundingBoxes: [
           { left: 47.44, top: 87.69, width: 34.68, height: 1.70, page: 0 }
@@ -231,7 +231,7 @@ export const mockContrastAnalysisResponse: { claimComments: ClaimComment[] } = {
       filePath:
       "C:\\Users\\info\\AppData\\Local\\electron\\Electron\\Harlus\\AAPL\\25_Q1_update_pdf\\content.pdf",
       commentGroupId: "g1",
-      text: "Significant $500B CAPEX investments announced in latest earnings call.",
+      text: "Significant $500B CAPEX investments announced in latest earnings call to fund the data center in Texas.",
       highlightArea: {
         boundingBoxes: [
           { left: 37.38, top: 11.06, width: 12.88, height: 1.70, page: 1 }

@@ -13,9 +13,9 @@ export interface DocxViewerProps {
   updatedSrc?: string;  // document after accepting updates
 }
 
-const DEFAULT_SRC =
-  "https://harlusai.sharepoint.com/sites/documents/_layouts/15/Doc.aspx?sourcedoc={a3a61cad-9daa-41d7-8e18-126dab07ca7f}&action=embedview";
 const DEFAULT_UPDATED_SRC =
+  "https://harlusai.sharepoint.com/sites/documents/_layouts/15/Doc.aspx?sourcedoc={a3a61cad-9daa-41d7-8e18-126dab07ca7f}&action=embedview";
+const DEFAULT_SRC =
   "https://harlusai.sharepoint.com/sites/documents/_layouts/15/Doc.aspx?sourcedoc={b0a586b5-210b-4abf-ac5a-afd274541960}&action=embedview";
 
 export default function DocxViewer({

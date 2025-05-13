@@ -22,7 +22,7 @@ const mockSourceComment: ChatSourceComment = {
   threadId: "mock-thread-1",
   messageId: "mock-message-1",
   commentGroupId: "mock-comment-group-1",
-  text: "Apple was less impacted by the tarrifs than other U.S. hardware firms",
+  text: "Apple was less impacted by the tarrifs than other U.S. hardware firms.",
   highlightArea: mockHighlightArea,
   nextChatCommentId: ""
 };

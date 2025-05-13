@@ -7,30 +7,32 @@ export interface MockMessage {
 export const mockConversations: MockMessage[] = [
   {
     userMessage: "Does the new earnings call confirm last quarter's hypotheses?",
-    assistantMessage: "I analysed the report and contrassted it to your investment theses from last quarter.\nI found that <summary> but difference on <detail>.",
+    assistantMessage: `
+1. The call confirmed that **“Apple Intelligence” is already boosting demand**.  
+2. **Services delivered a record $26.6 billion in revenue (+12 % YoY)** and a **75.7 % gross margin**.  
+3. **Greater China remains a headwind** (-2 % YoY, roughly flat ex-FX), but the risk is moderating rather than worsening.  
+4. Management flagged potential **$900 million tariff costs** and heavy capital outlays.
+
+I contrasted both documents in the following analysis:
+`,
     readingMessages: [
       "Generating a plan...",
-      "Setting up workflow based on the plan...",
-      "Downloading latest sell-side report...",
-      "Extracting the CAPEX and investment in working capital to compute FCFs...",
-      "Comparing new KPIs to last quarter's hypotheses...",
+      "Extracting last quarter's hypotheses from updates/25-Q1.pdf...",
+      "Comparing each hypothesis to the new earnings call...",
     ]
   },
   {
-    userMessage: "Facts",
+    userMessage: "how",
     assistantMessage: `
 While Apple saw only a slight dip in China sales, other U.S. hardware makers were hit much harder:
 
 - **Cisco**: China revenue plunged **25% YoY**.  
 - **Nvidia**: Sales dropped **13%**, with a **$5.5B charge** tied to export bans.  
 - **AMD**: Took a **$1.5B write-down** on stranded GPU inventory.  
-- **Intel**: Lost **$1B in revenue** from Huawei license revocation.  
-- **Overall impact**: U.S. firms lost **$7B in China sales** in 1H 2025; over **$25B remains at risk** for FY 2026.
+- **Intel**: Lost **$1B in revenue** from Huawei license revocation.
 `,
     readingMessages: [
-      "Let's see how Apple's sales in China compare to other U.S. hardware firms.",
-      "Searching Bloomberg terminal for iPad sales...",
-      "Searching Bloomberg terminal for iPad sales..."
+      "Searching for sell-side reports on Cisco, Nvidia, AMD, and Intel...",
     ]
   },
   {

@@ -206,7 +206,63 @@ const UserMessage: React.FC<{ message: ChatMessage }> = memo(({ message }) => {
   return (
     <div className="flex flex-col items-end">
       <div className="bg-white border border-gray-100 rounded-xl px-3 py-2.5 text-[13px] text-gray-800 leading-relaxed shadow-sm max-w-[85%]">
-        {message.content}
+        <div
+          className={cn(
+            "prose prose-sm max-w-none text-[13px]",
+            "prose-headings:font-medium prose-headings:text-gray-800",
+            "prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-1",
+            "prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline",
+            "prose-strong:font-medium prose-strong:text-gray-800",
+            "prose-code:text-xs prose-code:bg-gray-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded",
+            "prose-pre:bg-gray-50 prose-pre:p-2 prose-pre:rounded",
+            "prose-ol:pl-5 prose-ol:my-1 prose-ul:pl-5 prose-ol:my-1",
+            "prose-li:my-0.5 prose-li:text-gray-700"
+          )}
+        >
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              p: ({ node, ...props }) => (
+                <p
+                  className="text-gray-700 my-1 text-[13px] leading-relaxed"
+                  {...props}
+                />
+              ),
+              pre: ({ node, ...props }) => (
+                <pre className="bg-gray-50 p-2 rounded-md overflow-x-auto my-1.5 text-xs" {...props} />
+              ),
+              code: ({
+                inline,
+                className,
+                children,
+                ...props
+              }: {
+                inline?: boolean;
+                className?: string;
+                children?: React.ReactNode;
+              }) =>
+                inline ? (
+                  <code
+                    className="bg-gray-50 px-1 py-0.5 rounded text-xs font-mono text-gray-800"
+                    {...props}
+                  >
+                    {children}
+                  </code>
+                ) : (
+                  <pre className="bg-gray-50 p-2 rounded-md overflow-x-auto my-1.5 text-xs">
+                    <code
+                      className="text-xs font-mono text-gray-800"
+                      {...props}
+                    >
+                      {children}
+                    </code>
+                  </pre>
+                ),
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
+        </div>
       </div>
       {message.timestamp && (
         <div className="text-[9px] text-gray-400 mt-1 mr-1">
@@ -302,7 +358,7 @@ const AssistantMessage: React.FC<{
     };
 
     const isFirstMockMessage = userMessage.content.trim().split(/\s+/)[0].toLowerCase() === "does";
-    const isSecondMockMessage = userMessage.content.trim().split(/\s+/)[0].toLowerCase() === "facts";
+    const isSecondMockMessage = userMessage.content.trim().split(/\s+/)[0].toLowerCase() === "how";
     const isThirdMockMessage = userMessage.content.trim().split(/\s+/)[0].toLowerCase() === "reduce";
 
     return (
@@ -660,8 +716,23 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onFileClicked, o
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [currentPairId, setCurrentPairId] = useState<string | null>(null);
   const [isHistoryVisible, setIsHistoryVisible] = useState(false);
+  const [visiblePrompts, setVisiblePrompts] = useState<number[]>([]);
 
   const MAX_CONTENT_WIDTH = "42rem"; // ~672px - good max width for readability
+
+  // Add animation for suggested prompts
+  useEffect(() => {
+    if (messagePairs.length === 0) {
+      const showPrompt = (index: number) => {
+        setVisiblePrompts(prev => [...prev, index]);
+      };
+      
+      // Show prompts sequentially with delays
+      setTimeout(() => showPrompt(0), 400);
+      setTimeout(() => showPrompt(1), 800);
+      setTimeout(() => showPrompt(2), 1200);
+    }
+  }, [messagePairs.length]);
 
   const updateAndSaveMessages = (
     fn: (prev: MessagePair[]) => MessagePair[]
@@ -759,7 +830,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onFileClicked, o
         new Promise(resolve => setTimeout(resolve, Math.random() * (max - min) + min));
 
       // Wait 0.5-2 seconds before starting
-      //await randomDelay(600, 1000);
+      await randomDelay(600, 1000);
       
       // Process reading messages one by one with delays
       if (mockResponse?.readingMessages) {
@@ -788,7 +859,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onFileClicked, o
           });
           
           // Wait longer for first reading message, otherwise 3-5 seconds
-          // await randomDelay(i === 0 ? 6000 : 3000, i === 0 ? 6000 : 6000);
+          await randomDelay(i === 0 ? 3000 : 1000, i === 0 ? 7000 : 7000);
           
           // Update the answer count to mark this reading message as complete
           setMessagePairs((prev) => {
@@ -817,10 +888,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onFileClicked, o
 
       // Then continue with streaming the assistant message...
       const assistantContent = mockResponse?.assistantMessage || "I don't have a mock response for that question.";
-      // Split by lines to preserve markdown structure
-      const chunks = assistantContent.split(/(\n)/);
-      
-      // Create initial empty message
+
+      // Create initial empty message FIRST
       setMessagePairs((prev) => {
         const updated = [...prev];
         const currentPair = updated.find(p => p.id === pairId);
@@ -836,11 +905,16 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onFileClicked, o
         }
         return updated;
       });
-      
-      // Stream words with small random delays
+
+      // THEN start streaming words
       let currentContent = "";
-      for (const chunk of chunks) {
-        currentContent += chunk;
+
+      // First, split the content into words while preserving markdown structure
+      const wordPattern = /(\s+|[*_`~#]+|\n+|[^\s*_`~#]+)/g;
+      const words = assistantContent.match(wordPattern) || [];
+
+      for (const word of words) {
+        currentContent += word;
         
         setMessagePairs((prev) => {
           const updated = [...prev];
@@ -851,8 +925,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onFileClicked, o
           return updated;
         });
         
-        // Larger delay for line breaks to create a more natural typing effect
-        await randomDelay(chunk === "\n" ? 100 : 20, chunk === "\n" ? 300 : 60);
+        // Different delays based on the content type
+        let delayMin = 10, delayMax = 20;
+        
+        if (word.includes('\n')) {
+          delayMin = 20;
+          delayMax = 30;
+        } else if (/[.,!?;:]/.test(word)) {
+          delayMin = 30;
+          delayMax = 50;
+        }
+        
+        await randomDelay(delayMin, delayMax);
       }
 
       setInput("");
@@ -965,20 +1049,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onFileClicked, o
               <div className="grid grid-cols-1 gap-2">
                 <button 
                   onClick={() => {
-                    handleSendMessage("Does the new earnings call confirm last quarter's hypotheses?");
-                  }}
-                  className="text-left p-2.5 bg-white hover:bg-gray-50 rounded-xl text-sm text-gray-700 border border-gray-100 transition-colors shadow-sm flex items-center justify-between"
-                >
-                  <span>Does the new earnings call confirm last quarter's hypotheses?</span>
-                  <div className="ml-2 flex-shrink-0 w-5 h-5 bg-yellow-100 rounded-full border-[0px] border-yellow-500 flex items-center justify-center">
-                    <Bell size={13} className="text-yellow-500" />
-                  </div>
-                </button>
-                <button 
-                  onClick={() => {
                     handleSendMessage("Do sell-side reports confirm managment's claims from the latest earnings call??");
                   }}
-                  className="text-left p-2.5 bg-white hover:bg-gray-50 rounded-xl text-sm text-gray-700 border border-gray-100 transition-colors shadow-sm flex items-center justify-between"
+                  className={`text-left p-2.5 bg-white hover:bg-gray-50 rounded-xl text-sm text-gray-700 border border-gray-100 transition-all shadow-sm flex items-center justify-between ${
+                    visiblePrompts.includes(0) 
+                      ? "opacity-100 translate-y-0" 
+                      : "opacity-0 translate-y-4"
+                  }`}
+                  style={{ transitionDuration: "300ms" }}
                 >
                   <span>Do sell-side reports confirm managment's claims from the latest earnings call?</span>
                   <div className="ml-2 flex-shrink-0 w-5 h-5 bg-yellow-100 rounded-full border-[0px] border-yellow-500 flex items-center justify-center">
@@ -987,9 +1065,30 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onFileClicked, o
                 </button>
                 <button 
                   onClick={() => {
+                    handleSendMessage("Does the new earnings call confirm last quarter's hypotheses?");
+                  }}
+                  className={`text-left p-2.5 bg-white hover:bg-gray-50 rounded-xl text-sm text-gray-700 border border-gray-100 transition-all shadow-sm flex items-center justify-between ${
+                    visiblePrompts.includes(1) 
+                      ? "opacity-100 translate-y-0" 
+                      : "opacity-0 translate-y-4"
+                  }`}
+                  style={{ transitionDuration: "300ms" }}
+                >
+                  <span>Does the new earnings call confirm last quarter's hypotheses?</span>
+                  <div className="ml-2 flex-shrink-0 w-5 h-5 bg-yellow-100 rounded-full border-[0px] border-yellow-500 flex items-center justify-center">
+                    <Bell size={13} className="text-yellow-500" />
+                  </div>
+                </button>
+                <button 
+                  onClick={() => {
                     handleSendMessage("How do the trends of iPhone sales impact my investment theses?");
                   }}
-                  className="text-left p-2.5 bg-white hover:bg-gray-50 rounded-xl text-sm text-gray-700 border border-gray-100 transition-colors shadow-sm"
+                  className={`text-left p-2.5 bg-white hover:bg-gray-50 rounded-xl text-sm text-gray-700 border border-gray-100 transition-all shadow-sm ${
+                    visiblePrompts.includes(2) 
+                      ? "opacity-100 translate-y-0" 
+                      : "opacity-0 translate-y-4"
+                  }`}
+                  style={{ transitionDuration: "300ms" }}
                 >
                   How do the trends of iPhone sales impact my investment theses?
                 </button>
@@ -1007,8 +1106,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSourceClicked, onFileClicked, o
                   }
                 }}
                 placeholder="Ask Harlus anything..."
-                className="min-h-[60px] pr-14 max-h-[120px] resize-none text-sm bg-white border-gray-100 shadow-sm 
-                  focus:border-transparent focus:ring-0 focus:outline-none py-3 px-4 rounded-xl w-full"
+                className="min-h-[60px] pr-14 max-h-[120px] resize-none text-sm bg-white border border-gray-100 shadow-sm 
+                  focus:border-gray-100 focus:ring-0 focus:outline-none focus:shadow-sm py-3 px-4 rounded-xl w-full"
                 disabled={isLoading || isEventSourceActive}
               />
               <Button

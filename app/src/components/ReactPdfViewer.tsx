@@ -42,7 +42,7 @@ const PdfViewer = ({ file, onSendMessage, initialPage=0 }: PdfViewerProps) => {
   const [selectedText, setSelectedText] = useState<string>("");
   const [showInput, setShowInput] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState<string>("");
-  const [overlayPos, setOverlayPos] = useState<{ top: number; left: number } | null>(null);
+  const [overlayPos, setOverlayPos] = useState<{ top: number; right: number } | null>(null);
 
   /* ------------------------------------------------------------------ */
   /*                               REFS                                 */
@@ -91,8 +91,13 @@ const PdfViewer = ({ file, onSendMessage, initialPage=0 }: PdfViewerProps) => {
 
   /* When a comment is selected externally, scroll to its first annotation */
   useEffect(() => {
+    console.log("befor if selectedComment", selectedComment);
     if (selectedComment) {
-      highlightPluginInstance.jumpToHighlightArea(selectedComment.annotations[0]);
+      console.log("selectedComment", selectedComment);
+      setTimeout(() => {
+        console.log("jumping to highlight area");
+        highlightPluginInstance.jumpToHighlightArea(selectedComment.annotations[0]);
+      }, 500);
     }
   }, [selectedComment, highlightPluginInstance]);
 
@@ -134,9 +139,12 @@ const PdfViewer = ({ file, onSendMessage, initialPage=0 }: PdfViewerProps) => {
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
         const containerRect = containerRef.current!.getBoundingClientRect();
+        
+        // Position the overlay so that its top-right corner 
+        // sits right below the bottom-right of the highlighted text
         setOverlayPos({
-          top: rect.bottom - containerRect.top + 4,
-          left: rect.right - containerRect.left + 4,
+          top: rect.bottom - containerRect.top + 4, // 4px padding below the text
+          right: containerRect.right - rect.right, // Align with right edge of text
         });
       } else {
         setOverlayPos(null);
@@ -184,7 +192,17 @@ const PdfViewer = ({ file, onSendMessage, initialPage=0 }: PdfViewerProps) => {
   /*                        SEND CHAT FROM INPUT                         */
   /* ------------------------------------------------------------------ */
   const sendChatMessage = () => {
-    const formattedMessage = `${selectedText}\n${inputValue}`.trim();
+    const formattedMessage = `
+${inputValue}
+
+
+
+"""
+
+${selectedText}
+
+"""
+`.trim();
     if (!formattedMessage) return;
 
     onSendMessage?.(formattedMessage);
@@ -215,7 +233,6 @@ const PdfViewer = ({ file, onSendMessage, initialPage=0 }: PdfViewerProps) => {
             fileUrl={fileUrl}
             defaultScale={SpecialZoomLevel.PageWidth}
             plugins={[defaultLayoutPluginInstance, highlightPluginInstance]}
-            initialPage={initialPage ? initialPage : 0}
           />
         ) : (
           <div className="flex items-center justify-center h-full">
@@ -228,7 +245,7 @@ const PdfViewer = ({ file, onSendMessage, initialPage=0 }: PdfViewerProps) => {
       {selectedText && overlayPos && (
         <div
           className="absolute rounded p-2 flex items-center" 
-          style={{ zIndex: 999, top: overlayPos.top, left: overlayPos.left }}
+          style={{ zIndex: 999, top: overlayPos.top, right: overlayPos.right }}
         >
           {!showInput ? (
             <button
