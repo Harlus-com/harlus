@@ -6,11 +6,10 @@ from .claim_getter import ClaimQueryEnginePipeline
 from .claim_checker import VerdictQueryEnginePipeline
 from .sentence_retriever import SentenceRetrieverPipeline
 from typing import Union, Optional
-import os
 
-from .utils import load_config
-DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.yaml")
-config = load_config(DEFAULT_CONFIG_PATH)
+from .utils import get_config
+
+config = get_config()
 
 
 class ToolWrapper:
@@ -43,9 +42,7 @@ class ClaimQueryEngineToolLoader:
         return "claim_query_engine_tool"
 
     async def load(
-        self, 
-        file_path: str, 
-        unused_file_name: Optional[str] = None
+        self, file_path: str, unused_file_name: Optional[str] = None
     ) -> ToolWrapper:
         """
         Loads the doctool, using the given file path
@@ -72,9 +69,7 @@ class VerdictQueryEngineToolLoader:
         return "verdict_query_engine_tool"
 
     async def load(
-        self,
-        file_path: str, 
-        unused_file_name: Optional[str] = None
+        self, file_path: str, unused_file_name: Optional[str] = None
     ) -> ToolWrapper:
 
         # TODO confirm file path exists

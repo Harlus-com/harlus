@@ -212,10 +212,8 @@ def find_fuzzy_bounding_boxes(
 #                         ))
 #     return nodes
 
-def visualize_bounding_boxes(
-        pdf_path: str,
-        sentences: list[str],
-        output_path: str):
+
+def visualize_bounding_boxes(pdf_path: str, sentences: list[str], output_path: str):
 
     doc = fitz.open(pdf_path)
 
@@ -239,27 +237,34 @@ def visualize_bounding_boxes(
     doc.close()
 
 
-def load_config(file_path: str) -> dict:
+def get_config() -> dict:
     """
-    Load configuration from the default YAML file.
+    Load configuration (inlined).
 
     Returns:
-        dict: The loaded configuration.
-
-    Raises:
-        FileNotFoundError: If the configuration file is not found.
-        yaml.YAMLError: If the configuration file is invalid.
+        dict: The hard‑coded configuration.
     """
-    try:
-        with open(file_path, "r") as f:
-            config = yaml.safe_load(f)
-            if not isinstance(config, dict):
-                raise ValueError("Configuration file must contain a YAML dictionary")
-            return config
-    except FileNotFoundError:
-        raise FileNotFoundError(
-            f"Configuration file not found at {file_path}. "
-            "Please ensure the config.yaml file exists in the contrast_tool package directory."
-        )
-    except yaml.YAMLError as e:
-        raise yaml.YAMLError(f"Error parsing configuration file: {e}")
+    return {
+        "claim getter": {
+            "model_name": "gpt-4o",
+            "temperature": 0.0,
+            "max_tokens": 500,
+        },
+        "claim checker": {
+            "question model": {
+                "model_name": "gpt-3.5-turbo",
+                "temperature": 0.0,
+                "max_tokens": 500,
+            },
+            "answer model": {
+                "model_name": "gpt-4o-mini",
+                "temperature": 0.0,
+                "max_tokens": 250,
+            },
+            "verification model": {
+                "model_name": "gpt-4o",
+                "temperature": 0.0,
+                "max_tokens": 500,
+            },
+        },
+    }
