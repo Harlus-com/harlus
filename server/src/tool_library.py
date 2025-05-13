@@ -11,9 +11,9 @@ from harlus_doc_search import ToolWrapper
 # TODO: add functionality to get all tools for a given workspace
 #
 # TODO: for doc_search tools, we could store the vector index by using
-# llama_index built-in methods for storing and loading vector indices. 
-# at load time, we could build the doc_search tool from the vector index. 
-# Metadata could be stored seperately and pickled alongside the tool. 
+# llama_index built-in methods for storing and loading vector indices.
+# at load time, we could build the doc_search tool from the vector index.
+# Metadata could be stored seperately and pickled alongside the tool.
 class ToolLibrary:
     def __init__(self, file_store: FileStore):
         self.file_tools: dict[str, list[ToolWrapper]] = defaultdict(list)
@@ -26,22 +26,7 @@ class ToolLibrary:
 
     def load_tools(self):
         for file in self.file_store.get_all_files():
-            tools_dir = os.path.join(os.path.dirname(file.absolute_path), "tools")
-            if not os.path.exists(tools_dir):
-                continue
-            for tool_dir in os.listdir(tools_dir):
-                tool_file = os.path.join(tools_dir, tool_dir, "tool.pkl")
-                if not os.path.exists(tool_file):
-                    print(f"Tool file {tool_file} does not exist")
-                    continue
-                with open(tool_file, "rb") as f:
-                    # TODO: As a saftey we should check that the the unpickled tool corresponds to the given file
-                    # We can do this by storing the file hash next to the tool
-                    # Then we can check that the file hash matches the current file on disk, otherwise discard the tool
-                    tool = dill.load(f)
-                    tool_wrapper = ToolWrapper(tool, tool_dir, debug_info={})
-                    self.file_tools[file.absolute_path].append(tool_wrapper)
-                    self.universal_tools.append(tool_wrapper)
+            self._load_tools(file.absolute_path)
 
         for file_name, tools in self.file_tools.items():
             print(f"Loaded tools for {file_name}: {[t.get_tool_name() for t in tools]}")
@@ -87,3 +72,22 @@ class ToolLibrary:
         for key, value in tool_wrapper.get_debug_info().items():
             with open(os.path.join(debug_dir, key), "w") as f:
                 f.write(value)
+        self._load_tools(file_path)
+
+    def _load_tools(self, file_path):
+        tools_dir = os.path.join(os.path.dirname(file_path), "tools")
+        if not os.path.exists(tools_dir):
+            return
+        for tool_dir in os.listdir(tools_dir):
+            tool_file = os.path.join(tools_dir, tool_dir, "tool.pkl")
+            if not os.path.exists(tool_file):
+                print(f"Tool file {tool_file} does not exist")
+                continue
+            with open(tool_file, "rb") as f:
+                # TODO: As a saftey we should check that the the unpickled tool corresponds to the given file
+                # We can do this by storing the file hash next to the tool
+                # Then we can check that the file hash matches the current file on disk, otherwise discard the tool
+                tool = dill.load(f)
+                tool_wrapper = ToolWrapper(tool, tool_dir, debug_info={})
+                self.file_tools[file_path].append(tool_wrapper)
+                self.universal_tools.append(tool_wrapper)
