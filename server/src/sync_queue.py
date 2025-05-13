@@ -4,7 +4,6 @@ from typing import Callable
 import traceback
 
 from src.tool_library import ToolLibrary
-from src.stream_manager import StreamManager
 
 from src.file_store import File, FileStore
 from src.sync_status import SyncStatus
@@ -88,11 +87,9 @@ class SyncTask:
 class SyncQueue:
     def __init__(
         self,
-        stream_manager: StreamManager,
         file_store: FileStore,
         tool_library: ToolLibrary,
     ):
-        self.stream_manager = stream_manager
         self.file_store = file_store
         self.tool_library = tool_library
         self.sync_queue: asyncio.Queue[SyncRequest] = asyncio.Queue()
