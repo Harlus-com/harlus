@@ -12,7 +12,7 @@ class ModelService {
   getFileSyncStatuses(
     workspaceId: string
   ): Promise<Record<string, SyncStatus>> {
-    return client.get(`/workspace/file_statuses?workspaceId=${workspaceId}`);
+    return client.get(`/workspace/files/status?workspaceId=${workspaceId}`);
   }
 
   startSyncFile(file: WorkspaceFile): Promise<boolean> {
