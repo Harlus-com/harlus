@@ -51,3 +51,15 @@ python scripts/package.py {tool_name} --unlink
 ### Integrating Tools
 
 Note: since tools makes use of the on-disk cache, when making changes to a tool dir, you might need to delete the server on disk cache (found under app_data_path)
+
+### Python Package Command:
+
+pyinstaller \
+ --hidden-import=tiktoken_ext.openai_public \
+ --hidden-import=tiktoken_ext \
+ --hidden-import easyocr \
+ --collect-all docling \
+ --add-data /Users/danielglasgow/src/harlus/python/env/.venv/lib/python3.13/site-packages/docling_parse/pdf_resources_v2:docling_parse/pdf_resources_v2 \
+ --onefile \
+ --name fastapi-server \
+ main.py
