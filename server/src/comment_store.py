@@ -112,7 +112,7 @@ class CommentStore:
                 with open(file_path, "w") as f:
                     json.dump(comment, f, indent=2)
 
-    def get_comments(self, workspace_id) -> list[JsonType]:
+    def get_comments(self, workspace_id: str) -> list[JsonType]:
         """Read comments from disk."""
         comments = []
         for file_name in os.listdir(self._get_comments_dir(workspace_id)):

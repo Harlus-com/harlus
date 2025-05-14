@@ -196,7 +196,7 @@ export class ChatService {
     this.debounceTimeout = setTimeout(() => {
       if (this.pendingSaveData) {
         client.post(
-          `/chat/save_history?threadId=${this.pendingSaveData.threadId}&workspaceId=${this.pendingSaveData.workspaceId}`,
+          `/chat/history/save?threadId=${this.pendingSaveData.threadId}&workspaceId=${this.pendingSaveData.workspaceId}`,
           {
             messagePairs: this.pendingSaveData.messagePairs,
           }
@@ -249,7 +249,7 @@ export class ChatService {
     workspaceId: string
   ): Promise<MessagePair[]> {
     const response = await client.get(
-      `/chat/get_history?threadId=${threadId}&workspaceId=${workspaceId}`
+      `/chat/history?threadId=${threadId}&workspaceId=${workspaceId}`
     );
     return response.messagePairs;
   }

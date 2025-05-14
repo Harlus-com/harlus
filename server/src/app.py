@@ -1,12 +1,9 @@
 import datetime
-import json
-import time
 from fastapi import (
     Body,
     FastAPI,
     HTTPException,
     Query,
-    Response,
 )
 import os
 import asyncio
@@ -23,8 +20,7 @@ from src.tool_library import ToolLibrary
 
 from src.file_store import FileStore, Workspace, File
 from src.sync_queue import SyncQueue, SyncType
-from src.sync_status import SyncStatus
-from harlus_contrast_tool import ContrastTool, ClaimComment
+from src.contrast_analysis import analyze
 
 
 app = FastAPI()
@@ -84,42 +80,6 @@ def get_file(
         # TODO: Determine if we need media_type at all and/or if we can figure it out dynamically
         media_type="application/pdf",
     )
-
-
-@app.api_route("/file/apryse/pdf/{file_id}", methods=["GET", "HEAD"])
-def get_pdf_from_file_id(
-    file_id: str,
-    ignored_path: str = Query(
-        ...,
-        alias="path",
-        description="Absolute path to the local file. This is actually ignored. Just a placeholder for Apryse.",
-    ),
-    stream: bool = Query(
-        False, description="Whether to stream the file or send it in one go"
-    ),
-):
-
-    file = file_store.get_file(file_id)
-    path = file.absolute_path
-    file_size = os.path.getsize(path)
-    headers = {
-        "Accept-Ranges": "bytes",
-        "Content-Length": str(file_size),
-        "Content-Disposition": f'attachment; filename="{os.path.basename(path)}"',
-    }
-
-    if stream:
-        return FileResponse(
-            path=path,
-            filename=os.path.basename(path),
-            media_type="application/pdf",
-            headers=headers,
-            chunk_size=8192,  # 8KB chunks for better streaming
-        )
-    else:
-        with open(path, "rb") as f:
-            content = f.read()
-        return Response(content=content, media_type="application/pdf", headers=headers)
 
 
 class LoadFileRequest(BaseModel):
@@ -242,16 +202,6 @@ async def sync_workspace(request: SyncWorkspaceRequest):
     return True
 
 
-SYSTEM_PROMPT = """
-        - Structure your response, use tables where possible. 
-        - Use all available sources (tools) which can be helpful. 
-        - Do not summarize your response. 
-        - Answer in English, do not mention which language you are using in your response. 
-        - Set a new line after the Thought and Action and Action Input. 
-        - In Thought. State your intention. Think what sources (tools) you need to read (use). Structure those in bullet points. Format these sources in a reader friendly format (based on the tool name) for example: "I will read the following SEC filings for Apple \n - 10-K report from November 2024 \n - 10-K report from November 2023 \n - 10-K report from November 2022".
-        """
-
-
 class SetThreadRequest(BaseModel):
     workspace_id: str = Field(alias="workspaceId")
     thread_id: str = Field(alias="threadId")
@@ -290,20 +240,8 @@ async def stream_chat(
     return response
 
 
-@app.get("/file/model/status/{file_id}")
-def get_file_model_status(file_id: str) -> SyncStatus:
-    """Get the sync status of a file's model"""
-    return sync_queue.get_sync_status(file_id)
-
-
-@app.get("/file/get/status/{file_id}")
-def get_file_status(file_id: str) -> SyncStatus:
-    """Get the current sync status of a file"""
-    return sync_queue.get_sync_status(file_id)
-
-
-@app.get("/workspace/file_statuses")
-def get_workspace_file_statuses(workspace_id: str = Query(..., alias="workspaceId")):
+@app.get("/workspace/files/status")
+def get_workspace_files_status(workspace_id: str = Query(..., alias="workspaceId")):
     """Get the current sync status of all files in a workspace"""
     print("Getting workspace file statuses", workspace_id)
     return {
@@ -312,118 +250,13 @@ def get_workspace_file_statuses(workspace_id: str = Query(..., alias="workspaceI
     }
 
 
-class ReactPdfAnnotation(BaseModel):
-    id: str  # typically the text TODO: See if we can delete this
-    page: int  # zero-based
-    left: float
-    top: float
-    width: float
-    height: float
-
-
-cache_file_path_base = "contrast_analysis"
-# Set this to the desired cache response
-cache_file_path_target = "contrast_analysis_1.json"
-
-
 @app.get("/contrast/analyze")
 def get_contrast_analyze(
     old_file_id: str = Query(..., alias="oldFileId"),
     new_file_id: str = Query(..., alias="newFileId"),
 ):
     """Analyze the contrast between two files"""
-    tool = ContrastTool()
-
-    old_file = file_store.get_file(old_file_id)
-    new_file = file_store.get_file(new_file_id)
-    thesis_qengine = tool_library.get_tool(
-        old_file.absolute_path, "claim_query_engine_tool"
-    )
-    thesis_sentence_retriever_tool = tool_library.get_tool(
-        old_file.absolute_path, "sentence_retriever_tool"
-    )
-    update_qengine = tool_library.get_tool(
-        new_file.absolute_path, "verdict_query_engine_tool"
-    )
-    update_sentence_retriever = tool_library.get_tool(
-        new_file.absolute_path, "sentence_retriever_tool"
-    )
-    if os.path.exists(cache_file_path_target):
-        time.sleep(3)
-        with open(cache_file_path_target, "r") as f:
-            comments = json.load(f)
-            comments = [ClaimComment(**comment) for comment in comments]
-    else:
-        comments = tool.run(
-            old_file.absolute_path,
-            thesis_qengine.get(),
-            thesis_sentence_retriever_tool.get(),
-            new_file.absolute_path,
-            update_qengine.get(),
-            update_sentence_retriever.get(),
-        )
-        for i in range(1, 100):
-            new_cache_file_path = f"{cache_file_path_base}_{i}.json"
-            if not os.path.exists(new_cache_file_path):
-                with open(new_cache_file_path, "w") as f:
-                    json.dump(
-                        [comment.model_dump() for comment in comments],
-                        f,
-                        indent=2,
-                    )
-                break
-
-    response_comments = []
-    time_now = datetime.datetime.now().isoformat()
-    i = 1
-    for comment in comments:
-        i = i + 1
-        response_comments.append(
-            {
-                "id": f"{time_now}_claim_comment_{i}",
-                "filePath": comment.file_path,
-                "commentGroupId": f"{time_now}_{old_file.name}_{new_file.name}",
-                "text": comment.text,
-                "highlightArea": {
-                    "boundingBoxes": [
-                        {
-                            "left": box.left,
-                            "top": box.top,
-                            "width": box.width,
-                            "height": box.height,
-                            "page": box.page - 1,  # Zero Based
-                        }
-                        for box in comment.highlight_area.bounding_boxes
-                    ],
-                },
-                "links": [
-                    {
-                        "id": f"{time_now}_link_comment_{i}_{j}",
-                        "filePath": link.file_path,
-                        "commentGroupId": f"{time_now}_{old_file.name}_{new_file.name}",
-                        "text": "",
-                        "highlightArea": {
-                            "boundingBoxes": [
-                                {
-                                    "left": box.left,
-                                    "top": box.top,
-                                    "width": box.width,
-                                    "height": box.height,
-                                    "page": box.page - 1,  # Zero Based
-                                }
-                                for box in link.highlight_area.bounding_boxes
-                            ],
-                        },
-                        "parentCommentId": f"{time_now}_claim_comment_{i}",
-                    }
-                    for j, link in enumerate(comment.links)
-                    if len(link.highlight_area.bounding_boxes) > 0
-                ],
-                "verdict": comment.verdict,
-            }
-        )
-
-    return response_comments
+    return analyze(old_file_id, new_file_id, file_store, tool_library)
 
 
 @app.get("/file/get_from_path")
@@ -441,7 +274,7 @@ def get_file_from_id(file_id: str):
     return file_store.get_file(file_id)
 
 
-@app.post("/chat/save_history")
+@app.post("/chat/history/save")
 async def save_chat_history(
     message_pairs=Body(...),
     thread_id: str = Query(..., alias="threadId"),
@@ -451,7 +284,7 @@ async def save_chat_history(
     return True
 
 
-@app.get("/chat/get_history")
+@app.get("/chat/history")
 def get_chat_history(
     thread_id: str = Query(..., alias="threadId"),
     workspace_id: str = Query(..., alias="workspaceId"),
@@ -552,7 +385,7 @@ async def save_comments(request: SaveCommentsRequest):
 def get_saved_comments(
     workspace_id: str = Query(..., alias="workspaceId"),
 ):
-    """Get saved comments for a group"""
+    """Get saved comments for a workspace"""
     return comment_store.get_comments(workspace_id)
 
 
