@@ -1,7 +1,6 @@
 # Use Python 3.11 as the base image
 FROM python:3.11-slim
 
-# Note: This is the working directory in the container
 WORKDIR /app 
 
 # Install build essentials for compiling Python packages
@@ -17,8 +16,14 @@ COPY python/env/requirements.txt .
 # Caching them serves no purpose other than clutter the disk at runtime.
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY python/env/scripts/package.py ./python/env/package.py
+COPY ml ./ml
 COPY server/src ./src
 COPY server/main.py .
+
+WORKDIR /app/python/env
+RUN python package.py --link
+WORKDIR /app
 
 EXPOSE 8000
 
