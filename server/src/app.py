@@ -37,20 +37,10 @@ asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
 
 nest_asyncio.apply(asyncio)
 
-DEV_APP_DATA_PATH = Path(user_data_dir("Electron")).joinpath("Harlus")
+DEV_APP_DATA_PATH = Path(__file__).parent.parent.joinpath("data")
 
-# On MacOs for development this will be something like
-# /Users/danielglasgow/Library/Application Support/Electron
-# TODO: Determine what this will be in production
-# Probably something like /Users/danielglasgow/Library/Application Support/Harlus
-# Also need to determine what this will be for Windows
-# Ultimately this value is passed in by the Electron app in prod.
 APP_DATA_PATH_STRING = os.environ.get("APP_DATA_PATH")
-if (
-    not APP_DATA_PATH_STRING
-    or "Electron" in APP_DATA_PATH_STRING
-    or "electron" in APP_DATA_PATH_STRING
-):
+if not APP_DATA_PATH_STRING:
     APP_DATA_PATH = DEV_APP_DATA_PATH
 else:
     APP_DATA_PATH = Path(APP_DATA_PATH_STRING)

@@ -1,5 +1,4 @@
 import electron from "electron";
-import { spawn } from "child_process";
 const { app, BrowserWindow, ipcMain } = electron;
 import path from "path";
 import { fileURLToPath } from "url";
@@ -8,13 +7,12 @@ import mime from "mime";
 
 // Runs an electron app against a local Vite dev server
 const args = process.argv;
-const startServer = args.includes("--start_server");
-const defualtPort = startServer ? 8001 : 8000;
 const serverPort =
-  args.find((arg) => arg.startsWith("--server_port="))?.split("=")[1] ||
-  defualtPort;
-console.log("START SERVER", startServer);
-console.log("SERVER PORT", serverPort);
+  args.find((arg) => arg.startsWith("--server_port="))?.split("=")[1] || "";
+const serverHost =
+  args.find((arg) => arg.startsWith("--server_host="))?.split("=")[1] || "";
+console.log(`SERVER PORT: "${serverPort}"`);
+console.log(`SERVER HOST: "${serverHost}"`);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,7 +27,10 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       preload: path.join(__dirname, "preload.js"),
-      additionalArguments: [`--server_port=${serverPort}`],
+      additionalArguments: [
+        `--server_port=${serverPort}`,
+        `--server_host=${serverHost}`,
+      ],
     },
   });
 
@@ -71,25 +72,6 @@ function setupIPCHandlers() {
 }
 
 const childProcesses = [];
-
-function startApi() {
-  const userDataPath = app.getPath("userData");
-  console.log("USER DATA PATH", userDataPath);
-  const pythonPath = path.join(__dirname, "../../server/.venv/bin/python3.13");
-  const apiProcess = spawn("python3", ["main.py", "--port", serverPort], {
-    env: {
-      PATH: `${process.env.PATH}:${pythonPath}`,
-      APP_DATA_PATH: userDataPath,
-    },
-    cwd: path.join(__dirname, "../../server"),
-  });
-
-  apiProcess.on("error", (error) => {
-    console.error("Error starting API:", error);
-  });
-
-  childProcesses.push(apiProcess);
-}
 
 app.whenReady().then(() => {
   createWindow();

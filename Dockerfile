@@ -27,4 +27,5 @@ WORKDIR /app
 
 EXPOSE 8000
 
+ENV APP_DATA_PATH=/data
 CMD ["python", "main.py"] 
