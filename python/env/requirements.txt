@@ -51,9 +51,6 @@ fsspec==2025.3.2
 greenlet==3.2.1
 griffe==1.7.3
 h11==0.16.0
--e git+ssh://git@github.com/Harlus-com/harlus.git@283465465cdc0cef99995ec1feef8dc4bed28942#egg=harlus_chat&subdirectory=ml/tools/chat
--e git+ssh://git@github.com/Harlus-com/harlus.git@283465465cdc0cef99995ec1feef8dc4bed28942#egg=harlus_contrast_tool&subdirectory=ml/tools/contrast_tool
--e git+ssh://git@github.com/Harlus-com/harlus.git@283465465cdc0cef99995ec1feef8dc4bed28942#egg=harlus_doc_search&subdirectory=ml/tools/doc_search
 hf-xet==1.1.0
 httpcore==1.0.9
 httplib2==0.22.0
