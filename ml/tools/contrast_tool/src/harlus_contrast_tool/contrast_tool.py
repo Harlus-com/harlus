@@ -1,39 +1,16 @@
-from .claim_getter import CLAIM_PARSER, PROMPT_GET_CLAIMS_TEXT
-
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.base.base_query_engine import BaseQueryEngine
-
-from .utils import find_fuzzy_bounding_boxes
 
 from typing import List
 
 from .api_interfaces import *
+from .claim_getter import CLAIM_PARSER, PROMPT_GET_CLAIMS_TEXT
 
 
 class ContrastTool:
 
     def get_name(self):
         return "contrast_tool"
-
-
-    @staticmethod
-    def get_highlight_area(
-        sentence: str,
-        file_path: str,
-        file_sentence_retriever: BaseRetriever,
-    ) -> HighlightArea:
-        # TODO can highlight on several pages
-        # TODO highlight several sentences related to the claim
-        # TODO move to utils
-
-        # sentence that matches the claim
-        sentence = file_sentence_retriever.retrieve(sentence)
-        source = " ".join(sentence[0].get_content().split())
-        page_num = int(sentence[0].node.metadata.get("page_label"))
-
-        bbox = find_fuzzy_bounding_boxes(file_path, source, page_num) or []
-
-        return HighlightArea(bounding_boxes=bbox, jump_to_page=page_num)
 
 
     @staticmethod
@@ -113,8 +90,8 @@ class ContrastTool:
         return comments
     
 
+    @staticmethod
     def run(
-        self,
         thesis_path: str,
         thesis_qengine: BaseQueryEngine,
         thesis_sentence_retriever: BaseRetriever,

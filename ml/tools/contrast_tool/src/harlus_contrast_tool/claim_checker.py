@@ -1,29 +1,24 @@
-from typing import Dict, List, Optional, Literal
-
-from pydantic import BaseModel
-
+from llama_index.core import VectorStoreIndex, KeywordTableIndex, SimpleDirectoryReader
+from llama_index.core.output_parsers import PydanticOutputParser
 from llama_index.core.prompts import PromptTemplate
-
-from llama_index.core import VectorStoreIndex, KeywordTableIndex
-
+from llama_index.core.query_engine import BaseQueryEngine, SubQuestionQueryEngine, RetrieverQueryEngine
+from llama_index.core.question_gen import LLMQuestionGenerator
+from llama_index.core.response_synthesizers import get_response_synthesizer
 from llama_index.core.retrievers import (
     BaseRetriever,
     VectorIndexRetriever,
     KeywordTableSimpleRetriever,
 )
-from llama_index.core.question_gen import LLMQuestionGenerator
-from llama_index.core.query_engine import BaseQueryEngine, SubQuestionQueryEngine, RetrieverQueryEngine
-from llama_index.core.response_synthesizers import get_response_synthesizer
-from llama_index.core.output_parsers import PydanticOutputParser
-
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
-
-from llama_parse import LlamaParse
+# from llama_parse import LlamaParse
+from llama_index.node_parser.docling import DoclingNodeParser
 from llama_index.llms.openai import OpenAI
+
+from pydantic import BaseModel
+from typing import Dict, List, Optional, Literal
 
 from .utils import *
 from .mixed_retriever import MixKeywordVectorRetriever
-
 
 # TODO use subquestion generator to automatically generate questions given prompt
 # TODO: compare to info of multiple files (see Multi-Document Agents (V1))
@@ -70,11 +65,11 @@ PROMPT_SUBQUESTIONS = PromptTemplate(PROMPT_SUBQUESTIONS_TEXT)
 PROMPT_VERDICT_TEXT = """\
 You are a fact-verification assistant verifying if a claim made some time ago is correct based on new information.
 Based on the following new facts, return whether the claim is 'true', 'false' or 'unknown' due to insufficient evidence.
-Support your verdict with a short explanation. For numeric claims:
+Support your verdict with a 1-2 sentence explanation. For numeric claims:
 - Extract the numeric values from the claim and the evidence.
 - If they differ, compute the percent error as:
     |(ClaimValue - EvidenceValue) / EvidenceValue| x 100%
-Round to one decimal place and state whether the claim over- or understates the metric.
+Round to one decimal place and state whether the claim over- or understates the metric without showing your calculation.
 When verifying the claim, make sure to consider all aliases of the claim's topic and its key drivers.
 """
 PROMPT_VERDICT = PromptTemplate(PROMPT_VERDICT_TEXT)
@@ -128,7 +123,9 @@ class VerdictQueryEnginePipeline:
         #     verbose=False,
         # )
 
-        parser = LlamaParse(result_type="markdown")
+        print(" - creating nodes from documents...")
+        parser = DoclingNodeParser()
+        
         documents = SimpleDirectoryReader(
             input_files=[file_path],
             file_extractor={".pdf": parser},
@@ -169,7 +166,6 @@ class VerdictQueryEnginePipeline:
             model=models_config["answer model"]["model_name"],
             temperature=models_config["answer model"]["temperature"],
             max_tokens=models_config["answer model"]["max_tokens"],
-            # verbose=True
         )
 
         # llm that compares relevant data to claims
@@ -178,11 +174,11 @@ class VerdictQueryEnginePipeline:
             temperature=models_config["verification model"]["temperature"],
             max_tokens=models_config["verification model"]["max_tokens"],
             system_prompt=PROMPT_VERDICT_TEXT,
-            # verbose=True
         )
 
         retriever = VerdictQueryEnginePipeline.build_retriever(file_path)
 
+        # TODO: add reranking to immediately get highlights of relevant nodes
         # node_postprocessors = [
         #     # MetadataReplacementPostProcessor(target_metadata_key="window"),
         #     LLMRerank(choice_batch_size=15, top_n=8, llm=self.question_llm),

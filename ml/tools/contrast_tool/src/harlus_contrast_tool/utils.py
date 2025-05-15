@@ -1,74 +1,29 @@
-import os
-import yaml
-from typing import Optional, List
-
-from typing import Dict, Callable, Tuple, Optional
 
 import fitz
-
+from llama_index.core.retrievers import BaseRetriever
 from rapidfuzz import fuzz
 
-from nltk.tokenize import sent_tokenize
-
-from llama_index.core import Document
-from llama_parse import LlamaParse
-from llama_index.core import SimpleDirectoryReader
-
-from .api_interfaces import BoundingBox
+from .api_interfaces import BoundingBox, HighlightArea
 
 
-def get_file_metadata(file_path: str) -> dict[str, str]:
+def get_highlight_area(
+        sentence: str,
+        file_path: str,
+        file_sentence_retriever: BaseRetriever,
+    ) -> HighlightArea:
+        # TODO can highlight on several pages
+        # TODO highlight several sentences related to the claim
+        # TODO move to utils
 
-    extension = os.path.splitext(file_path)[1].lower()
-    file_types = {".pdf": "pdf", ".xlsx": "excel", ".xls": "excel", ".docx": "word"}
-    return {
-        "file_type": file_types.get(extension, "unknown"),
-        "file_path": file_path,
-    }
+        # sentence that matches the claim
+        sentence = file_sentence_retriever.retrieve(sentence)
+        source = " ".join(sentence[0].get_content().split())
+        page_num = int(sentence[0].node.metadata.get("page_label"))
 
+        bbox = find_fuzzy_bounding_boxes(file_path, source, page_num) or []
 
-def load_document(file_path: str, document_type: str) -> list[Document]:
+        return HighlightArea(bounding_boxes=bbox, jump_to_page=page_num)
 
-    parser = LlamaParse(result_type="markdown")
-    reader = SimpleDirectoryReader(
-        input_files=[file_path],
-        file_extractor={".pdf": parser},
-        file_metadata=get_file_metadata,
-    )
-    documents = reader.load_data()
-
-    for i, doc in enumerate(documents):
-        doc.metadata["document_type"] = document_type
-        doc.metadata["file_type"] = "pdf"
-        doc.metadata["file_path"] = file_path
-
-        if "page_number" not in doc.metadata:
-            doc.metadata["page_number"] = i + 1
-
-    return documents
-
-
-def load_pdf_sentences(pdf_path: str):
-    """
-    Reads the PDF, splits each page into sentences,
-    and returns a list of dicts: [{"id": int, "text": str, "page": int}, ...].
-    """
-    doc = fitz.open(pdf_path)
-    sentences = []
-    sent_id = 0
-    for page_no in range(doc.page_count):
-        page = doc[page_no]
-        text = page.get_text()
-        for sent in sent_tokenize(text):
-            sentences.append(
-                {
-                    "id": sent_id,
-                    "text": sent,
-                    "page": page_no + 1,  # 1-based page numbering
-                }
-            )
-            sent_id += 1
-    return sentences
 
 
 def find_fuzzy_bounding_boxes(
@@ -76,7 +31,7 @@ def find_fuzzy_bounding_boxes(
     sentence: str,
     page_num: int,
     threshold: int = 50,
-) -> List[BoundingBox]:
+) -> list[BoundingBox]:
     """
     Fuzzy-match `sentence` on page `page_num` of `pdf_path`.
     Returns a list of (x0_pct, y0_pct, width_pct, height_pct) tuples for each matching line
@@ -126,7 +81,7 @@ def find_fuzzy_bounding_boxes(
         (x0, y0, x1, y1), _, line_no = page_words[idx]
         line_groups.setdefault(line_no, []).append(fitz.Rect(x0, y0, x1, y1))
 
-    rects: List[fitz.Rect] = []
+    rects: list[fitz.Rect] = []
     for ln in sorted(line_groups):
         group = line_groups[ln]
         r = group[0]
@@ -135,7 +90,7 @@ def find_fuzzy_bounding_boxes(
         rects.append(r)
 
     # 8) convert to relative percentage coordinates
-    output: List[BoundingBox] = []
+    output: list[BoundingBox] = []
     for r in rects:
         x0, y0 = r.x0, r.y0
         w, h = r.width, r.height

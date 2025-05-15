@@ -1,20 +1,16 @@
-from pydantic import BaseModel, Field
-from typing import List, Tuple
-
-from llama_index.llms.openai import OpenAI
-from llama_index.core.output_parsers import PydanticOutputParser
-from llama_index.core import VectorStoreIndex
-
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, get_response_synthesizer
 from llama_index.core.tools import QueryEngineTool
 from llama_index.core.base.base_query_engine import BaseQueryEngine
-
+from llama_index.core.output_parsers import PydanticOutputParser
+from llama_index.core.prompts import PromptTemplate
+from llama_index.llms.openai import OpenAI
+from llama_index.node_parser.docling import DoclingNodeParser
 from llama_index.readers.file import PDFReader
 
-from llama_index.core import get_response_synthesizer
+from pydantic import BaseModel
+from typing import List
 
 from .utils import *
-
-from llama_index.core.prompts import PromptTemplate
 
 
 class Claim(BaseModel):
@@ -43,7 +39,7 @@ class ClaimQueryEnginePipeline:
             model_config: dict
         ) -> BaseQueryEngine:
 
-        parser = LlamaParse(result_type="markdown")
+        parser = DoclingNodeParser()
         documents = SimpleDirectoryReader(
             input_files=[file_path],
             file_extractor={".pdf": parser},
@@ -69,5 +65,4 @@ class ClaimQueryEnginePipeline:
         return index.as_query_engine(
             llm=llm,
             multiple_calls=True,
-            # verbose=True,
         )

@@ -1,9 +1,11 @@
-from llama_index.core.tools import QueryEngineTool
 from llama_index.core.base.base_query_engine import BaseQueryEngine
 from llama_index.core.retrievers import BaseRetriever
-from llama_index.core.schema import Node
+
+from typing import Union, Optional
+
 from .claim_getter import ClaimQueryEnginePipeline
 from .claim_checker import VerdictQueryEnginePipeline
+from .config import config
 from .sentence_retriever import SentenceRetrieverPipeline
 from typing import Union, Optional
 
