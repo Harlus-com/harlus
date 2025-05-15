@@ -10,10 +10,11 @@ interface FileStats {
 }
 
 interface ElectronAPI {
-  getFileContent?: (path: string) => Promise<ArrayBuffer | null>;
-  getFileStats?: (path: string) => Promise<FileStats | null>;
-  getServerPort?: () => number;
-  getServerHost?: () => string;
+  getFileContent: (path: string) => Promise<ArrayBuffer | null>;
+  getFileStats: (path: string) => Promise<FileStats | null>;
+  getServerPort: () => number;
+  getServerHost: () => string;
+  upload: (filePath: string, workspaceId: string) => Promise<void>;
 }
 
 declare interface Window {

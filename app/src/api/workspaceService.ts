@@ -8,19 +8,23 @@ class WorkspaceService {
     return client.get("/workspace/all");
   }
 
-  createWorkspace(name: string, files: FileStats[]): Promise<Workspace> {
-    return client.post("/workspace/create", {
+  async createWorkspace(name: string, files: FileStats[]): Promise<Workspace> {
+    const workspace = await client.post("/workspace/create", {
       name,
-      initialFilePaths: files.map((file) => file.path),
     });
+    for (const file of files) {
+      await window.electron.upload(file.path, workspace.id);
+    }
+
+    return workspace;
   }
 
   getWorkspace(id: string): Promise<Workspace> {
-    return client.get(`/workspace/get/${id}`);
+    return client.get(`/workspace/get?workspaceId=${id}`);
   }
 
   deleteWorkspace(id: string): Promise<void> {
-    return client.delete(`/workspace/delete/${id}`);
+    return client.delete(`/workspace/delete?workspaceId=${id}`);
   }
 }
 

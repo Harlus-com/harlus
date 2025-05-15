@@ -176,10 +176,7 @@ class FileStore:
         with open(self.app_data_path.joinpath("workspaces.json"), "w") as f:
             json.dump(new_workspaces, f, indent=2)
 
-    def copy_file_to_workspace(self, path: str, workspace_id: str) -> File:
-        return self._copy_file_to_workspace_internal(path, workspace_id)
-
-    def _copy_file_to_workspace_internal(
+    def copy_file_to_workspace(
         self, path: str, workspace_id: str, app_dir: list[str] = []
     ) -> File:
         print("Copying file to workspace", path, workspace_id, app_dir)
@@ -252,9 +249,9 @@ class FileStore:
         ) as f:
             json.dump(new_files, f, indent=2)
 
-    def delete_file(self, file_id: str):
+    def delete_file(self, file_id: str, workspace_id: str):
         print("Deleting file", file_id)
-        file = self._find_file(file_id)
+        file = self.get_files(workspace_id).get(file_id)
         if file is None:
             return None
         workspace = self.get_workspaces()[file.workspace_id]

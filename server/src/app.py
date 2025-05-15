@@ -1,9 +1,15 @@
 import datetime
+import json
+import shutil
+import tempfile
+import fastapi
 from fastapi import (
     Body,
     FastAPI,
+    Form,
     HTTPException,
     Query,
+    UploadFile,
 )
 import os
 import asyncio
@@ -57,10 +63,10 @@ comment_store = CommentStore(file_store)
 sync_queue = SyncQueue(file_store, tool_library)
 
 
-@app.get("/file/handle/{file_id}")
+@app.get("/file/handle")
 def get_file(
-    file_id: str,
-    workspace_id: str = Query(..., description="The id of the workspace"),
+    file_id: str = Query(..., alias="fileId"),
+    workspace_id: str = Query(..., alias="workspaceId"),
 ):
     print("Getting file", file_id, "from workspace", workspace_id)
     file = file_store.get_file(file_id, workspace_id)
@@ -70,25 +76,6 @@ def get_file(
         # TODO: Determine if we need media_type at all and/or if we can figure it out dynamically
         media_type="application/pdf",
     )
-
-
-class LoadFileRequest(BaseModel):
-    path: str
-    workspace_id: str = Field(alias="workspaceId")
-
-
-@app.post("/file/load")
-async def load_file(request: LoadFileRequest):
-    path = request.path
-    workspace_id = request.workspace_id
-    print("Loading file", path, "to workspace", workspace_id)
-    if not os.path.isfile(path):
-        return JSONResponse(
-            status_code=404, content={"error": f"File not found: {path}"}
-        )
-    file = file_store.copy_file_to_workspace(path, workspace_id)
-    await sync_queue.queue_model_sync(file)
-    return file
 
 
 class ForceSyncFileRequest(BaseModel):
@@ -106,10 +93,13 @@ async def force_file_sync(request: ForceSyncFileRequest):
     return True
 
 
-@app.delete("/file/delete/{file_id}")
-def delete_file(file_id: str) -> bool:
-    print("Deleting file", file_id)
-    file = file_store.delete_file(file_id)
+@app.delete("/file/delete")
+def delete_file(
+    file_id: str = Query(..., alias="fileId"),
+    workspace_id: str = Query(..., alias="workspaceId"),
+) -> bool:
+    print("Deleting file", file_id, "from workspace", workspace_id)
+    file = file_store.delete_file(file_id, workspace_id)
     if file is None:
         return False
     tool_library.delete_file_tools(file)
@@ -135,7 +125,6 @@ def load_folder(request: LoadFolderRequest):
 
 class CreateWorkspaceRequest(BaseModel):
     name: str
-    initial_file_paths: list[str] = Field(alias="initialFilePaths")
 
 
 @app.post("/workspace/create")
@@ -144,18 +133,11 @@ async def create_workspace(request: CreateWorkspaceRequest):
     workspace = file_store.create_workspace(request.name)
     chat_store.add_workspace(workspace)
     comment_store.add_workspace(workspace)
-    for path in request.initial_file_paths:
-        if os.path.isdir(path):
-            file_store.copy_folder_to_workspace(path, workspace.id)
-        else:
-            file_store.copy_file_to_workspace(path, workspace.id)
-    for file in file_store.get_files(workspace.id).values():
-        await sync_queue.queue_model_sync(file)
     return workspace
 
 
-@app.get("/workspace/get/{workspace_id}")
-def get_workspace(workspace_id: str):
+@app.get("/workspace/get")
+def get_workspace(workspace_id: str = Query(..., alias="workspaceId")):
     print("Getting workspace", workspace_id)
     return file_store.get_workspaces()[workspace_id]
 
@@ -166,15 +148,15 @@ def get_workspaces() -> list[Workspace]:
     return workspaces
 
 
-@app.delete("/workspace/delete/{workspace_id}")
-def delete_workspace(workspace_id: str):
+@app.delete("/workspace/delete")
+def delete_workspace(workspace_id: str = Query(..., alias="workspaceId")):
     """Delete a workspace and all its associated files"""
     file_store.delete_workspace(workspace_id)
 
 
-@app.get("/workspace/files/{workspace_id}")
-def get_files(workspace_id: str) -> list[File]:
-    print("Getting files for workspace, time: ", datetime.datetime.now().isoformat())
+@app.get("/workspace/files")
+def get_files(workspace_id: str = Query(..., alias="workspaceId")):
+    print("Getting files for workspace", workspace_id)
     files = list(file_store.get_files(workspace_id).values())
     print("Got files, time: ", datetime.datetime.now().isoformat())
     return files
@@ -249,19 +231,18 @@ def get_contrast_analyze(
     return analyze(old_file_id, new_file_id, file_store, tool_library)
 
 
-@app.get("/file/get_from_path")
-def get_file_from_path(
-    file_path: str = Query(..., description="The absolute path of the file"),
+@app.get("/file/get")
+def get_file(
+    file_id: str = Query(..., alias="fileId"),
+    file_path: str = Query(..., alias="filePath"),
 ):
-    print("Getting file from path", file_path)
-    """Get file object from file path by searching through all workspaces"""
-    return file_store.get_file_by_path(file_path)
-
-
-@app.get("/file/get/{file_id}")
-def get_file_from_id(file_id: str):
-    print("Getting file from id", file_id)
-    return file_store.get_file(file_id)
+    print("Getting file from id", file_id, "or path", file_path)
+    if file_id:
+        return file_store.get_file(file_id)
+    elif file_path:
+        return file_store.get_file_by_path(file_path)
+    else:
+        raise HTTPException(status_code=400, detail="No file id or path provided")
 
 
 @app.post("/chat/history/save")
@@ -395,3 +376,35 @@ def delete_comment_group(request: DeleteCommentGroupRequest):
     """Delete a comment group"""
     comment_store.delete_comment_group(request.workspace_id, request.comment_group_id)
     return True
+
+
+async def is_pdf_stream(upload: UploadFile) -> bool:
+    header = await upload.read(5)
+    # Reset the stream cursor so you can read it again later
+    await upload.seek(0)
+    return header == b"%PDF-"
+
+
+@app.post("/file/upload")
+async def upload_file(
+    workspace_id: str = Form(..., alias="workspaceId"),
+    app_dir_json: str = Form(..., alias="appDir"),
+    upload: UploadFile = fastapi.File(..., alias="file"),
+):
+    app_dir: list[str] = json.loads(app_dir_json)
+    if len(app_dir) != 0:
+        file_store.add_folder(app_dir, workspace_id)
+    is_pdf = await is_pdf_stream(upload)
+    print("is_pdf", is_pdf)
+
+    tmp_dir = tempfile.mkdtemp()
+    tmp_path = os.path.join(tmp_dir, upload.filename)
+    with open(tmp_path, "wb") as out:
+        shutil.copyfileobj(upload.file, out)
+
+    # if not is_pdf:
+    #    tmp_path = await convert_to_pdf(Path(tmp_path))
+
+    file = file_store.copy_file_to_workspace(str(tmp_path), workspace_id, app_dir)
+    await sync_queue.queue_model_sync(file)
+    return file
