@@ -54,6 +54,7 @@ class Client {
 
 const port = window.electron?.getServerPort() || 8000;
 const host = window.electron?.getServerHost() || "http://localhost";
+//const host = "http://harlus-api-dev.eastus.azurecontainer.io";
 console.log("HOST", host);
 console.log("PORT", port);
 export const BASE_URL = `${host}:${port}`;

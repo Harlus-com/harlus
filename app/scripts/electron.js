@@ -63,7 +63,9 @@ async function uploadFile(filePath, appDir, workspaceId) {
     contentType: "application/octet-stream",
   });
   // This is hard coded because http://localhost:8000 fails for some reason
-  const url = "http://127.0.0.1:8000/file/upload";
+
+  const url = "http://harlus-api-dev.eastus.azurecontainer.io:8000/file/upload";
+  //const url = "http://127.0.0.1:8000/file/upload";
   const resp = await axios.post(url, form, {
     headers: form.getHeaders(),
     maxContentLength: Infinity,
