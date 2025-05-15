@@ -53,7 +53,8 @@ class Client {
 }
 
 const port = window.electron?.getServerPort() || 8000;
+const host = window.electron?.getServerHost() || "http://localhost";
+console.log("HOST", host);
 console.log("PORT", port);
-export const BASE_URL = `http://localhost:${port}`;
-export const WEBSOCKET_URL = `ws://localhost:${port}`;
+export const BASE_URL = `${host}:${port}`;
 export const client = new Client(BASE_URL);

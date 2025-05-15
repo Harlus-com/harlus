@@ -1,7 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "path";
 import fs from "fs";
-import { spawn } from "child_process";
 import mime from "mime";
 
 const logPath = "/tmp/harlus.txt"; // TODO: Put this somewhere more acceptable and cross-platform enabled
@@ -36,43 +35,6 @@ function createWindow() {
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
-}
-
-function startApi() {
-  console.log("startApi");
-  const userDataPath = app.getPath("userData");
-  console.log("userDataPath", userDataPath);
-
-  const serverBinary = path.join(
-    process.resourcesPath,
-    "server",
-    "fastapi-server"
-  );
-
-  console.log("serverBinary", serverBinary);
-
-  const apiProcess = spawn(serverBinary, ["--port", "8002"], {
-    env: {
-      APP_DATA_PATH: userDataPath,
-    },
-  });
-  apiProcess.stdout.on("data", (data) => {
-    console.log(`[API STDOUT]: ${data}`);
-  });
-
-  apiProcess.stderr.on("data", (data) => {
-    console.error(`[API STDERR]: ${data}`);
-  });
-
-  apiProcess.on("exit", (code, signal) => {
-    console.log(`API process exited with code ${code} and signal ${signal}`);
-  });
-
-  apiProcess.on("error", (error) => {
-    console.error("Error starting API:", error);
-  });
-
-  childProcesses.push(apiProcess);
 }
 
 // IPC handlers for file operations
@@ -127,7 +89,6 @@ app.whenReady().then(() => {
   console.log("whenReady");
   setupIPCHandlers();
   createWindow();
-  startApi();
 
   app.on("activate", () => {
     console.log("activate");

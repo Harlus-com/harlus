@@ -13,6 +13,7 @@ interface ElectronAPI {
   getFileContent?: (path: string) => Promise<ArrayBuffer | null>;
   getFileStats?: (path: string) => Promise<FileStats | null>;
   getServerPort?: () => number;
+  getServerHost?: () => string;
 }
 
 declare interface Window {

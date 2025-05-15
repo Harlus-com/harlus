@@ -8,3 +8,4 @@ fastapi-server.spec
 workspace
 .log
 *.ipynb
+data

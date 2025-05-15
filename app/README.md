@@ -39,21 +39,13 @@ This will start an electron server that expects a backend to be running on port 
 
 For instructions on how to start the backend server, see server/README
 
-Alternatively you can use:
-
-```bash
-npm run electron -- --start_server
-```
-
-This will start the backend server will be started on port 8001 (and the app will be configured to talk to it).
-
 You can also use
 
 ```bash
-npm run electron -- --server_port=<port>
+npm run electron -- --server_host=<remote-host>
 ```
 
-This will tell the client to look for the server on that given port. If `--start_server` is passed, it will also start the server on that port.
+This allows the app to talk to a remote host running the server.
 
 ```bash
 # Just run the app as web app without electron wrapper
