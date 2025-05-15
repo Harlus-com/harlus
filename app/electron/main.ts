@@ -64,7 +64,8 @@ async function uploadFile(
     filename: path.basename(filePath),
     contentType: "application/octet-stream",
   });
-  const url = "http://harlus-api-dev.eastus.azurecontainer.io";
+  const url = "http://harlus-api-dev.eastus.azurecontainer.io/file/upload";
+  //const url = "http://127.0.0.1:8000/file/upload";
   const resp = await axios.post(url, form, {
     headers: form.getHeaders(),
     maxContentLength: Infinity,
