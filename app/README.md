@@ -72,6 +72,8 @@ To build the app for production:
 npm run package:mac
 ```
 
+Note: To bypass mac security when downloading on another device, you might need to run `xattr -c <path/to/application.app>`
+
 or
 
 ```bash
