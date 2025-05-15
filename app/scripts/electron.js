@@ -4,13 +4,16 @@ import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import mime from "mime";
+import axios from "axios";
+import FormData from "form-data";
 
 // Runs an electron app against a local Vite dev server
 const args = process.argv;
 const serverPort =
-  args.find((arg) => arg.startsWith("--server_port="))?.split("=")[1] || "";
+  args.find((arg) => arg.startsWith("--server_port="))?.split("=")[1] || "8000";
 const serverHost =
-  args.find((arg) => arg.startsWith("--server_host="))?.split("=")[1] || "";
+  args.find((arg) => arg.startsWith("--server_host="))?.split("=")[1] ||
+  "http://localhost";
 console.log(`SERVER PORT: "${serverPort}"`);
 console.log(`SERVER HOST: "${serverHost}"`);
 
@@ -36,6 +39,38 @@ function createWindow() {
 
   mainWindow.loadURL("http://localhost:8080");
   mainWindow.webContents.openDevTools();
+}
+
+async function walk(dir) {
+  let results = [];
+  for (let name of await fs.promises.readdir(dir)) {
+    let full = path.join(dir, name);
+    let st = await fs.promises.stat(full);
+    if (st.isDirectory()) {
+      results = results.concat(await walk(full));
+    } else {
+      results.push(full);
+    }
+  }
+  return results;
+}
+
+async function uploadFile(filePath, workspaceId) {
+  const form = new FormData();
+  form.append("workspaceId", workspaceId);
+  form.append("filePath", filePath);
+  form.append("file", fs.createReadStream(filePath), {
+    filename: path.basename(filePath),
+    contentType: "application/octet-stream",
+  });
+  const url = "http://127.0.0.1:8000/file/upload";
+  const resp = await axios.post(url, form, {
+    headers: form.getHeaders(),
+    maxContentLength: Infinity,
+    maxBodyLength: Infinity,
+  });
+
+  return resp.data;
 }
 
 // IPC handlers for file operations
@@ -69,6 +104,22 @@ function setupIPCHandlers() {
       return null;
     }
   });
+
+  ipcMain.handle("upload", async (_, { filePath, workspaceId }) => {
+    console.log("upload", filePath, workspaceId);
+    const results = [];
+    let st = await fs.promises.stat(filePath);
+    if (st.isDirectory()) {
+      const allFiles = await walk(path);
+      for (let f of allFiles) {
+        results.push(await uploadFile(f, workspaceId));
+      }
+    } else {
+      console.log("uploading file", filePath, workspaceId, []);
+      results.push(await uploadFile(filePath, workspaceId, []));
+    }
+    return results;
+  });
 }
 
 const childProcesses = [];
@@ -76,9 +127,6 @@ const childProcesses = [];
 app.whenReady().then(() => {
   createWindow();
   setupIPCHandlers();
-  if (startServer) {
-    startApi();
-  }
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {

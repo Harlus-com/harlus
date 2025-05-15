@@ -252,9 +252,9 @@ class FileStore:
         ) as f:
             json.dump(new_files, f, indent=2)
 
-    def delete_file(self, file_id: str):
+    def delete_file(self, file_id: str, workspace_id: str):
         print("Deleting file", file_id)
-        file = self._find_file(file_id)
+        file = self.get_files(workspace_id).get(file_id)
         if file is None:
             return None
         workspace = self.get_workspaces()[file.workspace_id]

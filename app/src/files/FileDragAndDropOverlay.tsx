@@ -31,20 +31,11 @@ export const FileDragAndDropOverlay = ({
     e.preventDefault();
     setIsDragging(false);
 
-    const fileStats = await Promise.all(
-      Array.from(e.dataTransfer.files).map((file) =>
-        // @ts-ignore - Electron specific property
-        window.electron.getFileStats(file.path)
-      )
-    );
-    for (const fileStat of fileStats) {
-      if (fileStat.isDirectory) {
-        fileService.importFolder(fileStat.path, workspaceId);
-      }
-      if (fileStat.mimeType === "application/pdf") {
-        await fileService.importFile(fileStat.path, workspaceId);
-        notifyFileListChanged();
-      }
+    const files: any[] = Array.from(e.dataTransfer.files);
+    for (const file of files) {
+      console.log("uploading file", file.path, workspaceId);
+      await window.electron.upload(file.path, workspaceId);
+      notifyFileListChanged();
     }
   };
   return (

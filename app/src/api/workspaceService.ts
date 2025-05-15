@@ -16,11 +16,11 @@ class WorkspaceService {
   }
 
   getWorkspace(id: string): Promise<Workspace> {
-    return client.get(`/workspace/get/${id}`);
+    return client.get(`/workspace/get?workspaceId=${id}`);
   }
 
   deleteWorkspace(id: string): Promise<void> {
-    return client.delete(`/workspace/delete/${id}`);
+    return client.delete(`/workspace/delete?workspaceId=${id}`);
   }
 }
 

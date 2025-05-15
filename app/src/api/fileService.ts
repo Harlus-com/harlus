@@ -5,8 +5,6 @@ import { client } from "./client";
 import { ClaimComment } from "./comment_types";
 // Mock API service for now - will be replaced with actual API calls
 class FileService {
-  private chatHistory: ChatMessage[] = [];
-
   // Add files to the workspace
   addFiles(filePaths: string[], workspaceId: string): Promise<WorkspaceFile[]> {
     return Promise.all(
@@ -27,18 +25,18 @@ class FileService {
 
   // Get all files in the workspace
   async getFiles(workspaceId?: string): Promise<WorkspaceFile[]> {
-    return client.get(`/workspace/files/${workspaceId}`);
+    return client.get(`/workspace/files?workspaceId=${workspaceId}`);
   }
 
   deleteFile(file: WorkspaceFile): Promise<boolean> {
     return client.delete(
-      `/file/delete/${file.id}?workspace_id=${file.workspaceId}`
+      `/file/delete?fileId=${file.id}&workspaceId=${file.workspaceId}`
     );
   }
 
   getFileData(file: WorkspaceFile): Promise<ArrayBuffer> {
     return client.getBuffer(
-      `/file/handle/${file.id}?workspace_id=${file.workspaceId}`
+      `/file/handle?fileId=${file.id}&workspaceId=${file.workspaceId}`
     );
   }
 
@@ -57,34 +55,18 @@ class FileService {
   }
 
   async getFileFromId(fileId: string): Promise<WorkspaceFile> {
-    const file = await client.get(`/file/get/${fileId}`);
+    const params = new URLSearchParams({
+      fileId: fileId,
+    });
+    const file = await client.get(`/file/get?${params.toString()}`);
     return file;
   }
 
-  // Get file ID from path
   async getFileFromPath(filePath: string): Promise<WorkspaceFile> {
     const params = new URLSearchParams({
       file_path: filePath,
     });
-    console.log("[FileService] Getting file from path:", params.toString());
-    const file = await client.get(`/file/get_from_path?${params.toString()}`);
-    console.log("[FileService] File:", file);
-    /* Convert backend file to WorkspaceFile type
-    const workspaceFile: WorkspaceFile = {
-      id: file.Id,
-      name: file.name,
-      absolutePath: file.absolute_path,
-      workspaceId: file.workspace_id,
-      appDir: file.app_dir,
-      status: file.status,
-      annotations: file.annotations
-        ? {
-            show: false,
-            data: file.annotations,
-          }
-        : undefined,
-    };
-    */
+    const file = await client.get(`/file/get?${params.toString()}`);
     return file;
   }
 
