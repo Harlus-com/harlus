@@ -1,4 +1,5 @@
 import datetime
+import json
 import shutil
 import tempfile
 import fastapi
@@ -75,25 +76,6 @@ def get_file(
         # TODO: Determine if we need media_type at all and/or if we can figure it out dynamically
         media_type="application/pdf",
     )
-
-
-class LoadFileRequest(BaseModel):
-    path: str
-    workspace_id: str = Field(alias="workspaceId")
-
-
-@app.post("/file/load")
-async def load_file(request: LoadFileRequest):
-    path = request.path
-    workspace_id = request.workspace_id
-    print("Loading file", path, "to workspace", workspace_id)
-    if not os.path.isfile(path):
-        return JSONResponse(
-            status_code=404, content={"error": f"File not found: {path}"}
-        )
-    file = file_store.copy_file_to_workspace(path, workspace_id)
-    await sync_queue.queue_model_sync(file)
-    return file
 
 
 class ForceSyncFileRequest(BaseModel):
@@ -414,19 +396,23 @@ async def is_pdf_stream(upload: UploadFile) -> bool:
 @app.post("/file/upload")
 async def upload_file(
     workspace_id: str = Form(..., alias="workspaceId"),
-    file_path: str = Form(..., alias="filePath"),
+    app_dir_json: str = Form(..., alias="appDir"),
     upload: UploadFile = fastapi.File(..., alias="file"),
 ):
+    app_dir: list[str] = json.loads(app_dir_json)
+    if len(app_dir) != 0:
+        file_store.add_folder(app_dir, workspace_id)
     is_pdf = await is_pdf_stream(upload)
     print("is_pdf", is_pdf)
 
     tmp_dir = tempfile.mkdtemp()
-    tmp_path = os.path.join(tmp_dir, file_path)
+    tmp_path = os.path.join(tmp_dir, upload.filename)
     with open(tmp_path, "wb") as out:
         shutil.copyfileobj(upload.file, out)
 
     # if not is_pdf:
     #    tmp_path = await convert_to_pdf(Path(tmp_path))
 
-    stored = file_store.copy_file_to_workspace(str(tmp_path), workspace_id)
-    return stored
+    file = file_store.copy_file_to_workspace(str(tmp_path), workspace_id, app_dir)
+    await sync_queue.queue_model_sync(file)
+    return file

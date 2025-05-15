@@ -55,10 +55,10 @@ async function walk(dir) {
   return results;
 }
 
-async function uploadFile(filePath, workspaceId) {
+async function uploadFile(filePath, appDir, workspaceId) {
   const form = new FormData();
   form.append("workspaceId", workspaceId);
-  form.append("filePath", filePath);
+  form.append("appDir", JSON.stringify(appDir));
   form.append("file", fs.createReadStream(filePath), {
     filename: path.basename(filePath),
     contentType: "application/octet-stream",
@@ -110,13 +110,23 @@ function setupIPCHandlers() {
     const results = [];
     let st = await fs.promises.stat(filePath);
     if (st.isDirectory()) {
-      const allFiles = await walk(path);
-      for (let f of allFiles) {
-        results.push(await uploadFile(f, workspaceId));
+      console.log("uploading directory", filePath);
+      const baseDir = path.basename(filePath);
+      console.log("baseDir", baseDir);
+      const allFilePaths = await walk(filePath);
+      for (const p of allFilePaths) {
+        const relativeDir = path.relative(filePath, p).split(path.sep);
+        const fileName = relativeDir.pop(); // Remove the file name
+        if (fileName.startsWith(".")) {
+          continue;
+        }
+        const appDir = [baseDir, ...relativeDir];
+        console.log("appDir", appDir);
+        results.push(await uploadFile(p, appDir, workspaceId));
       }
     } else {
-      console.log("uploading file", filePath, workspaceId, []);
-      results.push(await uploadFile(filePath, workspaceId, []));
+      console.log("uploading file", filePath);
+      results.push(await uploadFile(filePath, [], workspaceId));
     }
     return results;
   });
