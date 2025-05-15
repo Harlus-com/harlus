@@ -10,10 +10,9 @@ import FormData from "form-data";
 // Runs an electron app against a local Vite dev server
 const args = process.argv;
 const serverPort =
-  args.find((arg) => arg.startsWith("--server_port="))?.split("=")[1] || "8000";
+  args.find((arg) => arg.startsWith("--server_port="))?.split("=")[1] || "";
 const serverHost =
-  args.find((arg) => arg.startsWith("--server_host="))?.split("=")[1] ||
-  "http://localhost";
+  args.find((arg) => arg.startsWith("--server_host="))?.split("=")[1] || "";
 console.log(`SERVER PORT: "${serverPort}"`);
 console.log(`SERVER HOST: "${serverHost}"`);
 
@@ -63,6 +62,7 @@ async function uploadFile(filePath, appDir, workspaceId) {
     filename: path.basename(filePath),
     contentType: "application/octet-stream",
   });
+  // This is hard coded because http://localhost:8000 fails for some reason
   const url = "http://127.0.0.1:8000/file/upload";
   const resp = await axios.post(url, form, {
     headers: form.getHeaders(),

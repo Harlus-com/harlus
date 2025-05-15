@@ -12,17 +12,6 @@ class FileService {
     );
   }
 
-  importFile(filePath: string, workspaceId: string): Promise<WorkspaceFile> {
-    return client.post("/file/load", { path: filePath, workspaceId });
-  }
-
-  importFolder(
-    folderPath: string,
-    workspaceId: string
-  ): Promise<WorkspaceFile[]> {
-    return client.post("/folder/load", { path: folderPath, workspaceId });
-  }
-
   // Get all files in the workspace
   async getFiles(workspaceId?: string): Promise<WorkspaceFile[]> {
     return client.get(`/workspace/files?workspaceId=${workspaceId}`);

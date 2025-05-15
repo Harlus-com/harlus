@@ -2,7 +2,8 @@ import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "path";
 import fs from "fs";
 import mime from "mime";
-
+import axios from "axios";
+import FormData from "form-data";
 const logPath = "/tmp/harlus.txt"; // TODO: Put this somewhere more acceptable and cross-platform enabled
 const logStream = fs.createWriteStream(logPath, { flags: "a" });
 console.log = (...args) => {
@@ -35,6 +36,42 @@ function createWindow() {
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
+}
+
+async function walk(dir: string): Promise<string[]> {
+  let results: string[] = [];
+  for (const name of await fs.promises.readdir(dir)) {
+    const full = path.join(dir, name);
+    const st = await fs.promises.stat(full);
+    if (st.isDirectory()) {
+      results = results.concat(await walk(full));
+    } else {
+      results.push(full);
+    }
+  }
+  return results;
+}
+
+async function uploadFile(
+  filePath: string,
+  appDir: string[],
+  workspaceId: string
+) {
+  const form = new FormData();
+  form.append("workspaceId", workspaceId);
+  form.append("appDir", JSON.stringify(appDir));
+  form.append("file", fs.createReadStream(filePath), {
+    filename: path.basename(filePath),
+    contentType: "application/octet-stream",
+  });
+  const url = "http://harlus-api-dev.eastus.azurecontainer.io";
+  const resp = await axios.post(url, form, {
+    headers: form.getHeaders(),
+    maxContentLength: Infinity,
+    maxBodyLength: Infinity,
+  });
+
+  return resp.data;
 }
 
 // IPC handlers for file operations
@@ -79,6 +116,32 @@ function setupIPCHandlers() {
       console.error("Error reading file:", error);
       return null;
     }
+  });
+
+  ipcMain.handle("upload", async (_, { filePath, workspaceId }) => {
+    console.log("upload", filePath, workspaceId);
+    const results = [];
+    let st = await fs.promises.stat(filePath);
+    if (st.isDirectory()) {
+      console.log("uploading directory", filePath);
+      const baseDir = path.basename(filePath);
+      console.log("baseDir", baseDir);
+      const allFilePaths = await walk(filePath);
+      for (const p of allFilePaths) {
+        const relativeDir = path.relative(filePath, p).split(path.sep);
+        const fileName = relativeDir.pop(); // Remove the file name
+        if (!fileName || fileName.startsWith(".")) {
+          continue;
+        }
+        const appDir = [baseDir, ...relativeDir];
+        console.log("appDir", appDir);
+        results.push(await uploadFile(p, appDir, workspaceId));
+      }
+    } else {
+      console.log("uploading file", filePath);
+      results.push(await uploadFile(filePath, [], workspaceId));
+    }
+    return results;
   });
 
   // Add more handlers for API communication here
