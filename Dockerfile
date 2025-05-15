@@ -18,12 +18,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY python/env/scripts/package.py ./python/env/package.py
 COPY ml ./ml
-COPY server/src ./src
-COPY server/main.py .
 
 WORKDIR /app/python/env
 RUN python package.py --link
 WORKDIR /app
+
+COPY server/src ./src
+COPY server/main.py .
 
 EXPOSE 8000
 
