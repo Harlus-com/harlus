@@ -14,6 +14,14 @@ interface ElectronAPI {
   getFileStats: (path: string) => Promise<FileStats | null>;
   getServerPort: () => number;
   getServerHost: () => string;
+  getServerClient: () => ServerClient;
+}
+
+interface ServerClient {
+  get: (path: string) => Promise<any>;
+  post: (path: string, body: any) => Promise<any>;
+  getBuffer: (path: string) => Promise<ArrayBuffer>;
+  delete: (path: string) => Promise<any>;
   upload: (filePath: string, workspaceId: string) => Promise<void>;
 }
 

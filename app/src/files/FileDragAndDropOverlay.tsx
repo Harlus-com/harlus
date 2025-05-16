@@ -3,6 +3,7 @@ import { useRef } from "react";
 
 import { useState } from "react";
 import { useFileContext } from "./FileContext";
+import { client } from "@/api/client";
 
 interface FileDragAndDropOverlayProps {
   workspaceId: string;
@@ -34,7 +35,7 @@ export const FileDragAndDropOverlay = ({
     const files: any[] = Array.from(e.dataTransfer.files);
     for (const file of files) {
       console.log("uploading file", file.path, workspaceId);
-      await window.electron.upload(file.path, workspaceId);
+      await client.upload(file.path, workspaceId);
       notifyFileListChanged();
     }
   };

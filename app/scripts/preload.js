@@ -22,6 +22,5 @@ contextBridge.exposeInMainWorld("electron", {
   // Add more API methods as needed for your application
   getServerPort: () => serverPort,
   getServerHost: () => serverHost,
-  upload: (filePath, workspaceId) =>
-    ipcRenderer.invoke("upload", { filePath, workspaceId }),
+  getServerClient: () => ipcRenderer.invoke("server-client"),
 });

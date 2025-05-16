@@ -19,6 +19,18 @@ console.log(`SERVER HOST: "${serverHost}"`);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const httpsAgent = new https.Agent({
+  cert: fs.readFileSync(
+    "/Users/danielglasgow/src/harlus/infra/nginx-mtls/tls/client.crt"
+  ),
+  key: fs.readFileSync(
+    "/Users/danielglasgow/src/harlus/infra/nginx-mtls/tls/client.key"
+  ),
+  ca: fs.readFileSync(
+    "/Users/danielglasgow/src/harlus/infra/nginx-mtls/tls/ca.crt"
+  ),
+});
+
 function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1200,
@@ -38,6 +50,32 @@ function createWindow() {
 
   mainWindow.loadURL("http://localhost:8080");
   mainWindow.webContents.openDevTools();
+}
+
+async function upload(filePath, workspaceId) {
+  console.log("upload", filePath, workspaceId);
+  const results = [];
+  let st = await fs.promises.stat(filePath);
+  if (st.isDirectory()) {
+    console.log("uploading directory", filePath);
+    const baseDir = path.basename(filePath);
+    console.log("baseDir", baseDir);
+    const allFilePaths = await walk(filePath);
+    for (const p of allFilePaths) {
+      const relativeDir = path.relative(filePath, p).split(path.sep);
+      const fileName = relativeDir.pop(); // Remove the file name
+      if (fileName.startsWith(".")) {
+        continue;
+      }
+      const appDir = [baseDir, ...relativeDir];
+      console.log("appDir", appDir);
+      results.push(await uploadFile(p, appDir, workspaceId));
+    }
+  } else {
+    console.log("uploading file", filePath);
+    results.push(await uploadFile(filePath, [], workspaceId));
+  }
+  return results;
 }
 
 async function walk(dir) {
@@ -64,12 +102,13 @@ async function uploadFile(filePath, appDir, workspaceId) {
   });
   // This is hard coded because http://localhost:8000 fails for some reason
 
-  const url = "http://harlus-api-dev.eastus.azurecontainer.io:8000/file/upload";
+  const url = "https://harlus-api-dev.eastus.azurecontainer.io/file/upload";
   //const url = "http://127.0.0.1:8000/file/upload";
   const resp = await axios.post(url, form, {
     headers: form.getHeaders(),
     maxContentLength: Infinity,
     maxBodyLength: Infinity,
+    httpsAgent,
   });
 
   return resp.data;
@@ -107,30 +146,10 @@ function setupIPCHandlers() {
     }
   });
 
-  ipcMain.handle("upload", async (_, { filePath, workspaceId }) => {
-    console.log("upload", filePath, workspaceId);
-    const results = [];
-    let st = await fs.promises.stat(filePath);
-    if (st.isDirectory()) {
-      console.log("uploading directory", filePath);
-      const baseDir = path.basename(filePath);
-      console.log("baseDir", baseDir);
-      const allFilePaths = await walk(filePath);
-      for (const p of allFilePaths) {
-        const relativeDir = path.relative(filePath, p).split(path.sep);
-        const fileName = relativeDir.pop(); // Remove the file name
-        if (fileName.startsWith(".")) {
-          continue;
-        }
-        const appDir = [baseDir, ...relativeDir];
-        console.log("appDir", appDir);
-        results.push(await uploadFile(p, appDir, workspaceId));
-      }
-    } else {
-      console.log("uploading file", filePath);
-      results.push(await uploadFile(filePath, [], workspaceId));
-    }
-    return results;
+  ipcMain.handle("server-client", () => {
+    return {
+      upload: (filePath, workspaceId) => upload(filePath, workspaceId),
+    };
   });
 }
 

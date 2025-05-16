@@ -1,4 +1,4 @@
-class Client {
+class Client implements ServerClient {
   constructor(private readonly baseUrl: string) {}
 
   async get(path: string) {
@@ -50,6 +50,10 @@ class Client {
     console.log(`DELETE ${path} Response`, data);
     return data;
   }
+
+  async upload(filePath: string, workspaceId: string) {
+    throw new Error("Not implemented");
+  }
 }
 
 const port = window.electron?.getServerPort() || 8000;
@@ -58,4 +62,5 @@ const host = window.electron?.getServerHost() || "http://localhost";
 console.log("HOST", host);
 console.log("PORT", port);
 export const BASE_URL = `${host}:${port}`;
-export const client = new Client(BASE_URL);
+export const client: ServerClient =
+  window.electron?.getServerClient() || new Client(BASE_URL);

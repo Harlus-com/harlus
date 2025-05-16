@@ -63,6 +63,11 @@ comment_store = CommentStore(file_store)
 sync_queue = SyncQueue(file_store, tool_library)
 
 
+@app.get("/healthz")
+def health_check():
+    return JSONResponse(content={"status": "ok"})
+
+
 @app.get("/file/handle")
 def get_file(
     file_id: str = Query(..., alias="fileId"),
