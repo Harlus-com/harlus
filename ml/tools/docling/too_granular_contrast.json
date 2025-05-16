@@ -1,0 +1,178 @@
+[
+  {
+    "text_1_claim_summary": "Littelfuse has a diversified product portfolio and serves over 100,000 end customers across various industries.",
+    "text_1_evidence": [
+      "Littelfuse has thousands and thousands of SKUs and sells its products to >100,000 end customers."
+    ],
+    "text_2_claim_summary": "Littelfuse operates through three reportable segments: Electronics, Transportation, and Industrial.",
+    "text_2_evidence": [
+      "The Company conducts its business through three reportable segments: Electronics, Transportation, and Industrial."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse's core business is surge protection, with a focus on increasing electrification.",
+    "text_1_evidence": [
+      "The very simple pitch for why this is an attractive business is simply the fact that it is a perfect play on increasing levels of electrification."
+    ],
+    "text_2_claim_summary": "Littelfuse's products are driven by electrification, energy efficiency, and automation.",
+    "text_2_evidence": [
+      "Across electronics end markets, product demand is largely driven by electrification, energy and power efficiency, automation, connectivity, artificial intelligence, and safety."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has a strong management team with long tenure and a focus on capital allocation.",
+    "text_1_evidence": [
+      "The CEO has been with the company for his entire career... most managers have been with the company for a very long time."
+    ],
+    "text_2_claim_summary": "Littelfuse's management team has significant experience and a focus on strategic acquisitions.",
+    "text_2_evidence": [
+      "The executive officers of the Company are as follows: David W. Heinzmann, President and Chief Executive Officer and member of the Board of Directors Mr: Heinzmann began his career at Littelfuse in 1985 as manufacturing engineer and has held positions of increasing responsibility since that time."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has a disciplined approach to capital allocation, focusing on growth investments and M&A.",
+    "text_1_evidence": [
+      "40% of this FCF is returned to shareholders and 60% is used for M&A."
+    ],
+    "text_2_claim_summary": "Littelfuse targets 5-7% average annual organic sales growth and 5-7% growth from strategic acquisitions.",
+    "text_2_evidence": [
+      "The Company is targeting average annual organic sales growth of 5-7 percent and average annual sales growth from strategic acquisitions of 5-7 percent."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has experienced significant revenue growth over the past decade, driven by acquisitions and organic growth.",
+    "text_1_evidence": [
+      "Littelfuse has tripled its sales over the last decade (2013-2023)."
+    ],
+    "text_2_claim_summary": "Littelfuse's net sales decreased by 6.0% in 2023 compared to 2022, primarily due to lower volume in the Electronics segment.",
+    "text_2_evidence": [
+      "Net sales were $2,362.7 million, which decreased by $151.2 million or 6.0% in 2023 compared to 2022 including $0.7 million favorable changes in foreign exchange rates."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse's management has a strong track record of capital allocation and growth.",
+    "text_1_evidence": [
+      "Since then, the company has completed 15 acquisitions. In the ensuing decade since 2012, Littelfuse has grown its revenue from 668 million to 2,5 billion."
+    ],
+    "text_2_claim_summary": "Littelfuse's operating income decreased by 27.9% in 2023 compared to 2022 due to lower gross profit from the Electronics and Transportation segments.",
+    "text_2_evidence": [
+      "Operating income for 2023 was $360.9 million, a decrease of $140.0 million or 27.9% compared to $500.8 million for 2022."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has a strong competitive moat due to its extensive product range and brand reputation.",
+    "text_1_evidence": [
+      "It has operated 97 years in this niche and it shows. In addition, this leads to cumulative learning that is very difficult to replicate."
+    ],
+    "text_2_claim_summary": "Littelfuse faces intense competition from larger companies with greater resources.",
+    "text_2_evidence": [
+      "The Company competes on the basis of price, product performance and quality, service, and / or brand name across the industries and markets it serves."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse's management is focused on long-term growth and shareholder value.",
+    "text_1_evidence": [
+      "The overriding focus for the next five years is accelerating growth our pathway to a larger; stronger and more successful Littelfuse."
+    ],
+    "text_2_claim_summary": "Littelfuse's management has faced challenges in achieving growth targets due to market conditions.",
+    "text_2_evidence": [
+      "The Company continues to operate in a challenging macro environment, including but not limited to, supply chain disruptions, varying regional dynamics, and some pockets of end market softness."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has a strong focus on sustainability and electrification as growth drivers.",
+    "text_1_evidence": [
+      "The very simple pitch for why this is an attractive business is simply the fact that it is a perfect play on increasing levels of electrification."
+    ],
+    "text_2_claim_summary": "Littelfuse's products are linked to sustainable applications such as electric vehicles and renewable energy.",
+    "text_2_evidence": [
+      "The Company is positioned within the global sustainability megatrend to enhance our product offering to help empower a sustainable, connected, and safer world."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has a disciplined approach to acquisitions, focusing on strategic growth areas.",
+    "text_1_evidence": [
+      "Since then, the company has completed 15 acquisitions."
+    ],
+    "text_2_claim_summary": "Littelfuse has made several strategic acquisitions to enhance its product offerings and market presence.",
+    "text_2_evidence": [
+      "The Company expects to continue to expand its market presence by leveraging its broad, global access and reach with its strong go-to-market strategy via its strategic distribution partnerships and deep OEM relationships."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse's management has a long tenure and strong loyalty, contributing to its operational stability.",
+    "text_1_evidence": [
+      "This is something that stands out across the enterprise: apart from the CFO (who has been with the company for 9 years so not too bad either), most managers have been with the company for a very long time."
+    ],
+    "text_2_claim_summary": "Littelfuse's management team has significant experience and a focus on strategic acquisitions.",
+    "text_2_evidence": [
+      "The executive officers of the Company are as follows: David W. Heinzmann, President and Chief Executive Officer and member of the Board of Directors Mr: Heinzmann began his career at Littelfuse in 1985 as manufacturing engineer and has held positions of increasing responsibility since that time."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has a strong focus on innovation and R&D to drive growth.",
+    "text_1_evidence": [
+      "The Company employs scientific, engineering, and other personnel to continually improve its existing product lines and to develop new products."
+    ],
+    "text_2_claim_summary": "Littelfuse invests significantly in R&D to support its growth strategy.",
+    "text_2_evidence": [
+      "During fiscal years 2023, 2022, and 2021, the Company expended $102.4 million, $95.6 million, and $65.9 million, respectively, on R&D."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse's management is focused on maintaining a strong balance sheet and cash flow generation.",
+    "text_1_evidence": [
+      "The Company generates very nice free cash flow."
+    ],
+    "text_2_claim_summary": "Littelfuse's net cash provided by operating activities increased in 2023 compared to 2022.",
+    "text_2_evidence": [
+      "Net cash provided by operating activities was $457.4 million for the fiscal year ended December 30, 2023 representing an increase of $37.7 million as compared to the fiscal year ended December 31, 2022."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has a diversified customer base with no single customer representing more than 10% of sales.",
+    "text_1_evidence": [
+      "No customer represents more than 10% of sales."
+    ],
+    "text_2_claim_summary": "Littelfuse's sales to Arrow Electronics, Inc. accounted for 11.2%, 11.5%, and 10.7% of consolidated net sales in 2023, 2022, and 2021, respectively.",
+    "text_2_evidence": [
+      "Sales to Arrow Electronics, Inc., which were reported in our Electronics, Transportation and Industrial segments, were 11.2%, 11.5% and 10.7% of consolidated net sales in 2023, 2022, and 2021, respectively."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse's management is focused on long-term growth and shareholder value.",
+    "text_1_evidence": [
+      "The overriding focus for the next five years is accelerating growth our pathway to a larger; stronger and more successful Littelfuse."
+    ],
+    "text_2_claim_summary": "Littelfuse's management has faced challenges in achieving growth targets due to market conditions.",
+    "text_2_evidence": [
+      "The Company continues to operate in a challenging macro environment, including but not limited to, supply chain disruptions, varying regional dynamics, and some pockets of end market softness."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has a strong focus on sustainability and electrification as growth drivers.",
+    "text_1_evidence": [
+      "The very simple pitch for why this is an attractive business is simply the fact that it is a perfect play on increasing levels of electrification."
+    ],
+    "text_2_claim_summary": "Littelfuse's products are linked to sustainable applications such as electric vehicles and renewable energy.",
+    "text_2_evidence": [
+      "The Company is positioned within the global sustainability megatrend to enhance our product offering to help empower a sustainable, connected, and safer world."
+    ],
+    "result": "match"
+  }
+]

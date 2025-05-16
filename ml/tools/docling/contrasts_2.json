@@ -1,0 +1,60 @@
+[
+  {
+    "text_1_claim_summary": "Littelfuse is a diversified, global industrial technology company with a broad product portfolio in surge protection and related electronics.",
+    "text_1_evidence": [
+      "The thesis describes Littelfuse\u2019s core activity in surge protection such as fuses, circuit breakers, etc., and highlights its near 100\u2010year history since its founding in 1927."
+    ],
+    "text_2_claim_summary": "Littelfuse\u2019s Form 10-K describes the company as \u201ca diversified, industrial technology manufacturing company empowering a sustainable, connected, and safer world\u201d with operations across more than 20 countries.",
+    "text_2_evidence": [
+      "Founded in 1927, Littelfuse is a diversified, industrial technology manufacturing company empowering a sustainable, connected, and safer world. Across more than 20 countries, and with approximately 17,000 global associates, we partner with customers to design and deliver innovative, reliable solutions."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse\u2019s revenue is geographically diversified with about 23% of sales attributed to China (shipped\u2010to basis), reflecting global end market exposure.",
+    "text_1_evidence": [
+      "The thesis notes geographical reach with 38% sales Asia Pacific, with about 23% of group sales in China, though cautioning that true end\u2010demand in China is lower."
+    ],
+    "text_2_claim_summary": "The 10-K explicitly states that about 23% of net sales are derived from China, supporting the thesis\u2019 claim on diversified geography.",
+    "text_2_evidence": [
+      "For the fiscal year 2023, approximately 65% of the Company's net sales were to customers outside the United States ('U.S.'), including approximately 23% to China."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse employs a disciplined M&A strategy that boosts growth without significantly increasing debt or diluting shareholders.",
+    "text_1_evidence": [
+      "The thesis highlights a long track record of M&A that has scaled revenue from $668 million to $2.5 billion, funded by internal cash generation without share count dilution.",
+      "Management\u2019s capital allocation discipline is emphasized as a competitive strength."
+    ],
+    "text_2_claim_summary": "The 10-K evidence supports the claim that Littelfuse uses internal cash to fund strategic acquisitions and maintains low debt and stable share count.",
+    "text_2_evidence": [
+      "The Form 10-K details multiple acquisitions including C&K, Carling, and Western Automation, and shows that acquisitions were primarily financed with cash on hand; share repurchase programs note no shares were repurchased during 2023, 2022, and 2021.",
+      "The debt table shows total long-term debt of approximately $857.9 million versus total equity of about $2,480.5 million, indicating conservative leverage."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "While margin expansion is not the primary focus, investor day targets operating margins of 17\u201319%, which suggests competitive profitability similar to peers.",
+    "text_1_evidence": [
+      "The thesis states that marginal expansion isn\u2019t the primary growth lever, and targets set from investor day are 17\u201319% operating margins (noting 16.5% in 2023)."
+    ],
+    "text_2_claim_summary": "The 10-K\u2019s reported operating margins in 2023 are lower (about 15.3%) than the investor day target of 17\u201319% cited in the thesis.",
+    "text_2_evidence": [
+      "The Form 10-K shows total operating income of $360.9 million on net sales of $2,362.7 million for 2023, which corresponds to an operating margin of approximately 15.3%.",
+      "Segment breakdown shows Electronics with margins around 22.3% but Transportation only 5.0%, pulling down the overall margin."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse consistently converts more than 100% of its non-GAAP net income into free cash flow, enabling it to fund its acquisitions without stress on its balance sheet.",
+    "text_1_evidence": [
+      "The thesis highlights that Littelfuse has excellent free cash flow generation and that a high portion of free cash flow is reinvested in M&A."
+    ],
+    "text_2_claim_summary": "The 10-K evidence confirms robust free cash flow conversion, supporting the thesis\u2019 point on strong cash generation for capital allocation.",
+    "text_2_evidence": [
+      "The Consolidated Statements of Cash Flows in the Form 10-K show net cash provided by operating activities of $457.4 million in 2023 compared to net income of $259.5 million, reflecting a conversion well above 100%."
+    ],
+    "result": "match"
+  }
+]

@@ -1,0 +1,143 @@
+[
+  {
+    "text_1_claim_summary": "Littelfuse has a diversified product portfolio that includes fuses, circuit protection devices, and semiconductors.",
+    "text_1_evidence": [
+      "The Company designs, manufactures, and sells electronic components and modules empowering its customers' applications focused on a more sustainable, connected, and safer world.",
+      "The Electronics segment consists of one of the broadest product offerings in the industry, including fuses and fuse accessories, positive temperature coefficient ('PTC') resettable fuses, electromechanical switches and interconnect solutions, polymer electrostatic discharge ('ESD') suppressors, varistors, gas discharge tubes; semiconductor products such as discrete transient voltage suppressor ('TVS') diodes, TVS diode arrays, protection and switching thyristors, silicon and silicon carbide metal-oxide-semiconductor field effect transistors ('MOSFETs') and diodes; and insulated gate bipolar transistors ('IGBT') technologies."
+    ],
+    "text_2_claim_summary": "Littelfuse's product offerings are extensive and include various electronic components and modules.",
+    "text_2_evidence": [
+      "Littelfuse is a diversified, industrial technology manufacturing company empowering a sustainable, connected, and safer world. Across more than 20 countries, and with approximately 17,000 global associates, we partner with customers to design and deliver innovative, reliable solutions. Serving over 100,000 end customers, our products are found in a variety of industrial, transportation and electronics end markets - everywhere, every day.",
+      "The Company conducts its business through three reportable segments: Electronics, Transportation, and Industrial. Within these segments, the Company designs, manufactures and sells electronic components, modules and subassemblies to empower the long-term secular growth themes of sustainability, connectivity and safety."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has a strong focus on electrification and sustainability as key growth drivers.",
+    "text_1_evidence": [
+      "The very simple pitch for why this is an attractive business is simply the fact that it is a perfect play on increasing levels of electrification.",
+      "The Company is well-positioned within the center of the global structural growth themes of sustainability, connectivity, and safety, which will continue to drive increased demand for the Company's products across the transportation, industrial and electronics end markets that it serves."
+    ],
+    "text_2_claim_summary": "Littelfuse's growth strategy is centered around sustainability and electrification.",
+    "text_2_evidence": [
+      "The Company believes its balanced approach positions its business for the long-term sustainability, increases diversification and creates additional growth opportunities. Across electronics end markets, product demand is largely driven by electrification, energy and power efficiency, automation, connectivity, artificial intelligence, and safety.",
+      "The Company expects the ever-increasing advancements of application architectures, driven by ongoing electronification and electrification across these end markets, to drive increasing product content opportunities."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has a strong management team with long tenures and a focus on capital allocation.",
+    "text_1_evidence": [
+      "The CEO has been with the company for his entire career. This is something that stands out across the enterprise: apart from the CFO (who has been with the company for 9 years so not too bad either), most managers have been with the company for a very long time.",
+      "I think this employee loyalty is very important for companies where engineers perform tasks that are more art than science."
+    ],
+    "text_2_claim_summary": "Littelfuse's management team has significant experience and a long tenure with the company.",
+    "text_2_evidence": [
+      "David W. Heinzmann, President and Chief Executive Officer and member of the Board of Directors Mr: Heinzmann began his career at Littelfuse in 1985 as manufacturing engineer and has held positions of increasing responsibility since that time, including Vice President, Global Operations; from 2007 to 2014, and Chief Operating Officer from 2014 until assuming his current position in 2017.",
+      "The Company has a strong global presence and employs approximately 17,000 associates worldwide."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has a disciplined approach to capital allocation, focusing on growth investments and shareholder returns.",
+    "text_1_evidence": [
+      "40% of this FCF is returned to shareholders and 60% is used for M&A. Taking into account the small dividend, all in all, there s not a big buyback story here.",
+      "The overriding focus for the next five years is accelerating growth our pathway to a larger; stronger and more successful Littelfuse."
+    ],
+    "text_2_claim_summary": "Littelfuse's capital allocation strategy emphasizes growth investments and shareholder returns.",
+    "text_2_evidence": [
+      "The Company expects to achieve this through content and share gains, expanded presence in high-growth markets and geographies, and targeting adjacent high-growth and niche applications.",
+      "The Company is targeting average annual organic sales growth of 5-7 percent and average annual sales growth from strategic acquisitions of 5-7 percent."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse's revenue has shown significant growth over the past decade, driven by acquisitions and organic growth.",
+    "text_1_evidence": [
+      "Littelfuse has only reported organic growth since 2017 and during this period, we've seen quite exceptional cycles: for instance, 2021 and 2022 generated 33% and 11% organic growth, respectively.",
+      "In the ensuing decade since 2012, Littelfuse has grown its revenue from 668 million to 2,5 billion and has grown its earnings per share from 3,8 dollars to 16,8 dollars."
+    ],
+    "text_2_claim_summary": "Littelfuse's revenue has decreased in 2023 compared to 2022, primarily due to lower volume in the Electronics segment.",
+    "text_2_evidence": [
+      "Net sales were $2,362.7 million, which decreased by $151.2 million or 6.0% in 2023 compared to 2022 including $0.7 million favorable changes in foreign exchange rates.",
+      "The decrease was primarily driven by lower volume in the Electronics segment and the commercial vehicle business within the Transportation segment that more than offset $91.9 million or 3.7% of incremental net sales from the C&amp;K acquisition within the Electronics segment."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse's management has a strong track record of acquisitions to drive growth.",
+    "text_1_evidence": [
+      "Since then, the company has completed 15 acquisitions. In the ensuing decade since 2012, Littelfuse has grown its revenue from 668 million to 2,5 billion and has grown its earnings per share from 3,8 dollars to 16,8 dollars.",
+      "The Company expects to achieve this through content and share gains, expanded presence in high-growth markets and geographies, and targeting adjacent high-growth and niche applications."
+    ],
+    "text_2_claim_summary": "Littelfuse's recent acquisitions have not significantly impacted its financial results in 2023.",
+    "text_2_evidence": [
+      "The acquisition of the Dortmund Fab is expected to close in early fiscal year 2025. The total purchase price for the fab is approximately 93 million Euro, of which 37.2 million Euro down payment (approximately $40.5 million) was paid in the third quarter after regulatory approvals and approximately 56 million Euro will be paid at closing. The transaction did not have a material impact on the Company's fiscal year 2023 financial results and is not expected to have a material impact on the Company's 2024 financial results.",
+      "The Company completed the acquisition of Western Automation for approximately $162 million in cash. The business is reported within the Company's Industrial segment. The Company financed the transaction with cash on hand."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse's competitive moat is strengthened by its extensive product offerings and long-standing customer relationships.",
+    "text_1_evidence": [
+      "Just think about how difficult it would be to replicate the huge assortment of solutions the company offers. It has operated 97 years in this niche and it shows.",
+      "I think this criticality only increases when thinking of semi fabs or data centres that literally cost billions of dollars."
+    ],
+    "text_2_claim_summary": "Littelfuse faces significant competition from larger companies with greater resources.",
+    "text_2_evidence": [
+      "The Company's products compete with similar products of other manufacturers, some of which may have substantially greater financial resources than the Company.",
+      "In the Electronics segment, the Company's competitors include Eaton Corporation, Bourns Inc., TDK, ON Semiconductor Corporation, Infineon Technologies, STMicroelectronics NV, Semtech Corporation, and Vishay Intertechnology Inc."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse's management emphasizes organic growth and strategic acquisitions as key components of its growth strategy.",
+    "text_1_evidence": [
+      "The Company is targeting average annual organic sales growth of 5-7 percent and average annual sales growth from strategic acquisitions of 5-7 percent.",
+      "The overriding focus for the next five years is accelerating growth our pathway to a larger; stronger and more successful Littelfuse."
+    ],
+    "text_2_claim_summary": "Littelfuse's recent financial performance has been impacted by lower organic growth in 2023.",
+    "text_2_evidence": [
+      "2023 organic growth was -10%.",
+      "The decrease was primarily driven by lower volume in the Electronics segment and the commercial vehicle business within the Transportation segment."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has a diverse customer base with no single customer representing more than 10% of sales.",
+    "text_1_evidence": [
+      "No customer represents more than 10% of sales and I would assume the customer base to be extremely fragmented, as is usual for this kind of business."
+    ],
+    "text_2_claim_summary": "Littelfuse's sales are significantly impacted by a few key customers.",
+    "text_2_evidence": [
+      "Sales to Arrow Electronics, Inc., which were reported in our Electronics, Transportation and Industrial segments, were 11.2%, 11.5% and 10.7% of consolidated net sales in 2023, 2022, and 2021, respectively. No other single customer accounted for more than 10% of net sales during any of the last three years."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse's management has a strong focus on maintaining high-quality earnings and prudent accounting practices.",
+    "text_1_evidence": [
+      "I find that Littelfuse's accounting is more prudent than I normally encounter. To state 3 simple examples: There are very few GAAP to non-GAAP adjustments, which is especially impressive given the many acquisitions, which usually gives companies the perfect excuse to make a lot of adjustments.",
+      "They constantly overstate net debt versus what you would calculate yourself. This is because they do not take into account cash that cannot be repatriated to the US."
+    ],
+    "text_2_claim_summary": "Littelfuse's accounting practices may not be as conservative as suggested.",
+    "text_2_evidence": [
+      "The Company recognizes the tax benefit from an uncertain tax position only if it is more likely than not that the tax position will be sustained on examination by the taxing authorities, based on the technical merits of the position.",
+      "The Company recognizes accrued interest and penalties associated with uncertain tax positions as part of income tax expense."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse's management has a strong commitment to sustainability and environmental responsibility.",
+    "text_1_evidence": [
+      "The Company is committed to empowering change on its sustainability journey. Every Littelfuse employee, customer, and partner has the potential to drive positive change - environmentally, socially, and ethically.",
+      "The Company publishes an annual Sustainability Report to communicate our commitment, approach, and impact on each of our focus areas."
+    ],
+    "text_2_claim_summary": "Littelfuse's sustainability initiatives may not be as impactful as claimed.",
+    "text_2_evidence": [
+      "The potential physical impacts of climate change on our business operations are highly uncertain and differ in each geographic region where we operate. These impacts may include changes in weather patterns and increased weather intensity, water shortages, changing sea levels and changing temperatures.",
+      "Increased government or governmental bodies contemplating legislative and regulatory changes in response to the potential impact of climate change could impose significant costs on us and our suppliers and customers."
+    ],
+    "result": "contradiction"
+  }
+]

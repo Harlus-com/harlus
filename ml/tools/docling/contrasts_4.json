@@ -1,0 +1,72 @@
+[
+  {
+    "text_1_claim_summary": "Revenue is geographically balanced \u2013 38% North America, 38% Asia-Pacific (incl. c.23% China) and 24% Europe.",
+    "text_1_evidence": [
+      "\"In terms of geographical reach, Littelfuse is globally active with 38% of sales in North America, 38% of sales Asia Pacific (23% of group is China) and 24% Europe.\""
+    ],
+    "text_2_claim_summary": "2023 disclosure shows virtually identical regional split: Americas 38%, Asia-Pacific 38%, Europe 24%; China ~23% of sales.",
+    "text_2_evidence": [
+      "\"Net sales in the Company's three geographic regions, based upon the shipped-to destination, are as follows:\"",
+      "\"Americas  $ 901.5 ... Asia-Pacific  $ 898.9 ... Europe  $ 562.3 ... Total  $ 2,362.7\"",
+      "\"For the fiscal year 2023, approximately 65% of the Company's net sales were to customers outside the United States ('U.S.'), including approximately 23% to China.\""
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "No single customer accounts for more than 10% of sales.",
+    "text_1_evidence": [
+      "\"In terms of clients, no customer represents more than 10% of sales\""
+    ],
+    "text_2_claim_summary": "Arrow Electronics represented 11.2% of 2023 sales (and >10% in 2022 & 2021).",
+    "text_2_evidence": [
+      "\"Sales to Arrow Electronics, Inc., which were reported in our Electronics, Transportation and Industrial segments, were 11.2%, 11.5% and 10.7% of consolidated net sales in 2023, 2022, and 2021, respectively.\""
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Company employs roughly 17,000 people worldwide.",
+    "text_1_evidence": [
+      "\"Littelfuse has 17,000 employees.\""
+    ],
+    "text_2_claim_summary": "10-K confirms ~17,000 employees as of year-end 2023.",
+    "text_2_evidence": [
+      "\"On December 30, 2023, the Company had approximately 17,000 full-time, part-time and temporary employees;\""
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Five-year plan targets 5\u20137 % organic growth plus 5\u20137 % from M&A.",
+    "text_1_evidence": [
+      "\"laid out their growth targets, aiming for double-digit revenue growth, in turn composed of:\\n- -5-7% organic growth\\n- -5-7% growth from acquisitions\""
+    ],
+    "text_2_claim_summary": "10-K reiterates targets of 5-7 % organic sales growth and 5-7 % from strategic acquisitions.",
+    "text_2_evidence": [
+      "\"The Company is targeting average annual organic sales growth of 5-7 percent and average annual sales growth from strategic acquisitions of 5-7 percent.\""
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Products are sold to more than 100,000 end-customers, illustrating fragmentation.",
+    "text_1_evidence": [
+      "\"sells its products to >100,000 end customers ,\""
+    ],
+    "text_2_claim_summary": "10-K states Littelfuse serves over 100,000 end customers.",
+    "text_2_evidence": [
+      "\"Serving over 100,000 end customers, our products are found in a variety of industrial, transportation and electronics end markets - everywhere, every day.\""
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Key competitor set includes Eaton, Bourns, TDK, ON Semi, Infineon, STMicro, Semtech, Amphenol, Sensata, Mersen and TE Connectivity.",
+    "text_1_evidence": [
+      "\"Littelfuse has a number of competitors, with the most important being Eaton Corporation, Bourns Inc, TDK, ON  Semiconductor, Infineon, STMicro, Semtech, Amphenol, Sensata, Mersen  and TE Connectivity.\""
+    ],
+    "text_2_claim_summary": "10-K lists largely the same competitors across segments (Eaton, Bourns, TDK, ON Semi, Infineon, STMicro, Semtech, Amphenol, Sensata, Mersen, TE Connectivity, etc.).",
+    "text_2_evidence": [
+      "\"In the Electronics segment, the Company's competitors include Eaton Corporation, Bourns Inc., TDK, ON Semiconductor Corporation, Infineon Technologies, STMicroelectronics NV, Semtech Corporation, and Vishay Intertechnology Inc.\",",
+      "\"In the Transportation segment, the Company's competitors include Eaton Corporation, ... Amphenol Corporation, Sensata Technologies Holding NV, and TE Connectivity Ltd.\",",
+      "\"In the Industrial segment, the Company's major competitors include Eaton Corporation, GE Multilin, and Mersen.\""
+    ],
+    "result": "match"
+  }
+]

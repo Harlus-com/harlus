@@ -1,0 +1,29 @@
+{
+  "contrasts": [
+    {
+      "text_1_claim_summary": "Littelfuse operates in diverse and growing end markets, primarily benefiting from electrification trends.",
+      "text_1_evidence": [
+        "Littelfuse has seen exceptional growth driven by areas such as energy storage, renewable energy, data centres, battery technology, and EV charging infrastructure."
+      ],
+      "text_2_claim_summary": "Littelfuse has recently faced declining sales, particularly in the Electronics and Transportation segments.",
+      "text_2_evidence": [
+        "Net sales decreased by 6.0% compared to the previous year, with the top contributing factors being lower volumes in the Electronics segment and the commercial vehicle business within Transportation."
+      ],
+      "similarity_score": -0.8
+    },
+    {
+      "text_1_claim_summary": "The company has a strong management team with significant experience within the industry.",
+      "text_1_evidence": [
+        "The CEO, David W. Heinzmann, has been with the company since 1985, which illustrates stability and deep knowledge within the management team."
+      ],
+      "text_2_claim_summary": "Management has faced challenges in integrating recent acquisitions, and the performance of acquired companies may not meet expectations.",
+      "text_2_evidence": [
+        "The integration of acquisitions such as C&K Switches and Western Automation has posed challenges for the company, leading to operational impacts."
+      ]
+    },
+    "{",
+    ":",
+    ":",
+    "similarity_score}]"
+  ]
+}

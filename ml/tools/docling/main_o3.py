@@ -91,34 +91,18 @@ Text 2 – Evidence Pack
 May reinforce, nuance, or contradict the thesis via earnings calls, sell‐side notes, regulatory filings, competitor commentary, press articles, etc.
 
 Your task:
-Identify supporting or contradicting evidence in Text 2 relative to each key claim in Text 1, then summarise the contrasts in a structured JSON list of Contrast objects (schema below).
+Identify supporting or contradicting evidence in Text 2 relative to key claims in Text 1, then summarise the contrasts in a structured JSON list of Contrast objects (schema below).
 
 You key objective is to find contrasts that would help an investor to understand whether to update their investment thesis (text 1).
-Also, make sure to focus on general themes, rather than small details or facts.
-For example, "Customers are diversified geographically" is a better claim then, "Customer are split X, Y and Z percent between North America, Euorope and Asia". 
-In general, claims should never be about exact numbers. Never include numbers in claims.
-
-Judgement on granularity:
-- Prefer fewer high level contrasts with multiple evidence excerpts, rather than more low level contrasts with a single evidence excerpt.
-- If overlap is vast, prioritise the strongest confirmations or contradictions (materiality, credibility of source, magnitude of impact).
-- If overlap is minimal, return only the few relevant points—or none, if genuinely no intersection exists.
-
-Parity of treatment:
-- Give equal weight to confirming and disconfirming evidence.
-- A “match” is still valuable; do not bias toward finding contradictions.
-
-Evidence quality:
-- Use exact excerpts—verbatim sentences or short paragraphs—from each text to back every claim summary.
-- Choose excerpts that plainly anchor the summary; avoid vague paraphrase or partial quotes.
 """
 
 print(len(text1))
 print(len(text2))
-
-model = "gpt-4o-mini"
+text2 = text2[:80000]
+print(len(text2))
 
 response = client.chat.completions.create(
-    model=model,
+    model="o3",
     messages=[
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": f"Text 1:\n\n{text1}"},
@@ -168,9 +152,6 @@ with open(f"contrasts_{run_count}.json", "w") as f:
 
 
 with open(f"contrasts_{run_count}.txt", "w") as f:
-    f.write(f"Contrasts for run {run_count}\n")
-    f.write(f"Used model: {model}\n")
-    f.write(f"Used prompt:\n{system_prompt}\n")
     f.write("[\n")
     for i, c in enumerate(contrasts):
         contrast_dict = c.model_dump()

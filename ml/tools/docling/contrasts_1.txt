@@ -1,0 +1,81 @@
+[
+  {
+    "text_1_claim_summary": "Littelfuse has a strong competitive moat due to its extensive product range and long-standing industry presence.",
+    "text_1_evidence": [
+      "Littelfuse has operated 97 years in this niche and it shows.,
+      "Just think about how difficult it would be to replicate the huge assortment of solutions the
+        company offers.,
+    ],
+    "text_2_claim_summary": "Littelfuse faces intense competition from larger companies with greater resources.",
+    "text_2_evidence": [
+      "The Company competes on the basis of price, product performance and quality, service, and / or
+        brand name across the industries and markets it serves.,
+      "Some of the Company's competitors have substantially greater sales, financial and manufacturing
+        resources and may have greater access to capital than the Company.,
+    ],
+    "result": "contradiction",
+  },
+  {
+    "text_1_claim_summary": "Littelfuse's management has a strong track record of capital allocation and long-term growth.",
+    "text_1_evidence": [
+      "Since then, the company has completed 15 acquisitions.,
+      "The overriding focus for the next five years is accelerating growth our pathway to a larger;
+        stronger and more successful Littelfuse.,
+    ],
+    "text_2_claim_summary": "Littelfuse's recent acquisitions may not yield the anticipated benefits and could face integration challenges.",
+    "text_2_evidence": [
+      "The Company engages in strategic acquisitions and may not realize the anticipated benefits of the
+        acquisitions and/or may encounter difficulties in integrating these businesses.,
+      "An acquired business, technology, service or product could under-perform relative to the Company's
+        expectations and the price paid for it.,
+    ],
+    "result": "contradiction",
+  },
+  {
+    "text_1_claim_summary": "Littelfuse is well-positioned to benefit from increasing electrification trends across various industries.",
+    "text_1_evidence": [
+      "The very simple pitch for why this is an attractive business is simply the fact that it is a
+        perfect play on increasing levels of electrification.,
+      "Just looking at the end markets of Littelfuse we note areas such as energy storage, renewable
+        energy, data centres, factory automation, battery technology, EV charging infrastructure, etc.,
+    ],
+    "text_2_claim_summary": "Littelfuse's sales decreased in 2023 due to lower demand in key segments.",
+    "text_2_evidence": [
+      "Net sales were $2,362.7 million, which decreased by $151.2 million or 6.0% in 2023 compared to 2022
+        including $0.7 million favorable changes in foreign exchange rates.,
+      "The decrease was primarily driven by lower volume in the Electronics segment and the commercial
+        vehicle business within the Transportation segment.,
+    ],
+    "result": "contradiction",
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has a diversified customer base with no single customer representing more than 10% of sales.",
+    "text_1_evidence": [
+      "No customer represents more than 10% of sales and I would assume the customer base to be extremely
+        fragmented.,
+    ],
+    "text_2_claim_summary": "Littelfuse's sales to a major customer, Arrow Electronics, represent a significant portion of its revenue.",
+    "text_2_evidence": [
+      "Sales to Arrow Electronics, Inc., which were reported in our Electronics, Transportation and
+        Industrial segments, were 11.2%, 11.5% and 10.7% of consolidated net sales in 2023, 2022, and 2021,
+        respectively.,
+    ],
+    "result": "contradiction",
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has a disciplined approach to capital allocation, focusing on growth investments and shareholder returns.",
+    "text_1_evidence": [
+      "40% of this FCF is returned to shareholders and 60% is used for M&A.,
+      "The overriding focus for the next five years is accelerating growth our pathway to a larger;
+        stronger and more successful Littelfuse.,
+    ],
+    "text_2_claim_summary": "Littelfuse's recent financial performance shows a decline in net income and operating income.",
+    "text_2_evidence": [
+      "Net income was $259.5 million, or $10.34 per diluted share, in 2023 compared to net income of
+        $373.3 million, or $14.94 per diluted share in 2022.,
+      "Operating income for 2023 was $360.9 million, a decrease of $140.0 million or 27.9% compared to
+        $500.8 million for 2022.,
+    ],
+    "result": "contradiction",
+  }
+]

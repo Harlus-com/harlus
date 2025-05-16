@@ -1,0 +1,89 @@
+[
+  {
+    "text_1_claim_summary": "No customer represents >10% of sales and customer base is highly fragmented",
+    "text_1_evidence": [
+      ""no customer represents more than 10% of sales and I would assume the customer base to be extremely
+        fragmented",
+    ],
+    "text_2_claim_summary": "No single customer accounted for >10% of net sales; 4,000+ customers globally",
+    "text_2_evidence": [
+      ""Sales to Arrow Electronics... were 11.2%, 11.5% and 10.7% of consolidated net sales in 2023, 2022
+        and 2021 respectively. No other single customer accounted for more than 10% of net sales in the
+        last three years.",
+      ""The Company directly sells to over 4,000 customers and distributors worldwide.",
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "Acquisitions funded primarily by internal cash, maintaining low leverage",
+    "text_1_evidence": [
+      ""This has all been financed by internal cash generation and debt levels have barely budged.",
+      ""Management targets a net debt/EBITDA between 1.5x-2.5x so we are very comfortable today.",
+    ],
+    "text_2_claim_summary": "Acquisitions funded by cash on hand/debt; net debt/EBITDA ~1.3x",
+    "text_2_evidence": [
+      ""On February 3, 2023, the Company completed the acquisition of Western Automation for approximately
+        $162 million in cash.",
+      ""Net cash provided by operating activities was $457.4 million... funding of M&A activities.",
+      ""Net debt/EBITDA for 2023 is 1.3x.",
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "Free cash flow converts >100% of net income",
+    "text_1_evidence": [
+      ""Littelfuse is able to constantly convert more than 100% of non-GAAP net income into free cash
+        flow.",
+      ""Average FCF conversion over the past decade has been 105%.",
+    ],
+    "text_2_claim_summary": "Free cash flow conversion shows >100% in multiple years",
+    "text_2_evidence": [
+      ""Conversion: 126% in 2023, 75% in 2022, 86% in 2021, with average FCF conversion over the past
+        decade of 105%.",
+      ""Free cash flow and Non-GAAP net income table",
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "Operating margins not a major focus; targets 17-19%",
+    "text_1_evidence": [
+      ""Targets from the 2021-2025 period investor day are 17-19% operating margins (vs 16.5% in 2023).",
+      ""Margin expansion is not the highest priority for Littelfuse.",
+    ],
+    "text_2_claim_summary": "2023 operating margin at 15.3%, below target but in line peer margins",
+    "text_2_evidence": [
+      ""Operating margin was 15.3% in 2023 compared to 19.9% in 2022.",
+      ""Targets from the 2021 strategic plan are 17-19% operating margins.",
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "No material share repurchase program, minimal buybacks",
+    "text_1_evidence": [
+      ""Taking into account the small dividend, all in all, there’s not a big buyback story here.",
+    ],
+    "text_2_claim_summary": "No shares repurchased in 2023; $300M authorization remains unused",
+    "text_2_evidence": [
+      ""The Company did not repurchase shares of its common stock during the fiscal year ended December
+        30, 2023.",
+      ""There are $300 million in the aggregate of shares available for purchase under the program as of
+        December 30, 2023.",
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "Management and governance effective; long tenures and alignment",
+    "text_1_evidence": [
+      ""The CEO has been with the company for his entire career... most managers have been with the
+        company for a very long time.",
+      ""The CEO holds some $12 million in Littelfuse shares...performance-linked incentives.",
+    ],
+    "text_2_claim_summary": "Executive officers have long service histories; governance disclosures",
+    "text_2_evidence": [
+      ""David W. Heinzmann began his career at Littelfuse in 1985...",
+      ""Most executive officers listed have tenures with Littelfuse ranging from 6 to 33 years.",
+      ""The Compensation Committee and Audit Committee governance sections.",
+    ],
+    "result": "match",
+  }
+]

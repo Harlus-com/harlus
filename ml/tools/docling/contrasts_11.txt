@@ -1,0 +1,132 @@
+[
+  {
+    "text_1_claim_summary": "Littelfuse offers a very broad portfolio of surge protection devices and has also branched into passives, discretes, sensors, switches and semiconductors across thousands of SKUs",
+    "text_1_evidence": [
+      "The core activity of Littelfuse is still ... surge protection: fuses, circuit breakers, etc.,
+      "the company has ... also branch out ... passives, discretes, sensors, switches and semiconductors,
+      "Littelfuse has thousands and thousands of SKUs,
+    ],
+    "text_2_claim_summary": "The Company conducts business through three segments—Electronics, Transportation and Industrial—with a wide array of products including fuses, PTC resettable fuses, switches, interconnect solutions and semiconductors",
+    "text_2_evidence": [
+      "The Company conducts its business through three reportable segments: Electronics, Transportation,
+        and Industrial.,
+      "Electronics Segment: consists of one of the broadest product offerings in the industry, including
+        fuses and fuse accessories, PTC resettable fuses, electromechanical switches ... semiconductor
+        products,
+      "Transportation Segment: consists of a wide range of circuit protection, power control and sensing
+        technologies,
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "Littelfuse serves diverse global end markets in electronics, transportation and industrial sectors; no single customer or market represents an outsized portion of revenue",
+    "text_1_evidence": [
+      "just like analog industrial chip companies ... we are talking about an incomprehensibly wide range
+        of products,
+      "no customer represents more than 10% of sales,
+      "diversified global end market exposure,
+    ],
+    "text_2_claim_summary": "Net sales are spread across multiple regions and segments, with no single customer accounting for more than 11% of net sales",
+    "text_2_evidence": [
+      "For the fiscal year 2023, approximately 65% of the Company's net sales were to customers outside
+        the United States,
+      "Sales to Arrow Electronics ... were 11.2%, 11.5% and 10.7% of consolidated net sales in 2023, 2022,
+        and 2021, respectively. No other single customer accounted for more than 10%,
+      "Net sales by segment: Electronics $1.35bn, Transportation $678m, Industrial $334m,
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "Littelfuse is well positioned to benefit from long-term secular growth themes in electrification and electronification across energy storage, renewables, EV charging, data centers and automation",
+    "text_1_evidence": [
+      "it is a perfect play on increasing levels of electrification,
+      "end markets ... energy storage, renewable energy, data centres, factory automation, battery
+        technology, EV charging infrastructure,
+    ],
+    "text_2_claim_summary": "The Company's strategy targets growth in sustainability, connectivity and safety themes, driven by electrification and power efficiency in its electronics, transportation and industrial end markets",
+    "text_2_evidence": [
+      "we partner with customers to design and deliver innovative, reliable solutions ... empowering a
+        sustainable, connected, and safer world,
+      "The Company is well-positioned within the center of the global structural growth themes of
+        sustainability, connectivity, and safety,
+      "product demand is largely driven by electrification, energy and power efficiency, automation,
+        connectivity, artificial intelligence, and safety,
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has a durable competitive moat based on its breadth of products, long history, cumulative expertise, strong brand in safety and criticality of its offerings",
+    "text_1_evidence": [
+      "huge assortment of solutions ... difficult to replicate,
+      "has operated 97 years in this niche ... leads to cumulative learning that is very difficult to
+        replicate,
+      "built its brand name for 97 years with customers relying on this company for safety,
+    ],
+    "text_2_claim_summary": "The Company competes globally on the basis of innovative products, breadth of product line, reliability, consistency, safety, technical capabilities, global footprint and customer service",
+    "text_2_evidence": [
+      "The Company believes that it globally competes on the basis of innovative products, the breadth of
+        its product line, the quality, design and performance of its products based on their reliability,
+        consistency and safety,
+      "With its expanding, diversified product portfolio, the Company has evolved its presence across the
+        industrial, transportation and electronics end markets it serves,
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has executed a disciplined M&A strategy, completing numerous small acquisitions funded from internal cash flow without significant equity dilution",
+    "text_1_evidence": [
+      "Since then, the company has completed 15 acquisitions,
+      "40% of FCF is returned to shareholders and 60% is used for M&A,
+      "This is financed by internal cash generation and debt levels have barely budged,
+    ],
+    "text_2_claim_summary": "In recent years, the Company has acquired Western Automation, C&K Switches, Embed, Carling Technologies and Hartland Controls, financing these transactions primarily with cash on hand and debt",
+    "text_2_evidence": [
+      "On February 3, 2023, the Company completed the acquisition of Western Automation ... financed the
+        transaction with cash on hand,
+      "On July 19, 2022, the Company acquired C&K Switches ... The net cash payment ... was funded through
+        a combination of cash on hand and debt,
+      "On November 30, 2021, the Company acquired Carling ... The acquisition was funded with cash on hand,
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has historically generated organic growth around 4-5% per year over the last decade",
+    "text_1_evidence": [
+      "I landed at 4% organic growth historically,
+      "This compares to average reported organic growth of 5% over the last 7 years,
+    ],
+    "text_2_claim_summary": "In 2023, the Company experienced negative organic growth and has not reaffirmed a long-term organic growth rate near 4–5%",
+    "text_2_evidence": [
+      "Net sales were $2,362.7 million, which decreased by 6.0% in 2023,
+      "The discrepancy between net sales in 2023 and 2022 included a 10% unfavorable organic component,
+    ],
+    "result": "contradiction",
+  },
+  {
+    "text_1_claim_summary": "Littelfuse consistently converts more than 100% of non-GAAP net income into free cash flow with modest capex (4-5% of sales)",
+    "text_1_evidence": [
+      "Taking a look at margins, ... quality of earnings is high,
+      "Littelfuse generates very nice free cash flow. 40% of this FCF is returned to shareholders and 60%
+        is used for M&A,
+    ],
+    "text_2_claim_summary": "Free cash flow consistently converts at or above 100% of net income, and capex remains low relative to sales",
+    "text_2_evidence": [
+      "Littelfuse constantly converts more than 100% of non-GAAP net income into free cash flow,
+      "Littelfuse is not a capital intensive business, requiring only 4-5% of sales in capex,
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "Littelfuse maintains low leverage with net debt/EBITDA around 1.3x and strong liquidity",
+    "text_1_evidence": [
+      "net debt/EBITDA for 2023 is only 0.6x if all cash on the balance sheet is included,
+      "Management targets net debt/EBITDA between 1.5x–2.5x so we are comfortable today,
+    ],
+    "text_2_claim_summary": "As of 2023, the Company’s net debt to EBITDA ratio is approximately 1.3x, within its target range",
+    "text_2_evidence": [
+      "Net debt/EBITDA for 2023 was 1.3x,
+      "Management targets a net debt/EBITDA ratio between 1.5x-2.5x,
+    ],
+    "result": "match",
+  }
+]

@@ -1,0 +1,44 @@
+[
+  {
+    "text_1_claim_summary": "SolarWhale’s Nimbus™ panel uses a 2.3 mm anti-reflective coating.",
+    "text_1_evidence": ["Nimbus™ datasheet lists ‘2.3 mm dual-layer ARC.’"],
+    "text_2_claim_summary": "WindFox’s Zephyr™ blade uses a 2.1 mm gel-coat finish.",
+    "text_2_evidence": ["Zephyr™ BOM states ‘2.1 mm UV-stable gel.’"],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "SolarWhale’s average inverter efficiency is 98.4 %.",
+    "text_1_evidence": ["Lab test report #SW-0420: ‘98.4 % peak efficiency.’"],
+    "text_2_claim_summary": "WindFox’s average gearbox efficiency is 97.8 %.",
+    "text_2_evidence": ["Internal spec WF-GBX-7: ‘97.8 %’"],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "SolarWhale spent $12.6 m on lab equipment in Q2.",
+    "text_1_evidence": ["10-Q line item: ‘Lab Capex $12.6 m.’"],
+    "text_2_claim_summary": "WindFox spent $12.4 m on blade-inspection drones in Q2.",
+    "text_2_evidence": ["WindFox invoice 8821 shows $12.4 m purchase."],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "SolarWhale’s employee count rose from 1,912 to 1,937 in May.",
+    "text_1_evidence": ["HR memo 5 May 2025."],
+    "text_2_claim_summary": "WindFox’s employee count rose from 2,301 to 2,327 in May.",
+    "text_2_evidence": ["WindFox HR email 7 May 2025."],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "SolarWhale’s CFO uses IFRS 16-B lease accounting.",
+    "text_1_evidence": ["Notes to financials §12(b)."],
+    "text_2_claim_summary": "WindFox’s CFO uses IFRS 16-C lease accounting.",
+    "text_2_evidence": ["Notes to financials §13(c)."],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "SolarWhale’s CEO bought 1,200 shares on 3 April.",
+    "text_1_evidence": ["Form 4 filing 3 April 2025."],
+    "text_2_claim_summary": "WindFox’s CEO bought 1,250 shares on 4 April.",
+    "text_2_evidence": ["Form 4 filing 4 April 2025."],
+    "result": "match"
+  }
+]

@@ -1,0 +1,75 @@
+[
+  {
+    "text_1_claim_summary": "Littelfuse generates roughly US$2.5 billion in annual revenue.",
+    "text_1_evidence": [
+      "“…it is still a small company, generating only 2,5bn USD in revenue”,
+    ],
+    "text_2_claim_summary": "Reported consolidated net sales were US$2.513 billion in FY-2022 and US$2.363 billion in FY-2023.",
+    "text_2_evidence": [
+      "“Total | $ 2,362.7 (2023) | $ 2,513.9 (2022) | $ 2,079.9 (2021)”,
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "Sales are geographically balanced at ~38 % Americas, ~38 % Asia-Pacific, ~24 % Europe (shipped-to basis).",
+    "text_1_evidence": [
+      "“…38% of sales in North America, 38% of sales Asia Pacific … and 24% Europe”,
+    ],
+    "text_2_claim_summary": "FY-2023 shipped-to sales were 38 % Americas, 38 % Asia-Pacific, 24 % Europe.",
+    "text_2_evidence": [
+      "“Americas $ 901.5 m, Asia-Pacific $ 898.9 m, Europe $ 562.3 m out of $ 2,362.7 m total”,
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "No single customer represents more than 10 % of Littelfuse’s revenue, implying very low customer concentration.",
+    "text_1_evidence": [
+      "“…no customer represents more than 10% of sales and I would assume the customer base to be
+        extremely fragmented”,
+    ],
+    "text_2_claim_summary": "Arrow Electronics accounted for 11.2 % of consolidated net sales in 2023 (and >10 % in 2022 and 2021).",
+    "text_2_evidence": [
+      "“Sales to Arrow Electronics, Inc. … were 11.2 %, 11.5 % and 10.7 % of consolidated net sales in
+        2023, 2022, and 2021, respectively”,
+    ],
+    "result": "contradiction",
+  },
+  {
+    "text_1_claim_summary": "Littelfuse serves more than 100,000 end customers, indicating a broad, fragmented demand base.",
+    "text_1_evidence": [
+      "“… sells its products to >100,000 end customers”,
+    ],
+    "text_2_claim_summary": "Company states it serves over 100,000 end customers across its end-markets.",
+    "text_2_evidence": [
+      "“Serving over 100,000 end customers, our products are found in a variety of industrial,
+        transportation and electronics end markets”,
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "Management’s 2021-25 strategic plan targets 5-7 % average annual organic growth and 5-7 % from acquisitions.",
+    "text_1_evidence": [
+      "“investor day … aiming for double-digit revenue growth, in turn composed of: 5-7% organic growth;
+        5-7% growth from acquisitions”,
+    ],
+    "text_2_claim_summary": "10-K confirms current five-year plan targets 5-7 % average annual organic growth plus 5-7 % from strategic acquisitions.",
+    "text_2_evidence": [
+      "“The Company is targeting average annual organic sales growth of 5-7 percent and average annual
+        sales growth from strategic acquisitions of 5-7 percent.”,
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "Recent acquisitions have been funded mainly with internal cash generation, keeping leverage low and share count flat.",
+    "text_1_evidence": [
+      "“…acquired … financed by internal cash generation and debt levels have barely budged. Over the same
+        period, share count has not changed either.”,
+    ],
+    "text_2_claim_summary": "10-K notes recent deals (Western Automation, Embed, Hartland) were funded with cash on hand; C&K used cash plus debt; Dortmund fab down-payment funded with cash.",
+    "text_2_evidence": [
+      "“…Western Automation… approximately $162 million in cash… financed … with cash on hand.”,
+      "“C&K Switches… $540 million in cash… financed … through a combination of cash on hand and debt.”,
+    ],
+    "result": "match",
+  }
+]

@@ -1,0 +1,40 @@
+[
+  {
+    "text_1_claim_summary": "The investment thesis emphasizes Littelfuse\u2019s balanced and diversified global footprint, with significant sales across North America, Asia\u2010Pacific, and Europe \u2013 including a strong exposure to China.",
+    "text_1_evidence": [
+      "Littelfuse operates globally with sales footprint in North America, Asia\u2010Pacific, and Europe, and its exposure to China is notable."
+    ],
+    "text_2_claim_summary": "Text 2 (the 10\u2010K) provides a detailed geographic breakdown of net sales that supports the diversification claim: net sales were $901.5 million in the Americas, $898.9 million in Asia\u2010Pacific and $562.3 million in Europe; about 65% of total sales come from outside the U.S., with approximately 23% attributed to China.",
+    "text_2_evidence": [
+      "Net sales in the Company's three geographic regions, ...: Americas: $901.5 million; Asia-Pacific: $898.9 million; Europe: $562.3 million; Total: $2,362.7 million.",
+      "For the fiscal year 2023, approximately 65% of the Company's net sales were to customers outside the United States, including approximately 23% to China."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "The thesis asserts that management has consistently executed a disciplined acquisition strategy that builds complementary businesses (e.g., C&K Switches, Carling Technologies, Western Automation) without significantly increasing leverage, thereby demonstrating strong capital allocation and growth initiatives.",
+    "text_1_evidence": [
+      "Acquisitions are a key driver of growth, and management\u2019s ability to integrate small, complementary companies is a competitive advantage."
+    ],
+    "text_2_claim_summary": "Text 2 details multiple acquisitions (Western Automation for ~$162M, C&K Switches for ~$540M, Carling Technologies for ~$315.5M) along with commentary on integration expenses and financing that indicate that while acquisition-related charges occurred, management did not overly burden the balance sheet \u2013 supporting the disciplined M&A strategy.",
+    "text_2_evidence": [
+      "On February 3, 2023, the Company completed the acquisition of Western Automation for approximately $162 million in cash.",
+      "On July 19, 2022, the Company acquired C&K Switches for $540 million in cash.",
+      "On November 30, 2021, the Company acquired Carling Technologies for approximately $315.5 million ... The acquisition was funded by cash on hand.",
+      "In the MD&A, incremental sales contributions from these acquisitions are noted and the integration expenses, while present, are managed."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "The investment thesis states that Littelfuse\u2019s margin profile is solid and comparable to peers \u2013 with management not focusing aggressively on margin expansion given the nature of the business.",
+    "text_1_evidence": [
+      "Margins remain stable and are in line with those of similar industrial players; the business is not a pure margin expansion story."
+    ],
+    "text_2_claim_summary": "Text 2 provides detailed margin information that shows a decline in margins for key segments. For example, the Electronics segment\u2019s operating income dropped from $431.6 million in 2022 (with a margin of approximately 28.9%) to $300.6 million in 2023 (margin ~22.3%), and the Transportation segment fell from an 8.9% margin to 5.0%, which appears to contradict the thesis\u2019s positive view on margin stability.",
+    "text_2_evidence": [
+      "Operating income for the Electronics segment: $431.6 million in 2022 vs. $300.6 million in 2023; operating margins for Electronics decreased from 28.9% to 22.3%.",
+      "Transportation segment operating income dropped from $63.5 million in 2022 to $33.7 million in 2023, with margins declining from 8.9% to 5.0%."
+    ],
+    "result": "contradiction"
+  }
+]

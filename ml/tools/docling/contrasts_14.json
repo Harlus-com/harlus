@@ -1,0 +1,69 @@
+[
+  {
+    "text_1_claim_summary": "Littelfuse has a diversified and fragmented customer base.",
+    "text_1_evidence": [
+      "No customer represents more than 10% of sales and the company has an extremely fragmented customer base."
+    ],
+    "text_2_claim_summary": "Littelfuse's clients include 4,000 direct customers and distributors, with significant sales to a major distributor.",
+    "text_2_evidence": [
+      "The Company directly sells to over 4,000 customers and distributors worldwide. Sales to Arrow Electronics, Inc., which were reported in our Electronics, Transportation and Industrial segments, were 11.2%, 11.5% and 10.7% of consolidated net sales in 2023, 2022, and 2021, respectively."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse is well-positioned to capitalize on increasing electrification and safety trends across diverse industries.",
+    "text_1_evidence": [
+      "The company\u2019s end markets include renewable energy, EV charging, and industrial automation, all benefiting from increasing electrification.",
+      "Diversification expands global addressable market opportunities."
+    ],
+    "text_2_claim_summary": "Littelfuse's growth strategy targets average annual organic sales growth driven by secular trends.",
+    "text_2_evidence": [
+      "The Company expects the ever-increasing advancements of application architectures, driven by ongoing electronification and electrification across these end markets, to drive increasing product content opportunities. The Company's five-year strategic plan is focused on delivering top-tier shareholder returns by driving double-digit sales growth."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "The management has a long history with the company, promoting stability and expertise.",
+    "text_1_evidence": [
+      "The CEO has been with the company since 1985, and most managers have a long tenure at Littelfuse."
+    ],
+    "text_2_claim_summary": "The management team includes several long-serving executives, indicating continuity and experience.",
+    "text_2_evidence": [
+      "David W. Heinzmann, President and Chief Executive Officer and member of the Board of Directors, began his career at Littelfuse in 1985. The executive leadership has significant industry experience."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse's recent acquisitions have strategically enhanced its growth avenues.",
+    "text_1_evidence": [
+      "The company has successfully integrated recent acquisitions to drive growth in core markets."
+    ],
+    "text_2_claim_summary": "The company has completed several acquisitions in the past few years, supporting its growth agenda.",
+    "text_2_evidence": [
+      "The Company completed the acquisition of Western Automation and C&K Switches, key moves to enhance product portfolios within the Electronics and Industrial segments."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse's operating margins have consistent targets indicating a focus on profitability management.",
+    "text_1_evidence": [
+      "Management indicates targeted operating margins of 17-19%. Overall margin management is not a top priority via strategic communications."
+    ],
+    "text_2_claim_summary": "Littelfuse's operating margins are under pressure due to external factors affecting segments and restructuring costs.",
+    "text_2_evidence": [
+      "Operating income for 2023 was $360.9 million, a decrease of $140.0 million or 27.9% compared to $500.8 million for 2022. Operating margins decreased from 19.9% in 2022 to 15.3% in 2023."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse is well positioned in growth markets such as automation and renewables.",
+    "text_1_evidence": [
+      "The company is actively engaged in sectors like EV, data storage and safety which are on growth trajectories."
+    ],
+    "text_2_claim_summary": "Littelfuse\u2019s sales decreased in both Electronics and Transportation segments, signaling challenges in capturing growth despite positioning.",
+    "text_2_evidence": [
+      "Net sales decreased by $151.2 million, or 6.0% in 2023 compared to 2022, driven by lower volume in the Electronics segment and commercial vehicle business."
+    ],
+    "result": "contradiction"
+  }
+]

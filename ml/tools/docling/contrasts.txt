@@ -1,0 +1,67 @@
+[
+{
+  "text_1_claim_summary": "Littelfuse is a leader in surge protection and has diversified into various electronic components.",
+  "text_1_evidence": [
+    "Littelfuse's core business includes fuses, circuit breakers, and a wide range of electronic components.",
+    "The company serves over 100,000 end customers across multiple industries."
+  ],
+  "text_2_claim_summary": "Littelfuse's revenue has decreased in the Electronics segment due to lower demand.",
+  "text_2_evidence": [
+    "Net sales in the Electronics segment decreased by $142.4 million, or 9.5%, in 2023 compared to 2022.",
+    "The sales decrease was mainly due to lower volume from the Electronics products business driven by inventory rebalancing at certain distributors."
+  ],
+  "result": "contradiction"
+},
+{
+  "text_1_claim_summary": "Littelfuse has a strong focus on electrification and sustainability in its product offerings.",
+  "text_1_evidence": [
+    "The company is positioned within the global structural growth themes of sustainability, connectivity, and safety.",
+    "Littelfuse's products are found in applications such as renewable energy and electric vehicles."
+  ],
+  "text_2_claim_summary": "Littelfuse's sales in renewable energy and electric vehicle markets have been impacted by market conditions.",
+  "text_2_evidence": [
+    "The company operates in a challenging macro environment, including supply chain disruptions and varying regional dynamics.",
+    "The ongoing war in Ukraine has had a minimal impact on the Company, as the Company suspended sales into and purchases from Russia."
+  ],
+  "result": "contradiction"
+},
+{
+  "text_1_claim_summary": "Littelfuse has a disciplined approach to capital allocation, focusing on M&A and organic growth.",
+  "text_1_evidence": [
+    "The company targets 40% of free cash flow returned to shareholders and the remainder focused on strategic acquisitions.",
+    "Management believes profitable growth through a combination of organic growth and strategic acquisitions is critical to the Company's competitiveness."
+  ],
+  "text_2_claim_summary": "Littelfuse's recent acquisitions have not significantly increased debt levels.",
+  "text_2_evidence": [
+    "The company has financed acquisitions primarily with cash on hand and has maintained conservative debt levels.",
+    "Net debt/EBITDA for 2023 is only 0.6x versus 1.3x."
+  ],
+  "result": "match"
+},
+{
+  "text_1_claim_summary": "Littelfuse's management team has significant experience and a long tenure with the company.",
+  "text_1_evidence": [
+    "The CEO has been with the company since 1985 and has held various positions of increasing responsibility.",
+    "Most managers have been with the company for a very long time, indicating high employee loyalty."
+  ],
+  "text_2_claim_summary": "Littelfuse's management has faced challenges in integrating recent acquisitions.",
+  "text_2_evidence": [
+    "The company may encounter difficulties in integrating acquisitions with the Company's operations and may not realize the degree or timing of the benefits that are anticipated from an acquisition.",
+    "The effectiveness of the Company's due diligence review and its ability to evaluate the results of such due diligence are dependent upon the accuracy and completeness of statements and disclosures\nmade or actions taken by the companies acquired."
+  ],
+  "result": "contradiction"
+},
+{
+  "text_1_claim_summary": "Littelfuse has a diversified customer base with no single customer representing more than 10% of sales.",
+  "text_1_evidence": [
+    "The company serves over 100,000 end customers, indicating a fragmented customer base.",
+    "No customer accounted for more than 10% of net sales during the last three years."
+  ],
+  "text_2_claim_summary": "Littelfuse's sales to Arrow Electronics, Inc. represent a significant portion of its revenue.",
+  "text_2_evidence": [
+    "Sales to Arrow Electronics, Inc. were 11.2%, 11.5%, and 10.7% of consolidated net sales in 2023, 2022, and 2021, respectively.",
+    "This indicates that while no single customer exceeds 10%, Arrow Electronics is a notable customer."
+  ],
+  "result": "match"
+}
+]

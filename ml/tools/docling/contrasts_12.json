@@ -1,0 +1,91 @@
+[
+  {
+    "text_1_claim_summary": "Littelfuse has a diverse and fragmented customer base; no single customer represents more than 10% of sales",
+    "text_1_evidence": [
+      "\"no customer represents more than 10% of sales\"",
+      "\"sells its products to >100,000 end customers\""
+    ],
+    "text_2_claim_summary": "No single customer accounted for more than 10% of net sales; top distributor accounted for ~11%",
+    "text_2_evidence": [
+      "\"Sales to Arrow Electronics ... were 11.2%, 11.5% and 10.7% of consolidated net sales in 2023, 2022 and 2021, respectively. No other single customer accounted for more than 10% of net sales.\""
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse\u2019s geographic reach is balanced, with roughly one-third of sales each in the Americas, Asia-Pacific and Europe (shipped-to basis)",
+    "text_1_evidence": [
+      "\"38% of sales in North America, 38% Asia Pacific and 24% Europe\"",
+      "\"geographical exposures are on a shipped-to basis\""
+    ],
+    "text_2_claim_summary": "Shipped-to net sales by region match: ~38% Americas, ~38% Asia-Pacific, ~24% Europe in 2023",
+    "text_2_evidence": [
+      "\"Net sales in the Americas... $901.5 (38%); Asia-Pacific $898.9 (38%); Europe $562.3 (24%) of total $2,362.7 million in 2023.\""
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse\u2019s broad product portfolio and cumulative expertise create a durable competitive moat",
+    "text_1_evidence": [
+      "\"Huge variety in SKUs\"",
+      "\"difficult to replicate the huge assortment of solutions\"",
+      "\"cumulative learning that is very difficult to replicate\""
+    ],
+    "text_2_claim_summary": "Littelfuse reports one of the broadest product portfolios in the industry, competing on breadth, innovation and reliability",
+    "text_2_evidence": [
+      "\"Electronics Segment consists of one of the broadest product offerings in the industry...\"",
+      "\"The Company believes that it globally competes on the basis of innovative products, the breadth of its product line, the quality...\""
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse is well positioned to benefit from secular electrification trends across end markets (eMobility, renewables, data centers, factory automation)",
+    "text_1_evidence": [
+      "\"just looking at end markets: energy storage, renewable energy, data centres, factory automation, EV charging infrastructure, etc.\""
+    ],
+    "text_2_claim_summary": "Company strategy targets sustainability, connectivity and safety driving demand in electrification, EV charging, renewables, data center",
+    "text_2_evidence": [
+      "\"The Company is well-positioned within the center of the global structural growth themes of sustainability, connectivity and safety\"",
+      "\"product demand is driven by ongoing electronification and electrification of applications... renewables, energy storage, EV charging infrastructure, data centers\""
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse\u2019s business is not capital-intensive: capex is only 4\u20135% of sales",
+    "text_1_evidence": [
+      "\"Littelfuse is not a capital intensive business, requiring only 4\u20135% of sales in capex\""
+    ],
+    "text_2_claim_summary": "In 2023 capex of $86.2 million represented under 4% of net sales",
+    "text_2_evidence": [
+      "\"Purchases of property, plant, and equipment ... $86.2 million\"",
+      "\"Net sales were $2,362.7 million...capital expenditures were $86.2 million\""
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Company\u2019s M&A strategy is funded by free cash flow and conservative use of debt with minimal impact on share count",
+    "text_1_evidence": [
+      "\"Littelfuse has acquired ... all financed by internal cash generation and debt levels have barely budged\"",
+      "\"share count has not changed\""
+    ],
+    "text_2_claim_summary": "Acquisitions funded with cash on hand and well-controlled debt; net debt/EBITDA ~1.3\u00d7; no share issuances",
+    "text_2_evidence": [
+      "\"Western Automation ... financed with cash on hand\"",
+      "\"C&K ... financed through a combination of cash on hand and debt\"",
+      "\"Net debt/EBITDA for 2023 is 1.3x\"",
+      "\"Share count has not changed\""
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Operating margins are not Littelfuse\u2019s highest priority, with target operating margins of 17\u201319%; little room for margin expansion",
+    "text_1_evidence": [
+      "\"Littelfuse is not a big margin expansion story\"",
+      "\"Targets... 17\u201319% operating margins\""
+    ],
+    "text_2_claim_summary": "2023 operating margin was ~15.3%, down from ~19.9% in 2022, reflecting focus on growth over margin expansion",
+    "text_2_evidence": [
+      "\"Operating income for 2023 was $360.9 million... Operating margins decreased from 19.9% in 2022 to 15.3% in 2023\""
+    ],
+    "result": "match"
+  }
+]

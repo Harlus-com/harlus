@@ -1,0 +1,69 @@
+[
+  {
+    "text_1_claim_summary": "Revenue is geographically well balanced: 38% North America, 38% Asia-Pacific (23% China), 24% Europe.",
+    "text_1_evidence": [
+      ""In terms of geographical reach, Littelfuse is globally active with 38% of sales in North America,
+        38% of sales Asia Pacific (23% of group is China) and 24% Europe.",
+    ],
+    "text_2_claim_summary": "FY-2023 sales split remains close to one-third each: Americas 38.2%, Asia-Pacific 38.1% (incl. 23% China), Europe 23.8%.",
+    "text_2_evidence": [
+      ""Net sales in the Company's three geographic regions, based upon the shipped-to destination, are as
+        follows: ... 2023 ... Americas  $ 901.5 ... Asia-Pacific 898.9 ... Europe 562.3 ... Total $ 2,362.7",
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "No single end-market represents an outsized portion of revenue; exposure is balanced across segments.",
+    "text_1_evidence": [
+      ""BALANCED DIVERSE & GLOBAL END MARKET EXPOSURE NO MARKET REPRESENTS AN OUTSIZED PORTION OF REVENUE",
+    ],
+    "text_2_claim_summary": "Electronics segment accounts for ~57% of FY-2023 revenue, dwarfing Transportation (29%) and Industrial (14%).",
+    "text_2_evidence": [
+      ""Net sales by segment for the periods indicated are as follows: ... 2023 ... Electronics $ 1,350.4
+        ... Transportation 678.3 ... Industrial 334.0 ... Total $ 2,362.7",
+    ],
+    "result": "contradiction",
+  },
+  {
+    "text_1_claim_summary": "Management’s 2021 Investor-Day growth targets are 5-7% organic and 5-7% from acquisitions.",
+    "text_1_evidence": [
+      ""they laid out their growth targets, aiming for double-digit revenue growth, in turn composed of: -
+        -5-7% organic growth - -5-7% growth from acquisitions",
+    ],
+    "text_2_claim_summary": "Company reiterates target of 5-7% organic growth plus 5-7% from strategic acquisitions in 5-year plan.",
+    "text_2_evidence": [
+      ""The Company is targeting average annual organic sales growth of 5-7 percent and average annual
+        sales growth from strategic acquisitions of 5-7 percent.",
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "Acquisitions since 2018 have been funded largely with internal cash, keeping leverage low.",
+    "text_1_evidence": [
+      ""This has all been financed by internal cash generation and debt levels have barely budged.",
+    ],
+    "text_2_claim_summary": "Recent deals (Western Automation, Embed, Hartland) were funded with cash on hand; the larger C&K deal used cash on hand plus some debt.",
+    "text_2_evidence": [
+      ""Western Automation ... approximately $162 million in cash. ... financed the transaction with cash
+        on hand.",
+      ""Embed ... acquisition was funded with the Company's cash on hand.",
+      ""Hartland ... net cash payment of $108.5 million was funded by the Company's cash on hand.",
+      ""C&K Switches ... $540 million in cash. ... financed the transaction through a combination of cash
+        on hand and debt.",
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "No customer represents more than 10% of Littelfuse sales; the customer base is extremely fragmented.",
+    "text_1_evidence": [
+      ""In terms of clients, no customer represents more than 10% of sales and I would assume the customer
+        base to be extremely fragmented",
+    ],
+    "text_2_claim_summary": "Arrow Electronics alone represented 11.2% of 2023 sales (and >10% for three consecutive years).",
+    "text_2_evidence": [
+      ""Sales to Arrow Electronics, Inc., ... were 11.2%, 11.5% and 10.7% of consolidated net sales in
+        2023, 2022, and 2021, respectively.",
+    ],
+    "result": "contradiction",
+  }
+]

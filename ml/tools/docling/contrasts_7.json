@@ -1,0 +1,39 @@
+[
+  {
+    "text_1_claim_summary": "Littelfuse is well positioned to benefit from increasing electrification across various sectors, which drives demand in end markets.",
+    "text_1_evidence": [
+      "The very simple pitch for why this is an attractive business is simply the fact that it is a perfect play on increasing levels of electrification."
+    ],
+    "text_2_claim_summary": "Littelfuse's revenues decreased by 6% in 2023 due to lower demand in certain markets, including consumer-facing and personal electronics.",
+    "text_2_evidence": [
+      "Net sales were $2,362.7 million, which decreased by $151.2 million, or 6.0% compared to 2022, including favorable changes in foreign exchange rates for 2023 compared to 2022. The sales decrease was primarily due to lower volume in the Electronics segment and the commercial vehicle business within the Transportation segment."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse has a strong competitive moat due to its long history, diverse product range, and established customer relationships.",
+    "text_1_evidence": [
+      "Littelfuse has operated for 97 years in this niche and it shows... I think this criticality only increases when thinking of semi fabs or data centres that literally cost billions of dollars.",
+      "Littelfuse has much of the same characteristics as Analog Devices and Texas Instruments that contribute to its moat."
+    ],
+    "text_2_claim_summary": "Littelfuse has experienced decreased operating income and margin pressures, indicating potential challenges to its competitive position.",
+    "text_2_evidence": [
+      "Operating income for 2023 was $360.9 million, a decrease of $140.0 million or 27.9% compared to $500.8 million for 2022.",
+      "Operating margins decreased from 19.9% in 2022 to 15.3% in 2023 primarily driven by lower volume in the Electronics and Transportation segments."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Littelfuse maintains a disciplined approach to capital allocation, returning a significant portion of free cash flow to shareholders while continuing to invest in growth opportunities.",
+    "text_1_evidence": [
+      "40% of this FCF is returned to shareholders and 60% is used for M&A.",
+      "The CEO holds some 12mio USD in Littelfuse shares and is... due to receive much more if he performs well in the future."
+    ],
+    "text_2_claim_summary": "Littelfuse's net cash used in financing activities increased significantly due to several factors, including paying off debts and lower net cash provided by operations.",
+    "text_2_evidence": [
+      "Net cash used in financing activities was $185.7 million for the fiscal year 2023 compared to $310.2 million net cash provided by financing activities for the fiscal year 2022.",
+      "Net cash provided by operating activities was $457.4 million for the fiscal year ended December 30, 2023, an increase of $37.7 million, compared to the fiscal year ended December 31, 2022."
+    ],
+    "result": "match"
+  }
+]

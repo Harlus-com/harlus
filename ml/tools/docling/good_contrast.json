@@ -1,0 +1,67 @@
+[
+  {
+    "text_1_claim_summary": "SolarWhale’s core revenue engine is proprietary floating-PV platforms for sunny, water-rich regions.",
+    "text_1_evidence": [
+      "Over 70 % of FY24 sales came from the Nimbus™ floating-panel line deployed on reservoirs in Southeast Asia.",
+      "Patents cover the company’s hydro-cooling ballast system, extending panel life by 15 %."
+    ],
+    "text_2_claim_summary": "WindFox relies on modular mid-altitude turbines designed for inland wind belts.",
+    "text_2_evidence": [
+      "WindFox sells 3 MW Zephyr™ turbines optimized for class III wind sites, representing 65 % of its installed base.",
+      "The firm owns no floating-PV IP and regards solar as an ‘adjacent experiment’ in its 2030 plan."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "SolarWhale is asset-light, outsourcing EPC work and recycling capex into R&D.",
+    "text_1_evidence": [
+      "The company sub-contracts engineering to AquaGrid and spends 9 % of revenue on internal labs.",
+      "Capex averaged 2 % of sales in the last three years."
+    ],
+    "text_2_claim_summary": "WindFox vertically integrates EPC, driving higher upfront capex but capturing O&M margin.",
+    "text_2_evidence": [
+      "WindFox owns two blade-casting plants and a 180-truck logistics fleet.",
+      "Capex averaged 11 % of sales from 2022-24; O&M gross margin is 32 % versus 19 % for peers."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Both firms pursue emerging-market growth, but SolarWhale targets water-scarce power reservoirs while WindFox targets land-constrained agrarian plains.",
+    "text_1_evidence": [
+      "70 % of SolarWhale’s backlog is in countries with <1,500 m³ per-capita freshwater availability.",
+      "CEO quote: ‘If there’s a dam and sunshine, we can monetise the surface.’"
+    ],
+    "text_2_claim_summary": "WindFox focuses on windy grain belts where turbine foundations double as grain-drying silos.",
+    "text_2_evidence": [
+      "WindFox has signed MOUs with the Prairie Food Co-op to co-locate 400 turbines on corn fields.",
+      "Marketing deck: ‘Our pylons create shade that reduces soil evaporation by 6 %—a selling point for farmers.’"
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "SolarWhale’s balance sheet is conservatively levered with a net-cash position and BBB+ rating.",
+    "text_1_evidence": [
+      "Net cash: $120 m; gross debt/EBITDA 0.4×.",
+      "Moody’s upgrade report (Apr 2025) cites “predictable PPAs and modest leverage.”"
+    ],
+    "text_2_claim_summary": "WindFox carries higher leverage after bond-financed plant expansions, prompting a BB+ rating outlook.",
+    "text_2_evidence": [
+      "Net debt: $610 m; gross debt/EBITDA 3.1×.",
+      "S&P placed WindFox on ‘negative outlook’ citing refinancing risk in 2027."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Both companies claim strong ESG credentials, yet SolarWhale already reports third-party-verified Scope 3 data while WindFox plans to do so by 2026.",
+    "text_1_evidence": [
+      "FY24 report includes TÜV-certified upstream emissions for aluminum frames.",
+      "SolarWhale won the 2024 BluePlanet award for transparent life-cycle accounting."
+    ],
+    "text_2_claim_summary": "WindFox’s ESG roadmap sets a 2026 target for Scope 3 disclosure and is still gathering supplier inventories.",
+    "text_2_evidence": [
+      "2024 CSR: ‘Scope 3 inventory under development; full disclosure by FY26.’",
+      "Only Scope 1+2 emissions were assured by EcoAudit in 2024."
+    ],
+    "result": "match"
+  }
+]

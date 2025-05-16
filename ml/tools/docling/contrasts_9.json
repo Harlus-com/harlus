@@ -1,0 +1,82 @@
+[
+  {
+    "text_1_claim_summary": "No single customer represents more than 10% of sales",
+    "text_1_evidence": [
+      "\"no customer represents more than 10% of sales\""
+    ],
+    "text_2_claim_summary": "Arrow Electronics accounted for over 10% of consolidated net sales in each of the last three years",
+    "text_2_evidence": [
+      "\"Sales to Arrow Electronics, Inc., ... were 11.2%, 11.5% and 10.7% of consolidated net sales in 2023, 2022, and 2021, respectively. No other single customer accounted for more than 10% of net sales.\""
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Geographical sales split: ~38% North America, ~38% Asia-Pacific, ~24% Europe (ships-to basis)",
+    "text_1_evidence": [
+      "\"38% of sales in North America, 38% of sales Asia Pacific (23% of group is China) and 24% Europe\""
+    ],
+    "text_2_claim_summary": "Actual segment sales by region align closely to claimed percentages for 2023",
+    "text_2_evidence": [
+      "\"Net sales in fiscal year 2023: Americas $901.5M (~38.1%), Asia-Pacific $898.9M (~38.0%), Europe $562.3M (~23.8%).\""
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Balanced, diverse, global end-market exposure across Transportation, Electronics, and Industrial segments",
+    "text_1_evidence": [
+      "Detailed listing of three reportable segments and many end markets under each"
+    ],
+    "text_2_claim_summary": "Company operates through three reportable segments with similar end-market exposure",
+    "text_2_evidence": [
+      "\"The Company conducts its business through three reportable segments: Electronics, Transportation, and Industrial... serving over 100,000 end customers across a variety of industrial, transportation and electronics end markets.\""
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Free cash flow consistently converts at or above 100% of non-GAAP net income",
+    "text_1_evidence": [
+      "\"Littelfuse is able to constantly convert more than 100% of non-GAAP net income into free cash flow\"",
+      "\"Average FCF conversion over the past decade has been 105%\""
+    ],
+    "text_2_claim_summary": "FCF conversion rate varies but long-term average supports >100%",
+    "text_2_evidence": [
+      "\"Conversion: 2015 107%, 2016 94%, 2017 114%, 2018 108%, 2019 108%, 2020 128%, 2021 86%, 2022 75%, 2023 126%.\""
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Net debt/EBITDA around 1.3x, below management\u2019s 1.5\u20132.5x target",
+    "text_1_evidence": [
+      "\"net debt/EBITDA for 2023 is 1.3x\"",
+      "\"management targets a net debt/EBITDA between 1.5x\u20132.5x\""
+    ],
+    "text_2_claim_summary": "Net debt/EBITDA reported at 1.3x in 2023",
+    "text_2_evidence": [
+      "\"Net debt/EBITDA: 2018 0.5; 2019 0.5; 2020 2.3; 2021 1.2; 2022 1.4; 2023 1.3.\""
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Disciplined M&A funded by free cash flow and modest debt, no equity issuances",
+    "text_1_evidence": [
+      "\"since the investor day, Littelfuse has acquired companies with cumulative sales of $465m without increasing debt or issuing shares\""
+    ],
+    "text_2_claim_summary": "M&A funded primarily by cash, debt stable, share count unchanged",
+    "text_2_evidence": [
+      "\"The Company completed the C&K and Western Automation acquisitions financed with cash on hand and debt. Over the last 6 years, share count has not changed, and debt levels have barely budged.\""
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Diversified peer group with similar margin profile, not a major margin expansion story",
+    "text_1_evidence": [
+      "\"It\u2019s probably fair to say that margin expansion is not the highest priority\"",
+      "\"Peers TE, Amphenol, Eaton make almost exactly the same margins\""
+    ],
+    "text_2_claim_summary": "Operating margins tracked and no large expansion: 15.3% in 2023 vs peers",
+    "text_2_evidence": [
+      "\"Operating income margin: 2023 15.3% (vs 19.9% in 2022) pure electronics margins ~22.3%, transportation ~5.0%, industrial ~16.4%.\""
+    ],
+    "result": "match"
+  }
+]
