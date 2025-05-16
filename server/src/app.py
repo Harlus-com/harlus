@@ -16,7 +16,6 @@ import asyncio
 import nest_asyncio
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
-from platformdirs import user_data_dir
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -28,8 +27,41 @@ from src.file_store import FileStore, Workspace, File
 from src.sync_queue import SyncQueue, SyncType
 from src.contrast_analysis import analyze
 
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from jose import jwt
+from typing import Dict
+import httpx
 
-app = FastAPI()
+TENANT_ID = "27dfce8d-8b21-4c81-8579-2baedebea216"
+API_CLIENT_ID = "4717f96d-a8cf-4569-835d-92d0cf8ada69"
+JWKS_URL = f"https://login.microsoftonline.com/{TENANT_ID}/discovery/v2.0/keys"
+
+jwks = httpx.get(JWKS_URL).json()
+
+bearer = HTTPBearer()
+
+
+def validate_jwt(credentials: HTTPAuthorizationCredentials = Depends(bearer)) -> Dict:
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(
+            token,
+            jwks,
+            algorithms=["RS256"],
+            audience=API_CLIENT_ID,
+        )
+    except jwt.JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )
+    return payload
+
+
+app = FastAPI(
+    dependencies=[Depends(validate_jwt)],
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
