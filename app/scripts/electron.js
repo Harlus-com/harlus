@@ -6,18 +6,26 @@ import fs from "fs";
 import mime from "mime";
 import axios from "axios";
 import FormData from "form-data";
+import https from "https";
 
 // Runs an electron app against a local Vite dev server
 const args = process.argv;
-const serverPort =
-  args.find((arg) => arg.startsWith("--server_port="))?.split("=")[1] || "";
-const serverHost =
-  args.find((arg) => arg.startsWith("--server_host="))?.split("=")[1] || "";
-console.log(`SERVER PORT: "${serverPort}"`);
-console.log(`SERVER HOST: "${serverHost}"`);
+const useRemoteServer = args.find((arg) => arg === "--remote-server");
+console.log("USE REMOTE SERVER", useRemoteServer);
+const baseUrl = useRemoteServer
+  ? "https://harlus-api-dev.eastus.azurecontainer.io"
+  : "http://127.0.0.1:8000";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, "../../");
+const tlsDir = path.join(projectRoot, "infra/nginx-mtls/tls");
+
+const httpsAgent = new https.Agent({
+  cert: fs.readFileSync(path.join(tlsDir, "client.crt")),
+  key: fs.readFileSync(path.join(tlsDir, "client.key")),
+  ca: fs.readFileSync(path.join(tlsDir, "ca.crt")),
+});
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -29,15 +37,37 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       preload: path.join(__dirname, "preload.js"),
-      additionalArguments: [
-        `--server_port=${serverPort}`,
-        `--server_host=${serverHost}`,
-      ],
     },
   });
 
   mainWindow.loadURL("http://localhost:8080");
   mainWindow.webContents.openDevTools();
+}
+
+async function upload(filePath, workspaceId) {
+  console.log("upload", filePath, workspaceId);
+  const results = [];
+  let st = await fs.promises.stat(filePath);
+  if (st.isDirectory()) {
+    console.log("uploading directory", filePath);
+    const baseDir = path.basename(filePath);
+    console.log("baseDir", baseDir);
+    const allFilePaths = await walk(filePath);
+    for (const p of allFilePaths) {
+      const relativeDir = path.relative(filePath, p).split(path.sep);
+      const fileName = relativeDir.pop(); // Remove the file name
+      if (fileName.startsWith(".")) {
+        continue;
+      }
+      const appDir = [baseDir, ...relativeDir];
+      console.log("appDir", appDir);
+      results.push(await uploadFile(p, appDir, workspaceId));
+    }
+  } else {
+    console.log("uploading file", filePath);
+    results.push(await uploadFile(filePath, [], workspaceId));
+  }
+  return results;
 }
 
 async function walk(dir) {
@@ -64,12 +94,12 @@ async function uploadFile(filePath, appDir, workspaceId) {
   });
   // This is hard coded because http://localhost:8000 fails for some reason
 
-  const url = "http://harlus-api-dev.eastus.azurecontainer.io:8000/file/upload";
-  //const url = "http://127.0.0.1:8000/file/upload";
+  const url = `${baseUrl}/file/upload`;
   const resp = await axios.post(url, form, {
     headers: form.getHeaders(),
     maxContentLength: Infinity,
     maxBodyLength: Infinity,
+    httpsAgent,
   });
 
   return resp.data;
@@ -107,30 +137,41 @@ function setupIPCHandlers() {
     }
   });
 
-  ipcMain.handle("upload", async (_, { filePath, workspaceId }) => {
-    console.log("upload", filePath, workspaceId);
-    const results = [];
-    let st = await fs.promises.stat(filePath);
-    if (st.isDirectory()) {
-      console.log("uploading directory", filePath);
-      const baseDir = path.basename(filePath);
-      console.log("baseDir", baseDir);
-      const allFilePaths = await walk(filePath);
-      for (const p of allFilePaths) {
-        const relativeDir = path.relative(filePath, p).split(path.sep);
-        const fileName = relativeDir.pop(); // Remove the file name
-        if (fileName.startsWith(".")) {
-          continue;
-        }
-        const appDir = [baseDir, ...relativeDir];
-        console.log("appDir", appDir);
-        results.push(await uploadFile(p, appDir, workspaceId));
-      }
-    } else {
-      console.log("uploading file", filePath);
-      results.push(await uploadFile(filePath, [], workspaceId));
-    }
-    return results;
+  // Server API handlers
+  ipcMain.handle("server-get", async (_, path) => {
+    const url = `${baseUrl}${path}`;
+    const response = await axios.get(url, { httpsAgent });
+    return response.data;
+  });
+
+  ipcMain.handle("server-get-buffer", async (_, path) => {
+    const url = `${baseUrl}${path}`;
+    const response = await axios.get(url, {
+      httpsAgent,
+      responseType: "arraybuffer",
+    });
+    return response.data;
+  });
+
+  ipcMain.handle("server-post", async (_, path, body) => {
+    const url = `${baseUrl}${path}`;
+    const response = await axios.post(url, body, {
+      httpsAgent,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    return response.data;
+  });
+
+  ipcMain.handle("server-delete", async (_, path) => {
+    const url = `${baseUrl}${path}`;
+    const response = await axios.delete(url, { httpsAgent });
+    return response.data;
+  });
+
+  ipcMain.handle("server-upload", async (_, filePath, workspaceId) => {
+    return upload(filePath, workspaceId);
   });
 }
 

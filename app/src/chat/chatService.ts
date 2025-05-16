@@ -1,4 +1,4 @@
-import { BASE_URL, client } from "../api/client";
+import { client } from "../api/client";
 import { fileService } from "../api/fileService";
 import { ChatSourceCommentGroup, MessagePair, Thread } from "./chat_types";
 import { ChatSourceComment } from "@/api/comment_types";
@@ -64,7 +64,8 @@ export class ChatService {
     try {
       // 1. create the event source
       const encodedQuery = encodeURIComponent(userQuery);
-      const url = `${BASE_URL}/chat/stream?workspaceId=${workspaceId}&query=${encodedQuery}&threadId=${threadId}`;
+      // TODO: Fix in follow on PR
+      const url = `http://localhost:8000/chat/stream?workspaceId=${workspaceId}&query=${encodedQuery}&threadId=${threadId}`;
       this.eventSource = new EventSource(url);
 
       // 2. listen for planning messages

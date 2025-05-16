@@ -1,0 +1,47 @@
+name: harlus-api-dev
+location: eastus
+
+properties:
+  imageRegistryCredentials:
+    - server: harlusregistry.azurecr.io
+      username: harlusregistry
+      password: r0829tMzKGHGmjbyGKvEFWXqjQApr7zCUebnYhlgc7+ACRDqNEhz
+
+  containers:
+    - name: api
+      properties:
+        image: harlusregistry.azurecr.io/harlus-server:latest
+        resources:
+          requests:
+            cpu: 2
+            memoryInGb: 4
+        ports:
+          - port: 8000
+        volumeMounts:
+          - name: datavol
+            mountPath: /data
+
+    - name: tlsproxy
+      properties:
+        image: harlusregistry.azurecr.io/nginx-mtls:1
+        resources:
+          requests:
+            cpu: 0.25
+            memoryInGb: 0.5
+        ports:
+          - port: 443
+
+  osType: Linux
+  ipAddress:
+    type: Public
+    dnsNameLabel: harlus-api-dev
+    ports:
+      - port: 443
+        protocol: tcp
+
+  volumes:
+    - name: datavol
+      azureFile:
+        shareName: harlusshare
+        storageAccountName: harlusstor
+        storageAccountKey: H8zpP9WIaLZXmLFtwaDNGHBkuZooPATfVhPEzkXhdKRyygHencC3WertPRGYvMVVHzy1V3Q2uBjj+AStfayGUw==

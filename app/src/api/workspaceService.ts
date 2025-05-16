@@ -13,7 +13,7 @@ class WorkspaceService {
       name,
     });
     for (const file of files) {
-      await window.electron.upload(file.path, workspace.id);
+      await client.upload(file.path, workspace.id);
     }
 
     return workspace;

@@ -1,4 +1,4 @@
-class Client {
+class LocalClient implements ServerClient {
   constructor(private readonly baseUrl: string) {}
 
   async get(path: string) {
@@ -50,12 +50,46 @@ class Client {
     console.log(`DELETE ${path} Response`, data);
     return data;
   }
+
+  async upload(filePath: string, workspaceId: string) {
+    throw new Error("Not implemented");
+  }
 }
 
-const port = window.electron?.getServerPort() || 8000;
-const host = window.electron?.getServerHost() || "http://localhost";
-//const host = "http://harlus-api-dev.eastus.azurecontainer.io";
-console.log("HOST", host);
-console.log("PORT", port);
-export const BASE_URL = `${host}:${port}`;
-export const client = new Client(BASE_URL);
+class ElectronClient implements ServerClient {
+  constructor(private readonly electron: ElectronAPI) {}
+
+  async get(path: string) {
+    const data = await this.electron.get(path);
+    console.log(`GET ${path} Response`, data);
+    return data;
+  }
+
+  async getBuffer(path: string) {
+    const data = await this.electron.getBuffer(path);
+    console.log(`GET ${path} Response`, data);
+    return data;
+  }
+
+  async post(path: string, body: any) {
+    const data = await this.electron.post(path, body);
+    console.log(`POST ${path} Response`, data);
+    return data;
+  }
+
+  async delete(path: string) {
+    const data = await this.electron.delete(path);
+    console.log(`DELETE ${path} Response`, data);
+    return data;
+  }
+
+  async upload(filePath: string, workspaceId: string) {
+    const data = await this.electron.upload(filePath, workspaceId);
+    console.log(`UPLOAD ${filePath} Response`, data);
+    return data;
+  }
+}
+
+export const client: ServerClient = window.electron
+  ? new ElectronClient(window.electron)
+  : new LocalClient("http://localhost:8000");
