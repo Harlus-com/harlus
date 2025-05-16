@@ -44,7 +44,7 @@ function createWindow() {
   mainWindow.webContents.openDevTools();
 }
 
-async function upload(filePath, workspaceId) {
+async function upload(filePath, workspaceId, authHeader) {
   console.log("upload", filePath, workspaceId);
   const results = [];
   let st = await fs.promises.stat(filePath);
@@ -61,11 +61,11 @@ async function upload(filePath, workspaceId) {
       }
       const appDir = [baseDir, ...relativeDir];
       console.log("appDir", appDir);
-      results.push(await uploadFile(p, appDir, workspaceId));
+      results.push(await uploadFile(p, appDir, workspaceId, authHeader));
     }
   } else {
     console.log("uploading file", filePath);
-    results.push(await uploadFile(filePath, [], workspaceId));
+    results.push(await uploadFile(filePath, [], workspaceId, authHeader));
   }
   return results;
 }
@@ -84,7 +84,7 @@ async function walk(dir) {
   return results;
 }
 
-async function uploadFile(filePath, appDir, workspaceId) {
+async function uploadFile(filePath, appDir, workspaceId, authHeader) {
   const form = new FormData();
   form.append("workspaceId", workspaceId);
   form.append("appDir", JSON.stringify(appDir));
@@ -92,11 +92,13 @@ async function uploadFile(filePath, appDir, workspaceId) {
     filename: path.basename(filePath),
     contentType: "application/octet-stream",
   });
-  // This is hard coded because http://localhost:8000 fails for some reason
 
   const url = `${baseUrl}/file/upload`;
   const resp = await axios.post(url, form, {
-    headers: form.getHeaders(),
+    headers: {
+      ...form.getHeaders(),
+      Authorization: authHeader,
+    },
     maxContentLength: Infinity,
     maxBodyLength: Infinity,
     httpsAgent,
@@ -138,41 +140,58 @@ function setupIPCHandlers() {
   });
 
   // Server API handlers
-  ipcMain.handle("server-get", async (_, path) => {
-    const url = `${baseUrl}${path}`;
-    const response = await axios.get(url, { httpsAgent });
-    return response.data;
-  });
-
-  ipcMain.handle("server-get-buffer", async (_, path) => {
+  ipcMain.handle("server-get", async (_, path, authHeader) => {
     const url = `${baseUrl}${path}`;
     const response = await axios.get(url, {
       httpsAgent,
-      responseType: "arraybuffer",
-    });
-    return response.data;
-  });
-
-  ipcMain.handle("server-post", async (_, path, body) => {
-    const url = `${baseUrl}${path}`;
-    const response = await axios.post(url, body, {
-      httpsAgent,
       headers: {
-        "Content-Type": "application/json",
+        Authorization: authHeader,
       },
     });
     return response.data;
   });
 
-  ipcMain.handle("server-delete", async (_, path) => {
+  ipcMain.handle("server-get-buffer", async (_, path, authHeader) => {
     const url = `${baseUrl}${path}`;
-    const response = await axios.delete(url, { httpsAgent });
+    const response = await axios.get(url, {
+      httpsAgent,
+      responseType: "arraybuffer",
+      headers: {
+        Authorization: authHeader,
+      },
+    });
     return response.data;
   });
 
-  ipcMain.handle("server-upload", async (_, filePath, workspaceId) => {
-    return upload(filePath, workspaceId);
+  ipcMain.handle("server-post", async (_, path, body, authHeader) => {
+    const url = `${baseUrl}${path}`;
+    const response = await axios.post(url, body, {
+      httpsAgent,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authHeader,
+      },
+    });
+    return response.data;
   });
+
+  ipcMain.handle("server-delete", async (_, path, authHeader) => {
+    const url = `${baseUrl}${path}`;
+    const response = await axios.delete(url, {
+      httpsAgent,
+      headers: {
+        Authorization: authHeader,
+      },
+    });
+    return response.data;
+  });
+
+  ipcMain.handle(
+    "server-upload",
+    async (_, filePath, workspaceId, authHeader) => {
+      return upload(filePath, workspaceId, authHeader);
+    }
+  );
 }
 
 const childProcesses = [];

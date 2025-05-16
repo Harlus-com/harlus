@@ -40,32 +40,46 @@ class LocalClient implements ServerClient {
 class ElectronClient implements ServerClient {
   constructor(private readonly electron: ElectronAPI) {}
 
+  private async getAuthHeader(): Promise<string> {
+    const client = authClientWrapper.getClient();
+    const authHeader = client.defaults.headers.Authorization;
+    if (typeof authHeader !== "string") {
+      throw new Error("Auth header is not a string");
+    }
+    return authHeader;
+  }
+
   async get(path: string) {
-    const data = await this.electron.get(path);
+    const authHeader = await this.getAuthHeader();
+    const data = await this.electron.get(path, authHeader);
     console.log(`GET ${path} Response`, data);
     return data;
   }
 
   async getBuffer(path: string) {
-    const data = await this.electron.getBuffer(path);
+    const authHeader = await this.getAuthHeader();
+    const data = await this.electron.getBuffer(path, authHeader);
     console.log(`GET ${path} Response`, data);
     return data;
   }
 
   async post(path: string, body: any) {
-    const data = await this.electron.post(path, body);
+    const authHeader = await this.getAuthHeader();
+    const data = await this.electron.post(path, body, authHeader);
     console.log(`POST ${path} Response`, data);
     return data;
   }
 
   async delete(path: string) {
-    const data = await this.electron.delete(path);
+    const authHeader = await this.getAuthHeader();
+    const data = await this.electron.delete(path, authHeader);
     console.log(`DELETE ${path} Response`, data);
     return data;
   }
 
   async upload(filePath: string, workspaceId: string) {
-    const data = await this.electron.upload(filePath, workspaceId);
+    const authHeader = await this.getAuthHeader();
+    const data = await this.electron.upload(filePath, workspaceId, authHeader);
     console.log(`UPLOAD ${filePath} Response`, data);
     return data;
   }

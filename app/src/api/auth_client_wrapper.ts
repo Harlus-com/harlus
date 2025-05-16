@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
+import axios, { AxiosInstance } from "axios";
 import { useAuth } from "../auth/AuthContext";
 
 class AuthClientWrapper {
