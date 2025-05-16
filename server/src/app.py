@@ -32,31 +32,43 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt
 from typing import Dict
 import httpx
+import base64
 
+# Your settings
 TENANT_ID = "27dfce8d-8b21-4c81-8579-2baedebea216"
-API_CLIENT_ID = "4717f96d-a8cf-4569-835d-92d0cf8ada69"
-JWKS_URL = f"https://login.microsoftonline.com/{TENANT_ID}/discovery/v2.0/keys"
+API_AUDIENCE_URI = "api://6acbb67d-3153-4ed6-8041-f2c52a5a68e4"
 
+JWKS_URL = f"https://login.microsoftonline.com/{TENANT_ID}/discovery/v2.0/keys"
 jwks = httpx.get(JWKS_URL).json()
 
 bearer = HTTPBearer()
 
 
-def validate_jwt(credentials: HTTPAuthorizationCredentials = Depends(bearer)) -> Dict:
+def validate_jwt(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer),
+) -> Dict:
     token = credentials.credentials
     try:
-        payload = jwt.decode(
+        claims = jwt.decode(
             token,
             jwks,
             algorithms=["RS256"],
-            audience=API_CLIENT_ID,
+            audience=API_AUDIENCE_URI,
         )
-    except jwt.JWTError:
+    except jwt.JWTError as e:
+        print("JWT validation error:", str(e))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
+            detail=f"Token validation failed: {e}",
         )
-    return payload
+
+    # We could choose not to enforce scope, but we might want scopes in the future, so just leaving it as an example
+    if "scp" not in claims or "Harlus.All" not in claims["scp"].split():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Token missing required scope"
+        )
+
+    return claims
 
 
 app = FastAPI(
