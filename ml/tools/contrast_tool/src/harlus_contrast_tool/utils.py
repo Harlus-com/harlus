@@ -5,6 +5,38 @@ from rapidfuzz import fuzz
 
 from .api_interfaces import BoundingBox, HighlightArea
 
+def get_config() -> dict:
+    """
+    Load configuration (inlined).
+
+    Returns:
+        dict: The hard‑coded configuration.
+    """
+    return {
+        "claim getter": {
+            "model_name": "gpt-4o",
+            "temperature": 0.0,
+            "max_tokens": 500,
+        },
+        "claim checker": {
+            "question model": {
+                "model_name": "gpt-3.5-turbo",
+                "temperature": 0.0,
+                "max_tokens": 500,
+            },
+            "answer model": {
+                "model_name": "gpt-4o-mini",
+                "temperature": 0.0,
+                "max_tokens": 250,
+            },
+            "verification model": {
+                "model_name": "gpt-4o",
+                "temperature": 0.0,
+                "max_tokens": 500,
+            },
+        },
+    }
+
 
 def get_highlight_area(
         sentence: str,
@@ -23,7 +55,6 @@ def get_highlight_area(
         bbox = find_fuzzy_bounding_boxes(file_path, source, page_num) or []
 
         return HighlightArea(bounding_boxes=bbox, jump_to_page=page_num)
-
 
 
 def find_fuzzy_bounding_boxes(
@@ -109,117 +140,3 @@ def find_fuzzy_bounding_boxes(
         )
 
     return output
-
-
-# def is_table_block(text: str) -> bool:
-#     """
-#     Heuristic: a block is a table if it has ≥2 non-blank lines,
-#     and each line splits into >1 “columns” when you split on ≥2 spaces.
-#     """
-#     lines = [ln for ln in text.splitlines() if ln.strip()]
-#     if len(lines) < 2:
-#         return False
-#     col_counts = [len(re.split(r'\s{2,}', ln.strip())) for ln in lines]
-#     return max(col_counts) > 1 and min(col_counts) > 1
-
-
-# def load_sentence_and_table_nodes(pdf_path: str):
-#     """
-#     Load PDF and create Document nodes for tables and sentences,
-#     with bounding boxes as percentages of page dimensions.
-#     """
-#     doc = fitz.open(pdf_path)
-#     nodes = []
-#     for page in doc:
-#         page_width = page.rect.width
-#         page_height = page.rect.height
-#         blocks = page.get_text("blocks")  # (x0, y0, x1, y1, text, block_no)
-#         for x0, y0, x1, y1, block_text, _ in blocks:
-#             if is_table_block(block_text):
-#                 # Entire table as one node, with relative bbox
-#                 x_pct = x0 / page_width
-#                 y_pct = y0 / page_height
-#                 w_pct = (x1 - x0) / page_width
-#                 h_pct = (y1 - y0) / page_height
-#                 nodes.append(Document(
-#                     text=block_text,
-#                     extra_info={
-#                         "page": page.number + 1,
-#                         "bbox": [x_pct, y_pct, w_pct, h_pct],
-#                         "is_table": True
-#                     }
-#                 ))
-#             else:
-#                 for sent in nltk.sent_tokenize(block_text):
-#                     rects = page.search_for(sent)
-#                     for r in rects:
-#                         x_pct = r.x0 / page_width
-#                         y_pct = r.y0 / page_height
-#                         w_pct = (r.x1 - r.x0) / page_width
-#                         h_pct = (r.y1 - r.y0) / page_height
-#                         nodes.append(Document(
-#                             text=sent,
-#                             extra_info={
-#                                 "page": page.number + 1,
-#                                 "bbox": [x_pct, y_pct, w_pct, h_pct],
-#                                 "is_table": False
-#                             }
-#                         ))
-#     return nodes
-
-
-def visualize_bounding_boxes(pdf_path: str, sentences: list[str], output_path: str):
-
-    doc = fitz.open(pdf_path)
-
-    for sentence in sentences:
-        for page_num, page in enumerate(doc):
-            # Find sentence instances
-            found_instances = page.search_for(sentence)
-
-            # Draw rectangles on found instances
-            for bbox in found_instances:
-                # Draw a rectangle (red, 1pt width)
-                page.draw_rect(
-                    bbox,
-                    color=(1, 0, 0),
-                    fill=(1, 1, 0),
-                    width=1.0,
-                    overlay=False,
-                )
-
-    doc.save(output_path)
-    doc.close()
-
-
-def get_config() -> dict:
-    """
-    Load configuration (inlined).
-
-    Returns:
-        dict: The hard‑coded configuration.
-    """
-    return {
-        "claim getter": {
-            "model_name": "gpt-4o",
-            "temperature": 0.0,
-            "max_tokens": 500,
-        },
-        "claim checker": {
-            "question model": {
-                "model_name": "gpt-3.5-turbo",
-                "temperature": 0.0,
-                "max_tokens": 500,
-            },
-            "answer model": {
-                "model_name": "gpt-4o-mini",
-                "temperature": 0.0,
-                "max_tokens": 250,
-            },
-            "verification model": {
-                "model_name": "gpt-4o",
-                "temperature": 0.0,
-                "max_tokens": 500,
-            },
-        },
-    }

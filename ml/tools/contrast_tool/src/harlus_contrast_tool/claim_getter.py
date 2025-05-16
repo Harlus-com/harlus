@@ -39,21 +39,28 @@ class ClaimQueryEnginePipeline:
             model_config: dict
         ) -> BaseQueryEngine:
 
+        print(file_path)
+
         parser = DoclingNodeParser()
-        documents = SimpleDirectoryReader(
-            input_files=[file_path],
-            file_extractor={".pdf": parser},
-        ).load_data()
+        reader = SimpleDirectoryReader(
+            input_files=[file_path], 
+            file_extractor={".pdf": parser}
+        )
 
-        for i, doc in enumerate(documents):
-            # doc.metadata["document_type"] = document_type
-            doc.metadata["file_type"] = "pdf"
-            doc.metadata["file_path"] = file_path
+        # for i, doc in enumerate(documents):
+        #     # doc.metadata["document_type"] = document_type
+        #     doc.metadata["file_type"] = "pdf"
+        #     doc.metadata["file_path"] = file_path
 
-            if "page_number" not in doc.metadata:
-                doc.metadata["page_num"] = i + 1 # start counting from 1
+        #     if "page_number" not in doc.metadata:
+        #         doc.metadata["page_num"] = i + 1 # start counting from 1
 
-        index = VectorStoreIndex.from_documents(documents)
+        # index = VectorStoreIndex.from_documents(documents)
+        index = VectorStoreIndex.from_documents(
+            documents=reader.load_data(file_path),
+            transformations=[parser],
+            # storage_context=StorageContext.from_defaults(vector_store=vector_store),
+        )
 
         # llm that extracts claim from document
         llm = OpenAI(
@@ -61,6 +68,8 @@ class ClaimQueryEnginePipeline:
             temperature=model_config["temperature"],
             max_tokens=model_config["max_tokens"],
         )
+
+        print(index)
 
         return index.as_query_engine(
             llm=llm,

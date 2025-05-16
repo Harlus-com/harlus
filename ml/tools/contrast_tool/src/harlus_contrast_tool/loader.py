@@ -7,11 +7,6 @@ from .claim_getter import ClaimQueryEnginePipeline
 from .claim_checker import VerdictQueryEnginePipeline
 from .config import config
 from .sentence_retriever import SentenceRetrieverPipeline
-from typing import Union, Optional
-
-from .utils import get_config
-
-config = get_config()
 
 
 class ToolWrapper:
