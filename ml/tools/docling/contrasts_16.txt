@@ -1,0 +1,79 @@
+Contrasts for run 16
+Used model: gpt-4o-mini
+Used prompt:
+You are a senior equity‐research analyst at a long‐only, value‐focused investment fund.
+The fund's edge lies in deep, qualitative understanding of businesses—competitive moats, industry structure, management incentives, secular growth drivers, and capital‐allocation discipline. Spreadsheet work (e.g., owner‐earnings, FCF yield, ROIC) is used only to corroborate—or challenge—those qualitative insights.
+
+You have received two markdown documents:
+
+Text 1 – Investment Thesis
+Sets out the core narrative, strategic rationale, and valuation logic for a prospective investment.
+
+Text 2 – Evidence Pack
+May reinforce, nuance, or contradict the thesis via earnings calls, sell‐side notes, regulatory filings, competitor commentary, press articles, etc.
+
+Your task:
+Identify supporting or contradicting evidence in Text 2 relative to each key claim in Text 1, then summarise the contrasts in a structured JSON list of Contrast objects (schema below).
+
+You key objective is to find contrasts that would help an investor to understand whether to update their investment thesis (text 1).
+Also, make sure to focus on general themes, rather than small details or facts.
+For example, "Customers are diversified geographically" is a better claim then, "Customer are split X, Y and Z percent between North America, Euorope and Asia". 
+In general, claims should never be about exact numbers. Never include numbers in claims.
+
+Judgement on granularity:
+- Prefer fewer high level contrasts with multiple evidence excerpts, rather than more low level contrasts with a single evidence excerpt.
+- If overlap is vast, prioritise the strongest confirmations or contradictions (materiality, credibility of source, magnitude of impact).
+- If overlap is minimal, return only the few relevant points—or none, if genuinely no intersection exists.
+
+Parity of treatment:
+- Give equal weight to confirming and disconfirming evidence.
+- A “match” is still valuable; do not bias toward finding contradictions.
+
+Evidence quality:
+- Use exact excerpts—verbatim sentences or short paragraphs—from each text to back every claim summary.
+- Choose excerpts that plainly anchor the summary; avoid vague paraphrase or partial quotes.
+
+[
+  {
+    "text_1_claim_summary": "Applied Materials has innovation leadership that will drive ongoing market share gains and benefit from increasing global semiconductor demand.",
+    "text_1_evidence": [
+      "Innovation should sustain their leading position.,
+      "Their 4 key semiconductor technologies that power AI datacenters are leading edge logic, high
+        performance DRAM, High Bandwidth memory, and advanced packaging.,
+    ],
+    "text_2_claim_summary": "Applied Materials reported flat year-over-year revenue, and sales to logic customers dropped significantly due to inventory corrections, while sales to DRAM customers surged.",
+    "text_2_evidence": [
+      "Applied generated revenue of $6.65 billion. On a GAAP basis, the company reported gross margin of
+        47.4 percent, operating income of $1.91 billion or 28.8 percent of net revenue, and earnings per
+        share (EPS) of $2.06.,
+      "Sales to logic customers dropped by 24%, as many semiconductor clients are going through an
+        inventory correction.,
+    ],
+    "result": "contradiction",
+  },
+  {
+    "text_1_claim_summary": "The services segment is growing, with 80% of services revenue coming from recurring sources and a high renewal rate.",
+    "text_1_evidence": [
+      "Over 80% of services revenue comes from recurring services and parts, of which 2/3rd is delivered
+        under long term service agreements that have a 90% renewal rate.,
+    ],
+    "text_2_claim_summary": "Revenue from Applied Global Services has increased compared to the previous year, indicating strong performance in this segment.",
+    "text_2_evidence": [
+      "Applied Global Services reported net revenue of $1,530 million, an increase from $1,428 million in
+        the prior year, with an operating margin of 28.5%.,
+    ],
+    "result": "match",
+  },
+  {
+    "text_1_claim_summary": "Applied Materials is committed to returning a significant portion of its capital to shareholders through buybacks and dividends.",
+    "text_1_evidence": [
+      "AMAT remains committed to distribute 80% to 100% of shareholders over time.,
+    ],
+    "text_2_claim_summary": "In the second quarter, Applied distributed approximately $1.09 billion to shareholders, comprising significant amounts in share repurchases and dividends.",
+    "text_2_evidence": [
+      "The company generated $1.39 billion in cash from operations and distributed $1.09 billion to
+        shareholders including $820 million in share repurchases and $266 million in dividends.,
+    ],
+    "result": "match",
+  }
+]
