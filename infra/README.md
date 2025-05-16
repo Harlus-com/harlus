@@ -40,31 +40,6 @@ az container logs \
  --container-name tlsproxy \
  --follow
 
-# Health check from your laptop
+# Health check
 
-curl --key nginx-mtls/tls/client.key --cert nginx-mtls/tls/client.crt https://harlus-api-dev.eastus.azurecontainer.io/healthz
-
-# SSH into the container
-
-az container exec --resource-group harlus-dev --name harlus-api --exec-command "/bin/bash"
-
-# Create command:
-
-az container delete -g harlus-dev -n harlus-dev-api
-
-az container create \
- --resource-group harlus-dev \
- --name harlus-api \
- --image harlusregistry.azurecr.io/harlus-server:latest \
- --cpu 2 --memory 4 --os-type Linux \
- --ports 8000 \
- --dns-name-label harlus-api-dev \
- --registry-login-server harlusregistry.azurecr.io \
- --registry-username harlusregistry \
- --registry-password xxxx \
- --azure-file-volume-account-name harlusstor \
- --azure-file-volume-account-key xxx \
- --azure-file-volume-share-name harlusshare \
- --azure-file-volume-mount-path /data
-
-(Do not leave out the file detials, or the external file system will get dropped)
+curl --cacert nginx-mtls/tls/ca.crt --key nginx-mtls/tls/client.key --cert nginx-mtls/tls/client.crt ttps://harlus-api-dev.eastus.azurecontainer.io/healthz

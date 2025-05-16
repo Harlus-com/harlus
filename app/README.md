@@ -35,17 +35,15 @@ To run the app in development mode:
 npm run electron
 ```
 
-This will start an electron server that expects a backend to be running on port 8000 already.
-
-For instructions on how to start the backend server, see server/README
+This will start an electron server that talks to a local server running on port 8000.
 
 You can also use
 
 ```bash
-npm run electron -- --server_host=<remote-host>
+npm run electron -- --remote-server
 ```
 
-This allows the app to talk to a remote host running the server.
+This allows the app to talk to our remote dev server running azure
 
 ```bash
 # Just run the app as web app without electron wrapper
