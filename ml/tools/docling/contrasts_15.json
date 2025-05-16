@@ -1,0 +1,68 @@
+[
+  {
+    "text_1_claim_summary": "Applied Materials is a market leading semiconductor equipment supplier benefiting from increasing demand for semiconductors.",
+    "text_1_evidence": [
+      "Solid quarter and increased confidence for 2025. Innovation leadership to drive ongoing market share gains.",
+      "Innovation should sustain their leading position."
+    ],
+    "text_2_claim_summary": "Applied Materials delivered flat revenue year over year, and saw declines in sales to logic customers.",
+    "text_2_evidence": [
+      "Applied generated revenue of $6.65 billion. On a GAAP basis, the company reported gross margin of 47.4 percent, operating income of $1.91 billion or 28.8 percent of net revenue.",
+      "Revenue $6.65 billion, flat year over year.",
+      "Sales to logic customers (65% of quarterly sales) dropped by 24%, as many semiconductor clients are going through an inventory correction."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Innovation should sustain their leading position.",
+    "text_1_evidence": [
+      "Innovation should sustain their leading position.",
+      "Applied Materials sounded optimistic on their innovation pipeline and strong growth for the coming years."
+    ],
+    "text_2_claim_summary": "While Applied Materials reported strong overall performance, growth was muted with significant cuts in certain areas like cash flow from operations.",
+    "text_2_evidence": [
+      "A reconciliation of the GAAP and non-GAAP results... Non-GAAP free cash flow declined significantly.",
+      "Generated $1.39 billion in cash from operations.",
+      "Non-GAAP free cash flow declined to $1,135 million, down 44% year-over-year."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "Service revenues account for a significant and stable portion of Applied Materials' business.",
+    "text_1_evidence": [
+      "Over 80% of services revenue comes from recurring services and parts, of which 2/3rd is delivered under long term service agreements that have a 90% renewal rate."
+    ],
+    "text_2_claim_summary": "While Applied's service sector showed stability, revenue overall and performance metrics exhibited significant volatility during the reported period.",
+    "text_2_evidence": [
+      "Operating income for services was stable but revenue contribution from segments varied considerably, demonstrating a lack of consistent growth across the board."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "AMAT is committed to returning significant capital to shareholders through buybacks and dividends.",
+    "text_1_evidence": [
+      "AMAT remains committed to distribute 80% to 100% of shareholders over time.",
+      "AMAT repurchased for $1.5bn in own shares during their H1."
+    ],
+    "text_2_claim_summary": "Applied Materials continues to allocate substantial funds to return capital to shareholders, including dividends and share repurchases.",
+    "text_2_evidence": [
+      "distributed $1.09 billion to shareholders including $820 million in share repurchases and $266 million in dividends.",
+      "AMAT repurchased for $820 million in shares during Q2."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "The company expects to grow revenues via investment in leading-edge technologies pertinent to AI and advanced packaging.",
+    "text_1_evidence": [
+      "The group has also a strong market share in interconnect as backside power is introduced into volume manufacturing.",
+      "AMAT expects to generate more than $2.5bn of revenue from gate-all-around nodes and potentially more than double that in 2025."
+    ],
+    "text_2_claim_summary": "The outlook shared by management reflects cautious optimism amid uncertain demand dynamics, particularly in the logic segment.",
+    "text_2_evidence": [
+      "Factors that could cause actual results to differ materially from those expressed or implied include the level of demand for our products; global economic, political and industry conditions, including rising inflation and interest rates;...",
+      "Gary Dickerson, President and CEO, stated that Applied Materials has the most enabling portfolio of materials engineering technologies for chips but cautioned about the need to adapt to demand.",
+      "Management pointed out that their latest innovations might be overshadowed if demand does not recover."
+    ],
+    "result": "contradiction"
+  }
+]

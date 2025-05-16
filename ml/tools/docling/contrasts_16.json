@@ -1,0 +1,37 @@
+[
+  {
+    "text_1_claim_summary": "Applied Materials has innovation leadership that will drive ongoing market share gains and benefit from increasing global semiconductor demand.",
+    "text_1_evidence": [
+      "Innovation should sustain their leading position.",
+      "Their 4 key semiconductor technologies that power AI datacenters are leading edge logic, high performance DRAM, High Bandwidth memory, and advanced packaging."
+    ],
+    "text_2_claim_summary": "Applied Materials reported flat year-over-year revenue, and sales to logic customers dropped significantly due to inventory corrections, while sales to DRAM customers surged.",
+    "text_2_evidence": [
+      "Applied generated revenue of $6.65 billion. On a GAAP basis, the company reported gross margin of 47.4 percent, operating income of $1.91 billion or 28.8 percent of net revenue, and earnings per share (EPS) of $2.06.",
+      "Sales to logic customers dropped by 24%, as many semiconductor clients are going through an inventory correction."
+    ],
+    "result": "contradiction"
+  },
+  {
+    "text_1_claim_summary": "The services segment is growing, with 80% of services revenue coming from recurring sources and a high renewal rate.",
+    "text_1_evidence": [
+      "Over 80% of services revenue comes from recurring services and parts, of which 2/3rd is delivered under long term service agreements that have a 90% renewal rate."
+    ],
+    "text_2_claim_summary": "Revenue from Applied Global Services has increased compared to the previous year, indicating strong performance in this segment.",
+    "text_2_evidence": [
+      "Applied Global Services reported net revenue of $1,530 million, an increase from $1,428 million in the prior year, with an operating margin of 28.5%."
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Applied Materials is committed to returning a significant portion of its capital to shareholders through buybacks and dividends.",
+    "text_1_evidence": [
+      "AMAT remains committed to distribute 80% to 100% of shareholders over time."
+    ],
+    "text_2_claim_summary": "In the second quarter, Applied distributed approximately $1.09 billion to shareholders, comprising significant amounts in share repurchases and dividends.",
+    "text_2_evidence": [
+      "The company generated $1.39 billion in cash from operations and distributed $1.09 billion to shareholders including $820 million in share repurchases and $266 million in dividends."
+    ],
+    "result": "match"
+  }
+]

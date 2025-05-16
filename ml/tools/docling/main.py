@@ -73,8 +73,10 @@ class Contrast(BaseModel):
 
 
 # your two big markdown files as Python strings
-text1 = open("Littelfuse_memo.md").read()
-text2 = open("Littelfuse_2024_Annual_Report.md").read()
+# text1 = open("Littelfuse_memo.md").read()
+# text2 = open("Littelfuse_2024_Annual_Report.md").read()
+text1 = open("AMAT_Q1_24_results.md").read()
+text2 = open("AMAT_Q2_2024_Earnings_Release.md").read()
 
 good_contrast = open("good_contrast.json").read()
 bad_contrast = open("bad_contrast.json").read()
