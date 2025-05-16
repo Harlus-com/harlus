@@ -1,0 +1,58 @@
+[
+  {
+    "text_1_claim_summary": "The company will benefit from structural demand growth driven by AI and broader digitalization.",
+    "text_1_evidence": [
+      "They should benefit from the ever increasing thirst for semiconductors worldwide, enabling the digitization of the economy and the build-out of the data infrastructure that will make artificial intelligence flourish." :contentReference[oaicite:1]{index=1}
+    ],
+    "text_2_claim_summary": "Management highlights its portfolio as central to AI-related technology shifts and other long-term secular trends.",
+    "text_2_evidence": [
+      "Applied Materials has the most enabling portfolio of materials engineering technologies for chips that underpin tectonic shifts in technology including AI, IoT, electric vehicles and clean energy, which puts us in a great position to grow along with these long-term, secular trends." :contentReference[oaicite:3]{index=3}
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Innovation leadership is expected to expand the company’s market share across key process steps.",
+    "text_1_evidence": [
+      "Innovation leadership to drive ongoing market share gains." :contentReference[oaicite:5]{index=5},
+      "…the group is gaining share as they are on track to capture over 50% of the process equipment spending for transistor steps." :contentReference[oaicite:7]{index=7}
+    ],
+    "text_2_claim_summary": "Management underscores the breadth of its materials-engineering portfolio as a competitive advantage.",
+    "text_2_evidence": [
+      "Applied Materials has the most enabling portfolio of materials engineering technologies for chips…" :contentReference[oaicite:9]{index=9}
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Management prioritizes returning substantial capital to shareholders through buybacks and dividends.",
+    "text_1_evidence": [
+      "AMAT remains committed to distribute 80% to 100% of shareholders over time." :contentReference[oaicite:11]{index=11}
+    ],
+    "text_2_claim_summary": "The company continues to repurchase shares and pay dividends.",
+    "text_2_evidence": [
+      "The company generated $1.39 billion in cash from operations and distributed $1.09 billion to shareholders including $820 million in share repurchases and $266 million in dividends." :contentReference[oaicite:13]{index=13}
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "The balance-sheet position is strong, providing ample liquidity.",
+    "text_1_evidence": [
+      "Net cash increased to close to $5bn, up from $3.6bn at the start of their FY." :contentReference[oaicite:15]{index=15}
+    ],
+    "text_2_claim_summary": "Cash holdings have grown further since the fiscal year-end.",
+    "text_2_evidence": [
+      "Cash and cash equivalents $ 7,085 … $ 6,132." :contentReference[oaicite:17]{index=17}
+    ],
+    "result": "match"
+  },
+  {
+    "text_1_claim_summary": "Cash generation remains resilient year over year.",
+    "text_1_evidence": [
+      "FCF to Equity generation during the first two quarters of their year amounted to $3.2bn, which is slightly down yoy, if we exclude the volatile working capital component." :contentReference[oaicite:19]{index=19}
+    ],
+    "text_2_claim_summary": "Free cash flow declined markedly from the prior-year period.",
+    "text_2_evidence": [
+      "Non-GAAP free cash flow $ 1,135 $ 2,037 (44)%" :contentReference[oaicite:21]{index=21}
+    ],
+    "result": "contradiction"
+  }
+]
