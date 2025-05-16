@@ -35,7 +35,6 @@ from typing import Dict
 import httpx
 import base64
 
-# Your settings
 TENANT_ID = "27dfce8d-8b21-4c81-8579-2baedebea216"
 API_AUDIENCE_URI = "api://6acbb67d-3153-4ed6-8041-f2c52a5a68e4"
 
@@ -81,7 +80,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Create a router for authenticated endpoints
+# Router for authenticated endpoints
 api_router = APIRouter(dependencies=[Depends(validate_jwt)])
 
 asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
@@ -461,5 +460,4 @@ async def upload_file(
     return file
 
 
-# Include the router with all authenticated endpoints
 app.include_router(api_router)
