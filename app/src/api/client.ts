@@ -1,17 +1,17 @@
-import { apiClient } from "@/core/api/apiClient";
+import { authClientWrapper } from "@/api/auth_client_wrapper";
 
 class LocalClient implements ServerClient {
   constructor(private readonly baseUrl: string) {}
 
   async get(path: string) {
-    const client = await apiClient.getClient();
+    const client = authClientWrapper.getClient();
     const response = await client.get(`${this.baseUrl}${path}`);
     console.log(`GET ${path} Response`, response.data);
     return response.data;
   }
 
   async getBuffer(path: string) {
-    const client = await apiClient.getClient();
+    const client = authClientWrapper.getClient();
     const response = await client.get(`${this.baseUrl}${path}`, {
       responseType: "arraybuffer",
     });
@@ -19,14 +19,14 @@ class LocalClient implements ServerClient {
   }
 
   async post(path: string, body: any) {
-    const client = await apiClient.getClient();
+    const client = authClientWrapper.getClient();
     const response = await client.post(`${this.baseUrl}${path}`, body);
     console.log(`POST ${path} Response`, response.data);
     return response.data;
   }
 
   async delete(path: string) {
-    const client = await apiClient.getClient();
+    const client = authClientWrapper.getClient();
     const response = await client.delete(`${this.baseUrl}${path}`);
     console.log(`DELETE ${path} Response`, response.data);
     return response.data;

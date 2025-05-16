@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/core/auth/AuthContext";
+import { useAuth } from "@/auth/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
   Card,
