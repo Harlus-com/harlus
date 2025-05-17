@@ -236,12 +236,8 @@ function setupIPCHandlers() {
   });
 }
 
-// App lifecycle handlers
 app.whenReady().then(() => {
-  console.log("whenReady");
   setupIPCHandlers();
-  console.log("setupIPCHandlers");
-  //createWindow();
   startUiServer();
 
   app.on("activate", () => {
@@ -259,14 +255,12 @@ app.on("window-all-closed", () => {
   app.quit();
 });
 
+// By serving the UI off 8080, we can take advantage of Microsoft SSO for single page apps
 function startUiServer() {
-  console.log("starting ui server");
   const DIST = path.join(__dirname, "../dist");
   const httpApp = express();
-  console.log("DIST", DIST);
   // Serve all files in your dist folder
   httpApp.use(express.static(DIST));
-  console.log("httpApp.use(express.static(DIST))");
   // For any other route, serve index.html (SPA client‐side routing)
   httpApp.get("/*", (_req: any, res: any) => {
     res.sendFile(path.join(DIST, "index.html"));

@@ -19,5 +19,4 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("server-delete", path, authHeader),
   upload: (filePath: string, workspaceId: string, authHeader: string) =>
     ipcRenderer.invoke("server-upload", filePath, workspaceId, authHeader),
-  login: () => ipcRenderer.invoke("msal-login"),
 });
