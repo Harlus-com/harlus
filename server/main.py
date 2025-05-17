@@ -1,8 +1,6 @@
 import argparse
 import sys
 import uvicorn
-from src.app import app
-
 import asyncio
 
 asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
@@ -14,9 +12,11 @@ nest_asyncio.apply(loop=asyncio.get_event_loop())
 
 
 import dotenv
-import json
 
 dotenv.load_dotenv()
+
+# Import app for dotenv and envt loop are setup
+from src.app import app
 
 
 def main():

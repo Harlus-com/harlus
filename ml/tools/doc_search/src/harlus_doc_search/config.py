@@ -1,11 +1,12 @@
 from llama_index.llms.openai import OpenAI
 from llama_index.embeddings.openai import OpenAIEmbedding
-from enum import Enum
+import os
 
-LLAMA_CLOUD_API_KEY = "llx-bkniMqcARmtgvoBP24DQKuckttPfYrmnuFJ2zJU4KrWsKecy"
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    raise ValueError("OPENAI_API_KEY environment variable is not set")
+
 NUM_WORKERS = 20
-
 
 LLM_LIBRARY = {
     "openai-gpt-4o-mini": OpenAI(

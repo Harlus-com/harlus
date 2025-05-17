@@ -1,4 +1,4 @@
-#from llama_parse import LlamaParse
+# from llama_parse import LlamaParse
 
 from llama_index.core.extractors import (
     SummaryExtractor,
@@ -16,7 +16,7 @@ import json
 
 from .node_parse import *
 from .node_store import *
-from .config import NUM_WORKERS, LLM, FASTLLM, LLAMA_CLOUD_API_KEY
+from .config import NUM_WORKERS, FASTLLM
 
 
 # TODO: use IngestionPipeline framework from llama_index
@@ -57,10 +57,9 @@ class NodePipeline:
     async def execute(self) -> tuple[str, str, list[Node]]:
         print(f"Creating nodes for {self.file_path} ...")
 
-
         # TODO: Docling gives us control over which models we use.
         # We can use remote OpenAI LLMs or a remote open source model "SmolDocling"
-        # Default configuration should be a local set-up. 
+        # Default configuration should be a local set-up.
         print(" - reading document with Docling...")
         reader = DoclingReader(export_type=DoclingReader.ExportType.JSON)
         documents = reader.load_data(self.file_path)
@@ -68,7 +67,6 @@ class NodePipeline:
         print(" - creating nodes from documents...")
         node_parser = DoclingNodeParser()
         nodes = node_parser.get_nodes_from_documents(documents)
-
 
         print(" - adding metadata to nodes...")
         extractor_list = [
