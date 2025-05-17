@@ -10,7 +10,7 @@ import https from "https";
 
 // Runs an electron app against a local Vite dev server
 const args = process.argv;
-const useRemoteServer = args.find((arg) => arg === "--remote-server");
+const useRemoteServer = !!args.find((arg) => arg === "--remote-server");
 console.log("USE REMOTE SERVER", useRemoteServer);
 const baseUrl = useRemoteServer
   ? "https://harlus-api-dev.eastus.azurecontainer.io"
@@ -192,6 +192,10 @@ function setupIPCHandlers() {
       return upload(filePath, workspaceId, authHeader);
     }
   );
+
+  ipcMain.handle("get-base-url", () => {
+    return baseUrl;
+  });
 }
 
 const childProcesses = [];

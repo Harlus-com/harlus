@@ -16,4 +16,5 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("server-delete", path, authHeader),
   upload: (filePath, workspaceId, authHeader) =>
     ipcRenderer.invoke("server-upload", filePath, workspaceId, authHeader),
+  getBaseUrl: () => ipcRenderer.invoke("get-base-url"),
 });

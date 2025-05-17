@@ -223,6 +223,10 @@ function setupIPCHandlers() {
       return results;
     }
   );
+
+  ipcMain.handle("get-base-url", () => {
+    return baseUrl;
+  });
 }
 
 app.whenReady().then(() => {
