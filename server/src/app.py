@@ -31,9 +31,7 @@ from src.contrast_analysis import analyze
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt
-from typing import Dict
 import httpx
-import base64
 
 TENANT_ID = "27dfce8d-8b21-4c81-8579-2baedebea216"
 API_AUDIENCE_URI = "api://6acbb67d-3153-4ed6-8041-f2c52a5a68e4"
@@ -46,8 +44,12 @@ bearer = HTTPBearer()
 
 def validate_jwt(
     credentials: HTTPAuthorizationCredentials = Depends(bearer),
-) -> Dict:
+) -> dict:
     token = credentials.credentials
+    return validate_token(token)
+
+
+def validate_token(token: str) -> dict:
     try:
         claims = jwt.decode(
             token,
@@ -243,12 +245,17 @@ def get_threads(workspace_id: str = Query(..., alias="workspaceId")):
     return {"threads": chat_store.get_threads(workspace_id)}
 
 
-@api_router.get("/chat/stream")
+@app.get("/chat/stream")
 async def stream_chat(
     workspace_id: str = Query(..., alias="workspaceId"),
     query: str = Query(...),
     thread_id: str = Query(..., alias="threadId"),
+    token: str = Query(...),
 ):
+    # Validate the token
+    if not validate_token(token):
+        raise HTTPException(status_code=403, detail="Invalid or expired token")
+
     print("Streaming chat", workspace_id, query, thread_id)
     chat_model = chat_store.get_chat_model(workspace_id, thread_id)
     response = StreamingResponse(
