@@ -18,10 +18,12 @@ import { LoadingIndicator } from "./LoadingIndicator";
 import { getTitleFromMessage, hourMinuteNow } from "./chat_util";
 import { useFileViewContext } from "@/files/FileViewContext";
 import { FileGroupCount } from "@/components/panels";
+import { useAuth } from "@/auth/AuthContext";
 
 // Chat panel component
 const ChatPanel: React.FC = () => {
   const { workspaceId } = useParams();
+  const { getToken } = useAuth();
   const {
     currentThreadId,
     createEmptyThread,
@@ -136,10 +138,12 @@ const ChatPanel: React.FC = () => {
 
     // handle response from the backend
     try {
+      const token = await getToken();
       await chatService.streamChat(
         input.trim(),
         workspaceId,
         currentThreadId,
+        token,
         // onMessage handler - for all types of messages
         (newContent, messageType) => {
           updateAndSaveMessages((prev) => {
@@ -164,13 +168,12 @@ const ChatPanel: React.FC = () => {
                     messageType: "planning_message",
                   };
                 }
-              }
-              else if (messageType === "reading_message") {
+              } else if (messageType === "reading_message") {
                 // Hide planning message when reading messages start
                 if (currentPair.planningMessage) {
                   currentPair.planningMessage = null;
                 }
-                
+
                 // Add to the buffer and process the updated content
                 currentPair.readingMessageBuffer += newContent;
 
@@ -239,13 +242,12 @@ const ChatPanel: React.FC = () => {
                     });
                   }
                 }
-              } 
-              else if (messageType === "answer_message") {
+              } else if (messageType === "answer_message") {
                 // Hide planning message when answer starts
                 if (currentPair.planningMessage) {
                   currentPair.planningMessage = null;
                 }
-                
+
                 // Add to main answer
                 currentPair.assistantMessage = {
                   ...currentPair.assistantMessage!,

@@ -43,6 +43,7 @@ export class ChatService {
     userQuery: string,
     workspaceId: string,
     threadId: string,
+    authToken: string,
     onMessage: (
       content: string,
       messageType: "reading_message" | "answer_message" | "planning_message"
@@ -62,31 +63,24 @@ export class ChatService {
     }
 
     try {
-      // 1. create the event source
       const encodedQuery = encodeURIComponent(userQuery);
-      // TODO: Fix in follow on PR
-      const url = `http://localhost:8000/chat/stream?workspaceId=${workspaceId}&query=${encodedQuery}&threadId=${threadId}`;
+      const url = `http://localhost:8000/chat/stream?workspaceId=${workspaceId}&query=${encodedQuery}&threadId=${threadId}&token=${authToken}`;
       this.eventSource = new EventSource(url);
 
-      // 2. listen for planning messages
       this.eventSource.addEventListener("planning_message", (event) => {
         const newContent = JSON.parse(event.data).text;
         onMessage(newContent, "planning_message");
       });
 
-      // 3. listen for reading messages
       this.eventSource.addEventListener("reading_message", (event) => {
         const newContent = JSON.parse(event.data).text;
         onMessage(newContent, "reading_message");
       });
 
-      // 4. listen for answer messages
       this.eventSource.addEventListener("answer_message", (event) => {
         const newContent = JSON.parse(event.data).text;
         onMessage(newContent, "answer_message");
       });
-
-      // 5. listen for source information
       this.eventSource.addEventListener("sources", async (event) => {
         try {
           // Parse and convert the raw data from snake_case to camelCase
