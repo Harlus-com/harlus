@@ -42,7 +42,7 @@ az container logs \
 
 # Health check
 
-curl --cacert nginx-mtls/tls/ca.crt --key nginx-mtls/tls/client.key --cert nginx-mtls/tls/client.crt ttps://harlus-api-dev.eastus.azurecontainer.io/healthz
+curl --cacert nginx-mtls/tls/ca.crt --key nginx-mtls/tls/client.key --cert nginx-mtls/tls/client.crt https://harlus-api-dev.eastus.azurecontainer.io/healthz
 
 # Azure SSO
 
