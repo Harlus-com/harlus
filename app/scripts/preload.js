@@ -7,10 +7,13 @@ contextBridge.exposeInMainWorld("electron", {
   getFileContent: (filePath) =>
     ipcRenderer.invoke("get-file-content", filePath),
   getFileStats: (filePath) => ipcRenderer.invoke("get-file-stats", filePath),
-  get: (path) => ipcRenderer.invoke("server-get", path),
-  getBuffer: (path) => ipcRenderer.invoke("server-get-buffer", path),
-  post: (path, body) => ipcRenderer.invoke("server-post", path, body),
-  delete: (path) => ipcRenderer.invoke("server-delete", path),
-  upload: (filePath, workspaceId) =>
-    ipcRenderer.invoke("server-upload", filePath, workspaceId),
+  get: (path, authHeader) => ipcRenderer.invoke("server-get", path, authHeader),
+  getBuffer: (path, authHeader) =>
+    ipcRenderer.invoke("server-get-buffer", path, authHeader),
+  post: (path, body, authHeader) =>
+    ipcRenderer.invoke("server-post", path, body, authHeader),
+  delete: (path, authHeader) =>
+    ipcRenderer.invoke("server-delete", path, authHeader),
+  upload: (filePath, workspaceId, authHeader) =>
+    ipcRenderer.invoke("server-upload", filePath, workspaceId, authHeader),
 });

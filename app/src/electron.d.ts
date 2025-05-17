@@ -22,6 +22,15 @@ interface ElectronAPI extends ServerClient {
   getFileStats: (path: string) => Promise<FileStats | null>;
   getServerPort: () => number;
   getServerHost: () => string;
+  get: (path: string, authHeader: string) => Promise<any>;
+  post: (path: string, body: any, authHeader: string) => Promise<any>;
+  getBuffer: (path: string, authHeader: string) => Promise<ArrayBuffer>;
+  delete: (path: string, authHeader: string) => Promise<any>;
+  upload: (
+    filePath: string,
+    workspaceId: string,
+    authHeader: string
+  ) => Promise<void>;
 }
 
 declare interface Window {

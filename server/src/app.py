@@ -10,13 +10,13 @@ from fastapi import (
     HTTPException,
     Query,
     UploadFile,
+    APIRouter,
 )
 import os
 import asyncio
 import nest_asyncio
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
-from platformdirs import user_data_dir
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -28,6 +28,48 @@ from src.file_store import FileStore, Workspace, File
 from src.sync_queue import SyncQueue, SyncType
 from src.contrast_analysis import analyze
 
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from jose import jwt
+from typing import Dict
+import httpx
+import base64
+
+TENANT_ID = "27dfce8d-8b21-4c81-8579-2baedebea216"
+API_AUDIENCE_URI = "api://6acbb67d-3153-4ed6-8041-f2c52a5a68e4"
+
+JWKS_URL = f"https://login.microsoftonline.com/{TENANT_ID}/discovery/v2.0/keys"
+jwks = httpx.get(JWKS_URL).json()
+
+bearer = HTTPBearer()
+
+
+def validate_jwt(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer),
+) -> Dict:
+    token = credentials.credentials
+    try:
+        claims = jwt.decode(
+            token,
+            jwks,
+            algorithms=["RS256"],
+            audience=API_AUDIENCE_URI,
+        )
+    except jwt.JWTError as e:
+        print("JWT validation error:", str(e))
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Token validation failed: {e}",
+        )
+
+    # We could choose not to enforce scope, but we might want scopes in the future, so just leaving it as an example
+    if "scp" not in claims or "Harlus.All" not in claims["scp"].split():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Token missing required scope"
+        )
+
+    return claims
+
 
 app = FastAPI()
 app.add_middleware(
@@ -37,6 +79,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Router for authenticated endpoints
+api_router = APIRouter(dependencies=[Depends(validate_jwt)])
 
 asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
 
@@ -68,7 +113,7 @@ def health_check():
     return JSONResponse(content={"status": "ok"})
 
 
-@app.get("/file/handle")
+@api_router.get("/file/handle")
 def get_file(
     file_id: str = Query(..., alias="fileId"),
     workspace_id: str = Query(..., alias="workspaceId"),
@@ -89,7 +134,7 @@ class ForceSyncFileRequest(BaseModel):
     force: bool = Field(alias="force")
 
 
-@app.post("/file/sync")
+@api_router.post("/file/sync")
 async def force_file_sync(request: ForceSyncFileRequest):
     print("Syncing file", request)
     file = file_store.get_file(request.file_id, request.workspace_id)
@@ -98,7 +143,7 @@ async def force_file_sync(request: ForceSyncFileRequest):
     return True
 
 
-@app.delete("/file/delete")
+@api_router.delete("/file/delete")
 def delete_file(
     file_id: str = Query(..., alias="fileId"),
     workspace_id: str = Query(..., alias="workspaceId"),
@@ -116,7 +161,7 @@ class LoadFolderRequest(BaseModel):
     workspace_id: str = Field(alias="workspaceId")
 
 
-@app.post("/folder/load")
+@api_router.post("/folder/load")
 def load_folder(request: LoadFolderRequest):
     path = request.path
     workspace_id = request.workspace_id
@@ -132,7 +177,7 @@ class CreateWorkspaceRequest(BaseModel):
     name: str
 
 
-@app.post("/workspace/create")
+@api_router.post("/workspace/create")
 async def create_workspace(request: CreateWorkspaceRequest):
     print("Creating workspace", request.name)
     workspace = file_store.create_workspace(request.name)
@@ -141,25 +186,25 @@ async def create_workspace(request: CreateWorkspaceRequest):
     return workspace
 
 
-@app.get("/workspace/get")
+@api_router.get("/workspace/get")
 def get_workspace(workspace_id: str = Query(..., alias="workspaceId")):
     print("Getting workspace", workspace_id)
     return file_store.get_workspaces()[workspace_id]
 
 
-@app.get("/workspace/all")
+@api_router.get("/workspace/all")
 def get_workspaces() -> list[Workspace]:
     workspaces = list(file_store.get_workspaces().values())
     return workspaces
 
 
-@app.delete("/workspace/delete")
+@api_router.delete("/workspace/delete")
 def delete_workspace(workspace_id: str = Query(..., alias="workspaceId")):
     """Delete a workspace and all its associated files"""
     file_store.delete_workspace(workspace_id)
 
 
-@app.get("/workspace/files")
+@api_router.get("/workspace/files")
 def get_files(workspace_id: str = Query(..., alias="workspaceId")):
     print("Getting files for workspace", workspace_id)
     files = list(file_store.get_files(workspace_id).values())
@@ -171,7 +216,7 @@ class SyncWorkspaceRequest(BaseModel):
     workspace_id: str = Field(alias="workspaceId")
 
 
-@app.post("/workspace/sync")
+@api_router.post("/workspace/sync")
 async def sync_workspace(request: SyncWorkspaceRequest):
     print("Syncing workspace", request.workspace_id)
     for file in file_store.get_files(request.workspace_id).values():
@@ -184,7 +229,7 @@ class SetThreadRequest(BaseModel):
     thread_id: str = Field(alias="threadId")
 
 
-@app.post("/chat/set_thread")
+@api_router.post("/chat/set_thread")
 def set_thread(request: SetThreadRequest):
     print("Setting thread", request.workspace_id, request.thread_id)
     if not chat_store.thread_exists(request.workspace_id, request.thread_id):
@@ -192,13 +237,13 @@ def set_thread(request: SetThreadRequest):
     return chat_store.get_thread(request.workspace_id, request.thread_id)
 
 
-@app.get("/chat/threads")
+@api_router.get("/chat/threads")
 def get_threads(workspace_id: str = Query(..., alias="workspaceId")):
     print("Getting threads", workspace_id)
     return {"threads": chat_store.get_threads(workspace_id)}
 
 
-@app.get("/chat/stream")
+@api_router.get("/chat/stream")
 async def stream_chat(
     workspace_id: str = Query(..., alias="workspaceId"),
     query: str = Query(...),
@@ -217,7 +262,7 @@ async def stream_chat(
     return response
 
 
-@app.get("/workspace/files/status")
+@api_router.get("/workspace/files/status")
 def get_workspace_files_status(workspace_id: str = Query(..., alias="workspaceId")):
     """Get the current sync status of all files in a workspace"""
     print("Getting workspace file statuses", workspace_id)
@@ -227,7 +272,7 @@ def get_workspace_files_status(workspace_id: str = Query(..., alias="workspaceId
     }
 
 
-@app.get("/contrast/analyze")
+@api_router.get("/contrast/analyze")
 def get_contrast_analyze(
     old_file_id: str = Query(..., alias="oldFileId"),
     new_file_id: str = Query(..., alias="newFileId"),
@@ -236,7 +281,7 @@ def get_contrast_analyze(
     return analyze(old_file_id, new_file_id, file_store, tool_library)
 
 
-@app.get("/file/get")
+@api_router.get("/file/get")
 def get_file(
     file_id: str = Query(..., alias="fileId"),
     file_path: str = Query(..., alias="filePath"),
@@ -250,7 +295,7 @@ def get_file(
         raise HTTPException(status_code=400, detail="No file id or path provided")
 
 
-@app.post("/chat/history/save")
+@api_router.post("/chat/history/save")
 async def save_chat_history(
     message_pairs=Body(...),
     thread_id: str = Query(..., alias="threadId"),
@@ -260,7 +305,7 @@ async def save_chat_history(
     return True
 
 
-@app.get("/chat/history")
+@api_router.get("/chat/history")
 def get_chat_history(
     thread_id: str = Query(..., alias="threadId"),
     workspace_id: str = Query(..., alias="workspaceId"),
@@ -275,7 +320,7 @@ class UpsertThreadRequest(BaseModel):
     title: str
 
 
-@app.post("/chat/thread/upsert")
+@api_router.post("/chat/thread/upsert")
 def upsert_thread(
     request: UpsertThreadRequest = Body(...),
 ):
@@ -287,7 +332,7 @@ def upsert_thread(
     return chat_store.get_thread(request.workspace_id, request.thread_id)
 
 
-@app.delete("/chat/thread")
+@api_router.delete("/chat/thread")
 def delete_thread(
     thread_id: str = Query(..., alias="threadId"),
     workspace_id: str = Query(..., alias="workspaceId"),
@@ -296,7 +341,7 @@ def delete_thread(
     return chat_store.delete_thread(workspace_id, thread_id)
 
 
-@app.get("/chat/thread")
+@api_router.get("/chat/thread")
 def get_thread(
     thread_id: str = Query(..., alias="threadId"),
     workspace_id: str = Query(..., alias="workspaceId"),
@@ -326,14 +371,14 @@ class SaveCommentsRequest(BaseModel):
     comments: list[JsonType]
 
 
-@app.post("/comments/group/create")
+@api_router.post("/comments/group/create")
 def create_comment_group(request: CreateCommentGroupRequest):
     """Create a new comment group"""
     comment_store.create_comment_group(request.workspace_id, request.comment_group)
     return request.comment_group
 
 
-@app.get("/comments/group/get")
+@api_router.get("/comments/group/get")
 def get_comment_group(
     group_id: str = Query(..., alias="groupId"),
     workspace_id: str = Query(..., alias="workspaceId"),
@@ -342,7 +387,7 @@ def get_comment_group(
     return comment_store.get_comment_group(workspace_id, group_id)
 
 
-@app.get("/comments/group/all")
+@api_router.get("/comments/group/all")
 def get_all_comment_groups(
     workspace_id: str = Query(..., alias="workspaceId"),
 ):
@@ -350,14 +395,14 @@ def get_all_comment_groups(
     return comment_store.get_comment_groups(workspace_id)
 
 
-@app.post("/comments/save")
+@api_router.post("/comments/save")
 async def save_comments(request: SaveCommentsRequest):
     """Save comments for a group"""
     await comment_store.save_comments(request.workspace_id, request.comments)
     return True
 
 
-@app.get("/comments/saved")
+@api_router.get("/comments/saved")
 def get_saved_comments(
     workspace_id: str = Query(..., alias="workspaceId"),
 ):
@@ -365,7 +410,7 @@ def get_saved_comments(
     return comment_store.get_comments(workspace_id)
 
 
-@app.post("/comments/group/rename")
+@api_router.post("/comments/group/rename")
 def rename_comment_group(request: RenameCommentGroupRequest):
     """Rename a comment group"""
     comment_store.rename_comment_group(
@@ -376,7 +421,7 @@ def rename_comment_group(request: RenameCommentGroupRequest):
     )
 
 
-@app.post("/comments/group/delete")
+@api_router.post("/comments/group/delete")
 def delete_comment_group(request: DeleteCommentGroupRequest):
     """Delete a comment group"""
     comment_store.delete_comment_group(request.workspace_id, request.comment_group_id)
@@ -390,7 +435,7 @@ async def is_pdf_stream(upload: UploadFile) -> bool:
     return header == b"%PDF-"
 
 
-@app.post("/file/upload")
+@api_router.post("/file/upload")
 async def upload_file(
     workspace_id: str = Form(..., alias="workspaceId"),
     app_dir_json: str = Form(..., alias="appDir"),
@@ -413,3 +458,6 @@ async def upload_file(
     file = file_store.copy_file_to_workspace(str(tmp_path), workspace_id, app_dir)
     await sync_queue.queue_model_sync(file)
     return file
+
+
+app.include_router(api_router)

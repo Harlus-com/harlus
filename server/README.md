@@ -62,3 +62,9 @@ Note: You will have to install docker first
 Note: `-t` stands for tag, and tags the respository of the image as harlus-server. The "tag" then defualts to `latest`. If we wanted to provide a specific tag, we could use `-t harlus:server:v1`. To see the images, run `docker images`.
 
 Note: `-p` maps from the host port to conatiner port.
+
+## To use swagger api:
+
+http://localhost:8000/docs
+
+Add a bearer token (got from the front end) and paste it into "authorize" section

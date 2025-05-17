@@ -22,6 +22,6 @@ az acr repository show-tags -n harlusregistry --repository harlus-server -o tabl
 
 # 3. Restart the container intsnace to pick up the new latest
 
-az container restart --resource-group harlus-dev --name harlus-api
+az container restart --resource-group harlus-dev --name harlus-api-dev
 
 Note: If you want to change anything else, you have to re-run the "create command" (see infra/README)

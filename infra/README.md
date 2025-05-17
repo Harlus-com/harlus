@@ -42,4 +42,18 @@ az container logs \
 
 # Health check
 
-curl --cacert nginx-mtls/tls/ca.crt --key nginx-mtls/tls/client.key --cert nginx-mtls/tls/client.crt ttps://harlus-api-dev.eastus.azurecontainer.io/healthz
+curl --cacert nginx-mtls/tls/ca.crt --key nginx-mtls/tls/client.key --cert nginx-mtls/tls/client.crt https://harlus-api-dev.eastus.azurecontainer.io/healthz
+
+# Azure SSO
+
+Now that we have Azure SSO, we could (and probably should drop lLient certificate )
+
+| Purpose                   | Client certificate (mTLS)                               | Azure AD / OIDC token                                             |
+| ------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------- |
+| Who’s allowed to connect? | “Any device holding a cert signed by my CA.”            | “Any user / service principal I grant access in Entra ID.”        |
+| Identity you get in code  | Device-level, anonymous beyond the CN.                  | User object ID, tenant ID, email, groups, roles, etc.             |
+| Browser support           | Manual PFX install or smart-card prompt for every user. | Native login popup (Microsoft 365 SSO) or silent token from MSAL. |
+| Typical use               | Device-to-device, internal service mesh.                | Public or partner-facing APIs / SPAs / mobile apps.               |
+
+So if you adopt Azure AD you can drop the client certificate layer.
+TLS is still required for encryption, but mTLS is optional once bearer-token auth controls access.
