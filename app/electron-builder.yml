@@ -12,6 +12,12 @@ files:
   - dist-electron/**/*
   - package.json
 
+beforeBuild: ./scripts/beforebuild.js
+
+extraResources:
+  - from: dist-electron/tls
+    to: tls
+
 mac:
   category: public.app-category.finance
   target:
