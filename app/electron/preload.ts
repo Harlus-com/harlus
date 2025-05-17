@@ -9,6 +9,14 @@ contextBridge.exposeInMainWorld("electron", {
   getServerHost: () => "http://harlus-api-dev.eastus.azurecontainer.io",
   getFileStats: (filePath: string) =>
     ipcRenderer.invoke("get-file-stats", filePath),
-  upload: (filePath: string, workspaceId: string) =>
-    ipcRenderer.invoke("upload", { filePath, workspaceId }),
+  get: (path: string, authHeader: string) =>
+    ipcRenderer.invoke("server-get", path, authHeader),
+  getBuffer: (path: string, authHeader: string) =>
+    ipcRenderer.invoke("server-get-buffer", path, authHeader),
+  post: (path: string, body: any, authHeader: string) =>
+    ipcRenderer.invoke("server-post", path, body, authHeader),
+  delete: (path: string, authHeader: string) =>
+    ipcRenderer.invoke("server-delete", path, authHeader),
+  upload: (filePath: string, workspaceId: string, authHeader: string) =>
+    ipcRenderer.invoke("server-upload", filePath, workspaceId, authHeader),
 });

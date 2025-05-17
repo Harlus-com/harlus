@@ -42,7 +42,6 @@ interface AuthContextType {
   isAuthenticated: boolean;
   user: AccountInfo | null;
   login: () => Promise<void>;
-  logout: () => Promise<void>;
   getToken: () => Promise<string>;
 }
 
@@ -64,57 +63,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const login = async () => {
-    try {
-      const result = await msalInstance.loginPopup(loginRequest);
-      setUser(result.account);
-      setIsAuthenticated(true);
-    } catch (error) {
-      console.error("Login failed:", error);
-      throw error;
-    }
-  };
-
-  const logout = async () => {
-    try {
-      await msalInstance.logoutPopup();
-      setUser(null);
-      setIsAuthenticated(false);
-    } catch (error) {
-      console.error("Logout failed:", error);
-      throw error;
-    }
+    const result = await msalInstance.loginPopup(loginRequest);
+    setUser(result.account);
+    setIsAuthenticated(true);
   };
 
   const getToken = async () => {
-    try {
-      const account = msalInstance.getAllAccounts()[0];
-      if (!account) throw new Error("No account found");
+    const account = msalInstance.getAllAccounts()[0];
+    if (!account) throw new Error("No account found");
 
-      try {
-        const response = await msalInstance.acquireTokenSilent({
-          ...tokenRequest,
-          account: account,
-        });
-        return response.accessToken;
-      } catch (error) {
-        if (error instanceof InteractionRequiredAuthError) {
-          // fallback to interaction when silent call fails
-          const response = await msalInstance.acquireTokenPopup(tokenRequest);
-          return response.accessToken;
-        }
-        throw error;
-      }
+    try {
+      const response = await msalInstance.acquireTokenSilent({
+        ...tokenRequest,
+        account: account,
+      });
+      return response.accessToken;
     } catch (error) {
-      console.error("Token acquisition failed:", error);
+      if (error instanceof InteractionRequiredAuthError) {
+        // fallback to interaction when silent call fails
+        const response = await msalInstance.acquireTokenPopup(tokenRequest);
+        return response.accessToken;
+      }
       throw error;
     }
   };
 
   return (
     <MsalProvider instance={msalInstance}>
-      <AuthContext.Provider
-        value={{ isAuthenticated, user, login, logout, getToken }}
-      >
+      <AuthContext.Provider value={{ isAuthenticated, user, login, getToken }}>
         {children}
       </AuthContext.Provider>
     </MsalProvider>

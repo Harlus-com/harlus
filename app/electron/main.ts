@@ -1,9 +1,13 @@
+import fs from "fs";
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "path";
-import fs from "fs";
 import mime from "mime";
 import axios from "axios";
 import FormData from "form-data";
+import https from "https";
+import { interactiveLogin } from "./auth";
+import express from "express";
+
 const logPath = "/tmp/harlus.txt"; // TODO: Put this somewhere more acceptable and cross-platform enabled
 const logStream = fs.createWriteStream(logPath, { flags: "a" });
 console.log = (...args) => {
@@ -13,7 +17,17 @@ console.error = (...args) => {
   logStream.write(`[ERROR] ${args.join(" ")}\n`);
 };
 
-console.log("Starting Electron app");
+//const baseUrl = "http://127.0.0.1:8000";
+const baseUrl = "https://harlus-api-dev.eastus.azurecontainer.io";
+
+// TLS configuration
+const tlsDir = path.join(process.resourcesPath, "tls");
+
+const httpsAgent = new https.Agent({
+  cert: fs.readFileSync(path.join(tlsDir, "client.crt")),
+  key: fs.readFileSync(path.join(tlsDir, "client.key")),
+  ca: fs.readFileSync(path.join(tlsDir, "ca.crt")),
+});
 
 // Keep a global reference of the window object to avoid garbage collection
 let mainWindow: BrowserWindow | null = null;
@@ -32,7 +46,8 @@ function createWindow() {
     },
   });
 
-  mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
+  //mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
+  mainWindow.loadURL("http://localhost:8080");
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
@@ -55,7 +70,8 @@ async function walk(dir: string): Promise<string[]> {
 async function uploadFile(
   filePath: string,
   appDir: string[],
-  workspaceId: string
+  workspaceId: string,
+  authHeader: string
 ) {
   const form = new FormData();
   form.append("workspaceId", workspaceId);
@@ -64,12 +80,16 @@ async function uploadFile(
     filename: path.basename(filePath),
     contentType: "application/octet-stream",
   });
-  const url = "http://harlus-api-dev.eastus.azurecontainer.io:8000/file/upload";
-  //const url = "http://127.0.0.1:8000/file/upload";
+
+  const url = `${baseUrl}/file/upload`;
   const resp = await axios.post(url, form, {
-    headers: form.getHeaders(),
+    headers: {
+      ...form.getHeaders(),
+      Authorization: authHeader,
+    },
     maxContentLength: Infinity,
     maxBodyLength: Infinity,
+    httpsAgent,
   });
 
   return resp.data;
@@ -108,10 +128,11 @@ function setupIPCHandlers() {
     }
   });
 
-  // Get file content (for PDFs, we'll handle this differently in the renderer)
+  // Get file content
   ipcMain.handle("get-file-content", async (_, filePath) => {
     try {
-      const content = fs.readFileSync(filePath);
+      console.log("getting file content", filePath);
+      const content = await fs.promises.readFile(filePath);
       return content;
     } catch (error) {
       console.error("Error reading file:", error);
@@ -119,40 +140,105 @@ function setupIPCHandlers() {
     }
   });
 
-  ipcMain.handle("upload", async (_, { filePath, workspaceId }) => {
-    console.log("upload", filePath, workspaceId);
-    const results = [];
-    let st = await fs.promises.stat(filePath);
-    if (st.isDirectory()) {
-      console.log("uploading directory", filePath);
-      const baseDir = path.basename(filePath);
-      console.log("baseDir", baseDir);
-      const allFilePaths = await walk(filePath);
-      for (const p of allFilePaths) {
-        const relativeDir = path.relative(filePath, p).split(path.sep);
-        const fileName = relativeDir.pop(); // Remove the file name
-        if (!fileName || fileName.startsWith(".")) {
-          continue;
-        }
-        const appDir = [baseDir, ...relativeDir];
-        console.log("appDir", appDir);
-        results.push(await uploadFile(p, appDir, workspaceId));
-      }
-    } else {
-      console.log("uploading file", filePath);
-      results.push(await uploadFile(filePath, [], workspaceId));
-    }
-    return results;
+  // Server API handlers
+  ipcMain.handle("server-get", async (_, path: string, authHeader: string) => {
+    const url = `${baseUrl}${path}`;
+    const response = await axios.get(url, {
+      httpsAgent,
+      headers: {
+        Authorization: authHeader,
+      },
+    });
+    return response.data;
   });
 
-  // Add more handlers for API communication here
+  ipcMain.handle(
+    "server-get-buffer",
+    async (_, path: string, authHeader: string) => {
+      const url = `${baseUrl}${path}`;
+      const response = await axios.get(url, {
+        httpsAgent,
+        responseType: "arraybuffer",
+        headers: {
+          Authorization: authHeader,
+        },
+      });
+      return response.data;
+    }
+  );
+
+  ipcMain.handle(
+    "server-post",
+    async (_, path: string, body: any, authHeader: string) => {
+      const url = `${baseUrl}${path}`;
+      const response = await axios.post(url, body, {
+        httpsAgent,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+        },
+      });
+      return response.data;
+    }
+  );
+
+  ipcMain.handle(
+    "server-delete",
+    async (_, path: string, authHeader: string) => {
+      const url = `${baseUrl}${path}`;
+      const response = await axios.delete(url, {
+        httpsAgent,
+        headers: {
+          Authorization: authHeader,
+        },
+      });
+      return response.data;
+    }
+  );
+
+  ipcMain.handle(
+    "server-upload",
+    async (_, filePath: string, workspaceId: string, authHeader: string) => {
+      console.log("upload", filePath, workspaceId);
+      const results = [];
+      let st = await fs.promises.stat(filePath);
+      if (st.isDirectory()) {
+        console.log("uploading directory", filePath);
+        const baseDir = path.basename(filePath);
+        console.log("baseDir", baseDir);
+        const allFilePaths = await walk(filePath);
+        for (const p of allFilePaths) {
+          const relativeDir = path.relative(filePath, p).split(path.sep);
+          const fileName = relativeDir.pop(); // Remove the file name
+          if (!fileName || fileName.startsWith(".")) {
+            continue;
+          }
+          const appDir = [baseDir, ...relativeDir];
+          console.log("appDir", appDir);
+          results.push(await uploadFile(p, appDir, workspaceId, authHeader));
+        }
+      } else {
+        console.log("uploading file", filePath);
+        results.push(await uploadFile(filePath, [], workspaceId, authHeader));
+      }
+      return results;
+    }
+  );
+
+  let token: string | null = null;
+  ipcMain.handle("msal-login", async () => {
+    token = await interactiveLogin();
+    return token;
+  });
+
+  ipcMain.handle("msal-get-token", async () => {
+    return token;
+  });
 }
 
-// App lifecycle handlers
 app.whenReady().then(() => {
-  console.log("whenReady");
   setupIPCHandlers();
-  createWindow();
+  startUiServer();
 
   app.on("activate", () => {
     console.log("activate");
@@ -163,11 +249,26 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
-  app.quit();
-});
-
-app.on("will-quit", () => {
   childProcesses.forEach((process) => {
     process.kill();
   });
+  app.quit();
 });
+
+// By serving the UI off 8080, we can take advantage of Microsoft SSO for single page apps
+function startUiServer() {
+  const DIST = path.join(__dirname, "../dist");
+  const httpApp = express();
+  // Serve all files in your dist folder
+  httpApp.use(express.static(DIST));
+  // For any other route, serve index.html (SPA client‐side routing)
+  httpApp.get("/*", (_req: any, res: any) => {
+    res.sendFile(path.join(DIST, "index.html"));
+  });
+
+  httpApp.listen(8080, () => {
+    console.log(`▶️  HTTP server listening on http://localhost:8080`);
+    // Now that the server is up, create the BrowserWindow
+    createWindow();
+  });
+}
