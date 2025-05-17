@@ -5,7 +5,6 @@ import mime from "mime";
 import axios from "axios";
 import FormData from "form-data";
 import https from "https";
-import { interactiveLogin } from "./auth";
 import express from "express";
 
 const logPath = "/tmp/harlus.txt"; // TODO: Put this somewhere more acceptable and cross-platform enabled
@@ -224,16 +223,6 @@ function setupIPCHandlers() {
       return results;
     }
   );
-
-  let token: string | null = null;
-  ipcMain.handle("msal-login", async () => {
-    token = await interactiveLogin();
-    return token;
-  });
-
-  ipcMain.handle("msal-get-token", async () => {
-    return token;
-  });
 }
 
 app.whenReady().then(() => {
