@@ -25,6 +25,7 @@ WORKDIR /app
 
 COPY server/src ./src
 COPY server/main.py .
+COPY server/.env .
 
 EXPOSE 8000
 
