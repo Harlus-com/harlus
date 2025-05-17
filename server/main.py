@@ -15,7 +15,7 @@ import dotenv
 
 dotenv.load_dotenv()
 
-# Import app for dotenv and envt loop are setup
+# app must be imported after dotenv is loaded
 from src.app import app
 
 
