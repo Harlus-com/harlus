@@ -22,6 +22,14 @@ docker push harlusregistry.azurecr.io/nginx-mtls:1
 | Delete the group entirely (IP/DNS released after a few minutes)    | `az container delete -g harlus-dev -n harlus-api-dev --yes` |
 | Re-create from your YAML spec (after delete or to pick up changes) | `az container create -g harlus-dev -f aci.yaml`             |
 
+# SSH Into contianer
+
+az container exec \
+ --resource-group harlus-dev \
+ --name harlus-api-dev \
+ --container-name api \
+ --exec-command "/bin/bash"
+
 # Logs stream
 
 ## Tail your FastAPI container
@@ -39,6 +47,38 @@ az container logs \
  -n harlus-api-dev \
  --container-name tlsproxy \
  --follow
+
+# File store
+
+Make sure to export the following in you shell before running commands:
+
+```
+export AZURE_STORAGE_ACCOUNT="harlusstor"
+export AZURE_STORAGE_KEY="H8zpP9WIaLZXmLFtwaDNGHBkuZooPATfVhPEzkXhdKRyygHencC3WertPRGYvMVVHzy1V3Q2uBjj+AStfayGUw=="
+```
+
+## List directories in the file store
+
+az storage file list --share-name harlusshare --output table
+or
+az storage file list --share-name harlusshare/AMAT --output table
+etc.
+
+## Delete a file or folder:
+
+Delete a file:
+
+```
+az storage file delete --share-name harlusshare --path <path-to-file> # excluding harlusshare
+```
+
+Delete a folder (must be empty)
+
+```
+az storage directory delete --share-name harlusshare --name <path-to-folder> # exlcuding harlusshare
+```
+
+Note: You can use the clean_share.sh to recursively delete files and folder (you can also ssh in).
 
 # Health check
 
