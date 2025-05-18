@@ -6,6 +6,7 @@ import axios from "axios";
 import FormData from "form-data";
 import https from "https";
 import express from "express";
+import { EventSource } from "eventsource";
 
 const logPath = "/tmp/harlus.txt"; // TODO: Put this somewhere more acceptable and cross-platform enabled
 const logStream = fs.createWriteStream(logPath, { flags: "a" });
@@ -223,6 +224,10 @@ function setupIPCHandlers() {
       return results;
     }
   );
+
+  ipcMain.handle("get-base-url", () => {
+    return baseUrl;
+  });
 }
 
 app.whenReady().then(() => {

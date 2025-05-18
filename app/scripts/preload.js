@@ -16,4 +16,16 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("server-delete", path, authHeader),
   upload: (filePath, workspaceId, authHeader) =>
     ipcRenderer.invoke("server-upload", filePath, workspaceId, authHeader),
+  getBaseUrl: () => ipcRenderer.invoke("get-base-url"),
+  createEventSource: (url) => ipcRenderer.invoke("create-event-source", url),
+  attachEventForwarder: (callback) => {
+    ipcRenderer.on("event-forwarder", (_, event) => {
+      console.log("Event forwarder time", Date.now());
+      callback(event);
+    });
+  },
+  addEventListener: (eventSourceId, eventName) =>
+    ipcRenderer.invoke("add-event-listener", eventSourceId, eventName),
+  closeEventSource: (eventSourceId) =>
+    ipcRenderer.invoke("close-event-source", eventSourceId),
 });

@@ -1,3 +1,8 @@
+## 1. Login
+
+az login
+az acr login -n harlusregistry
+
 # Building Nginx
 
 Build nginx:
@@ -82,7 +87,19 @@ Note: You can use the clean_share.sh to recursively delete files and folder (you
 
 # Health check
 
+### With cert
+
 curl --cacert nginx-mtls/tls/ca.crt --key nginx-mtls/tls/client.key --cert nginx-mtls/tls/client.crt https://harlus-api-dev.eastus.azurecontainer.io/healthz
+
+### Without cert
+
+Note: This won't work until we get rid of certs and have a public CA (without the public CA, it will show the "untrsuted proceed with caution warning" and the electron app requests fail with ERR_CERT_AUTHORITY_INVALID)
+
+See: https://chatgpt.com/share/6828e1f2-fe18-8013-b364-aabaa2a2e876
+
+Basically we need either a Public CA for the browser not to block these requests, or add the server cert as trusted on each machine.
+
+curl https://harlus-api-dev.eastus.azurecontainer.io/healthz (or go to url in browser)
 
 # Azure SSO
 
