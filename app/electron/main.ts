@@ -8,13 +8,6 @@ import https from "https";
 import express from "express";
 import { EventSource } from "eventsource";
 
-// Extend BrowserWindow type to include eventSources
-declare module "electron" {
-  interface BrowserWindow {
-    eventSources?: Map<string, EventSource>;
-  }
-}
-
 const logPath = "/tmp/harlus.txt"; // TODO: Put this somewhere more acceptable and cross-platform enabled
 const logStream = fs.createWriteStream(logPath, { flags: "a" });
 console.log = (...args) => {
@@ -234,36 +227,6 @@ function setupIPCHandlers() {
 
   ipcMain.handle("get-base-url", () => {
     return baseUrl;
-  });
-
-  // Handle EventSource proxying with mTLS
-  ipcMain.handle("create-event-source", async (_, url: string) => {
-    const eventSourceId = Math.random().toString(36).substring(7);
-    const eventSource = new EventSource(url, {
-      httpsAgent,
-    } as any);
-
-    // Forward all events
-    eventSource.onmessage = (event) => {
-      if (mainWindow) {
-        mainWindow.webContents.send("event-source-message", {
-          eventSourceId,
-          eventName: event.type || "message",
-          data: event.data,
-        });
-      }
-    };
-
-    return eventSourceId;
-  });
-
-  ipcMain.handle("close-event-source", async (_, eventSourceId: string) => {
-    if (!mainWindow?.eventSources) return;
-    const eventSource = mainWindow.eventSources.get(eventSourceId);
-    if (eventSource) {
-      eventSource.close();
-      mainWindow.eventSources.delete(eventSourceId);
-    }
   });
 }
 

@@ -158,10 +158,10 @@ export class ChatService {
 
       // 7. handle errors in the event source
       this.eventSource.addEventListener("error", (error) => {
-        /*console.error("EventSource error:", error);
+        console.error("EventSource error:", error);
         this.eventSource?.close();
         this.eventSource = null;
-        onError(error);*/
+        onError(error);
       });
     } catch (error) {
       console.error("Error setting up stream:", error);
