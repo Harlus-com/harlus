@@ -1,4 +1,19 @@
 import { authClientWrapper } from "@/api/auth_client_wrapper";
+import {
+  ElectronEventSourceClient,
+  eventForwarder,
+  EventSourceClient,
+  WebEventSourceClient,
+} from "./event_source_client";
+
+interface ServerClient {
+  get: (path: string) => Promise<any>;
+  post: (path: string, body: any) => Promise<any>;
+  getBuffer: (path: string) => Promise<ArrayBuffer>;
+  delete: (path: string) => Promise<any>;
+  upload: (filePath: string, workspaceId: string) => Promise<void>;
+  createEventSource: (urlPath: string) => Promise<EventSourceClient>;
+}
 
 abstract class BaseWebClient implements ServerClient {
   async get(path: string) {
@@ -39,6 +54,8 @@ abstract class BaseWebClient implements ServerClient {
   }
 
   abstract getBaseUrl(): Promise<string>;
+
+  abstract createEventSource(urlPath: string): Promise<EventSourceClient>;
 }
 
 class LocalClient extends BaseWebClient {
@@ -48,6 +65,10 @@ class LocalClient extends BaseWebClient {
 
   async getBaseUrl(): Promise<string> {
     return Promise.resolve(this.baseUrl);
+  }
+
+  async createEventSource(urlPath: string): Promise<EventSourceClient> {
+    return new WebEventSourceClient(this.baseUrl + urlPath);
   }
 }
 
@@ -78,6 +99,14 @@ class ElectronClient extends BaseWebClient {
       throw new Error("Auth header is not a string");
     }
     return authHeader;
+  }
+
+  async createEventSource(urlPath: string): Promise<EventSourceClient> {
+    const baseUrl = await this.getBaseUrl();
+    const eventSourceId = await this.electron.createEventSource(
+      baseUrl + urlPath
+    );
+    return new ElectronEventSourceClient(eventSourceId, this.electron);
   }
 }
 
@@ -132,6 +161,20 @@ class ElectronProxyClient implements ServerClient {
     console.log(`UPLOAD ${filePath} Response`, data);
     return data;
   }
+
+  async createEventSource(urlPath: string): Promise<EventSourceClient> {
+    const baseUrl = await this.electron.getBaseUrl();
+    const eventSourceId = await this.electron.createEventSource(
+      baseUrl + urlPath
+    );
+    return new ElectronEventSourceClient(eventSourceId, this.electron);
+  }
+}
+
+if (window.electron) {
+  window.electron.attachEventForwarder(
+    eventForwarder.forward.bind(eventForwarder)
+  );
 }
 
 export const client: ServerClient = window.electron

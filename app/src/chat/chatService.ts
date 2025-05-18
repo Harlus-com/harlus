@@ -1,3 +1,4 @@
+import { EventSourceClient } from "@/api/event_source_client";
 import { client } from "../api/client";
 import { fileService } from "../api/fileService";
 import { ChatSourceCommentGroup, MessagePair, Thread } from "./chat_types";
@@ -31,7 +32,7 @@ function convertKeysToCamelCase(obj: any): any {
  * It manages an EventSource connection to receive real-time updates.
  */
 export class ChatService {
-  private eventSource: EventSource | null = null;
+  private eventSource: EventSourceClient | null = null;
   private debounceTimeout: NodeJS.Timeout | null = null;
   private pendingSaveData: {
     messagePairs: MessagePair[];
@@ -64,16 +65,18 @@ export class ChatService {
 
     try {
       const encodedQuery = encodeURIComponent(userQuery);
-      const url = `http://localhost:8000/chat/stream?workspaceId=${workspaceId}&query=${encodedQuery}&threadId=${threadId}&token=${authToken}`;
-      this.eventSource = new EventSource(url);
+      const urlPath = `/chat/stream?workspaceId=${workspaceId}&query=${encodedQuery}&threadId=${threadId}&token=${authToken}`;
+      this.eventSource = await client.createEventSource(urlPath);
 
       this.eventSource.addEventListener("planning_message", (event) => {
         const newContent = JSON.parse(event.data).text;
+        console.log("PLANNING MESSAGE TIME: " + new Date());
         onMessage(newContent, "planning_message");
       });
 
       this.eventSource.addEventListener("reading_message", (event) => {
         const newContent = JSON.parse(event.data).text;
+        console.log("READING MESSAGE TIME: " + new Date());
         onMessage(newContent, "reading_message");
       });
 
@@ -155,10 +158,10 @@ export class ChatService {
 
       // 7. handle errors in the event source
       this.eventSource.addEventListener("error", (error) => {
-        console.error("EventSource error:", error);
+        /*console.error("EventSource error:", error);
         this.eventSource?.close();
         this.eventSource = null;
-        onError(error);
+        onError(error);*/
       });
     } catch (error) {
       console.error("Error setting up stream:", error);

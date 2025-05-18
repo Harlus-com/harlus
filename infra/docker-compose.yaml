@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  api:
+    image: harlus-server # ← built locally or pushed to a registry
+    container_name: api
+    expose:
+      - "8000" # internal port FastAPI listens on
+    # Optional: live-edit source without rebuilding
+    # volumes:
+    #   - ./api:/app                  # assuming /app is the WORKDIR in the image
+
+  nginx:
+    image: harlus-nginx # ← built from your nginx.conf
+    container_name: nginx
+    ports:
+      - "8000:80"
+    depends_on:
+      - api
+    # Optional: live-edit NGINX config
+    # volumes:
+    #   - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro

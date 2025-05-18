@@ -7,13 +7,15 @@ import mime from "mime";
 import axios from "axios";
 import FormData from "form-data";
 import https from "https";
+import { EventSource } from "eventsource";
+import { Agent as UndiciAgent, fetch as undiciFetch } from "undici";
 
 // Runs an electron app against a local Vite dev server
 const args = process.argv;
 const useRemoteServer = !!args.find((arg) => arg === "--remote-server");
 console.log("USE REMOTE SERVER", useRemoteServer);
 const baseUrl = useRemoteServer
-  ? "https://harlus-api-dev.eastus.azurecontainer.io"
+  ? "http://harlus-api-dev.eastus.azurecontainer.io"
   : "http://127.0.0.1:8000";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,6 +28,20 @@ const httpsAgent = new https.Agent({
   key: fs.readFileSync(path.join(tlsDir, "client.key")),
   ca: fs.readFileSync(path.join(tlsDir, "ca.crt")),
 });
+
+const httpsDispatcher = new UndiciAgent({
+  connect: {
+    ca: fs.readFileSync(path.join(tlsDir, "ca.crt")),
+    cert: fs.readFileSync(path.join(tlsDir, "client.crt")),
+    key: fs.readFileSync(path.join(tlsDir, "client.key")),
+  },
+});
+
+const fetchWithMtls = (url, init) =>
+  fetch(url, { ...init, dispatcher: httpsDispatcher });
+
+// Keep track of event sources
+const eventSources = new Map();
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -42,6 +58,7 @@ function createWindow() {
 
   mainWindow.loadURL("http://localhost:8080");
   mainWindow.webContents.openDevTools();
+  return mainWindow;
 }
 
 async function upload(filePath, workspaceId, authHeader) {
@@ -108,7 +125,7 @@ async function uploadFile(filePath, appDir, workspaceId, authHeader) {
 }
 
 // IPC handlers for file operations
-function setupIPCHandlers() {
+function setupIPCHandlers(mainWindow) {
   // Get file content (for PDFs, we'll handle this differently in the renderer)
   ipcMain.handle("get-file-content", async (_, filePath) => {
     try {
@@ -196,13 +213,43 @@ function setupIPCHandlers() {
   ipcMain.handle("get-base-url", () => {
     return baseUrl;
   });
+
+  ipcMain.handle("add-event-listener", async (_, eventSourceId, eventName) => {
+    const eventSource = eventSources.get(eventSourceId);
+    if (eventSource) {
+      eventSource.addEventListener(eventName, (event) => {
+        mainWindow.webContents.send("event-forwarder", {
+          eventSourceId,
+          type: eventName,
+          data: event.data,
+        });
+      });
+    }
+  });
+
+  ipcMain.handle("create-event-source", async (_, url) => {
+    const eventSourceId = Math.random().toString(36).substring(7);
+    const eventSource = new EventSource(url, {
+      fetch: fetchWithMtls,
+    });
+    eventSources.set(eventSourceId, eventSource);
+    return eventSourceId;
+  });
+
+  ipcMain.handle("close-event-source", async (_, eventSourceId) => {
+    const eventSource = eventSources.get(eventSourceId);
+    if (eventSource) {
+      eventSource.close();
+      eventSources.delete(eventSourceId);
+    }
+  });
 }
 
 const childProcesses = [];
 
 app.whenReady().then(() => {
-  createWindow();
-  setupIPCHandlers();
+  const mainWindow = createWindow();
+  setupIPCHandlers(mainWindow);
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
