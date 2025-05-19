@@ -368,8 +368,14 @@ class FileStore:
     ) -> None:
         sub_path = _get_sub_path(file.app_dir, old_prefix)
         new_app_dir = [*new_prefix, *sub_path]
-        file.app_dir = new_app_dir
-        self._update_file(file)
+        new_file = File(
+            id=file.id,
+            name=file.name,
+            absolute_path=file.absolute_path,
+            workspace_id=file.workspace_id,
+            app_dir=new_app_dir,
+        )
+        self._update_file(new_file)
 
     def _update_file(self, file: File) -> None:
         files = self.get_files(file.workspace_id)
@@ -381,11 +387,13 @@ class FileStore:
         self, folder: Folder, old_prefix: list[str], new_prefix: list[str]
     ) -> None:
         sub_path = _get_sub_path(folder.app_dir, old_prefix)
-        old_app_dir = folder.app_dir
         new_app_dir = [*new_prefix, *sub_path]
-        folder.app_dir = new_app_dir
-        folder.name = new_app_dir[-1]
-        new_folders = self._replace_folder(folder, old_app_dir)
+        new_folder = Folder(
+            app_dir=new_app_dir,
+            name=new_app_dir[-1],
+            workspace_id=folder.workspace_id,
+        )
+        new_folders = self._replace_folder(new_folder, folder.app_dir)
         with self._open(folder.workspace_id, "folders.json", "w") as f:
             json.dump([folder.model_dump() for folder in new_folders], f, indent=2)
 
@@ -408,8 +416,14 @@ class FileStore:
         self, workspace_id: str, file_id: str, new_parent_dir: list[str]
     ) -> bool:
         file = self.get_file(file_id, workspace_id)
-        file.app_dir = new_parent_dir
-        self._update_file(file)
+        new_file = File(
+            id=file.id,
+            name=file.name,
+            absolute_path=file.absolute_path,
+            workspace_id=workspace_id,
+            app_dir=new_parent_dir,
+        )
+        self._update_file(new_file)
 
 
 def _get_sub_path(path: list[str], prefix: list[str]) -> list[str]:
