@@ -18,6 +18,9 @@ LLM_LIBRARY = {
     "openai-text-embedding-3-large": OpenAIEmbedding(
         model="text-embedding-3-large", api_key=OPENAI_API_KEY
     ),
+    "openai-gpt-4o": OpenAI(
+        model="gpt-4o", temperature=0, api_key=OPENAI_API_KEY
+    ),
 }
 
 LLM = LLM_LIBRARY["openai-gpt-4o-mini"]

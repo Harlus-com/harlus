@@ -6,7 +6,7 @@ from llama_index.core import (
     get_response_synthesizer,
 )
 
-from llama_index.core.tools import QueryEngineTool, ToolMetadata
+from llama_index.core.tools import QueryEngineTool, ToolMetadata, RetrieverTool
 from llama_index.core.retrievers import (
     RecursiveRetriever,
     VectorIndexRetriever,
@@ -42,7 +42,9 @@ class DocSearchToolMetadata(BaseModel):
 
 
 class DocSearchToolWrapper(BaseModel):
-    tool: QueryEngineTool
+    semantic_tool: QueryEngineTool
+    summary_tool: QueryEngineTool
+    retriever_tool: RetrieverTool
     metadata: DocSearchToolMetadata
     name: str
     tool_class: str
@@ -118,6 +120,7 @@ class DocumentPipeline:
             verbose=False,
         )
 
+        
         node_postprocessors = [
             LLMRerank(choice_batch_size=15, top_n=8, llm=FASTLLM),
         ]
@@ -134,7 +137,7 @@ class DocumentPipeline:
         )
 
         print(" - building summary index query engine...")
-        summary_query_engine = summary_index.as_query_engine(llm=LLM)
+        summary_query_engine = summary_index.as_query_engine(llm=LLM, )
 
         print(" - extracting metadata from query engines...")
         query_to_metadata = {
@@ -166,13 +169,22 @@ class DocumentPipeline:
         mix_query_engine_tool = QueryEngineTool(
             query_engine=mix_query_engine,
             metadata=ToolMetadata(
-                name=f"doc_search_{self.file_name}",
-                description=f"""
-Use this tool to answer specific questions about the document.
+                name=f"doc_search_{self.file_name}_semantic",
+                description=f""" 
+# Tool type:
 
-This document has the following metadata:
+Semantic tool. Let's you find relevant information in the document.
+
+# Document information:
+
 {metadata_description}
 
+# Document summary:
+{self.metadata['summary']}
+
+# When you should use this tool:
+
+Use this tool when you need to find specific information in the document described above.
 """,
             ),
         )
@@ -182,8 +194,97 @@ This document has the following metadata:
             file_path=self.file_path,
         )
 
+        print(" - building summary query engine tool...")
+        summary_query_engine_tool = QueryEngineTool(
+            query_engine=summary_query_engine,
+            metadata=ToolMetadata(
+                name=f"doc_search_{self.file_name}_summary",
+                description=f""" 
+# Tool type:
+
+Summary tool. Let's you read the full document.
+
+# Document information:
+
+{metadata_description}
+
+# Document summary:
+{self.metadata['summary']}
+                """,
+            ),
+        )
+
+        print(" - building question generator ...")
+        question_gen = LLMQuestionGenerator.from_defaults(
+            llm=FASTLLM,
+            prompt_template_str="""
+                Follow the example, but instead of giving a question, always prefix the question 
+                'Include numbers with units in your response, structure your response.' 
+                """
+            + DEFAULT_SUB_QUESTION_PROMPT_TMPL,
+        )
+
+        print(" - building sub question query engine ...")
+        sq_query_engine = SubQuestionQueryEngine.from_defaults(
+            query_engine_tools=[
+                summary_query_engine_tool,
+            ],
+            question_gen=question_gen,
+            use_async=True,
+            llm=LLM,
+            verbose=False
+        )
+
+        sq_query_engine_tool = QueryEngineTool(
+            query_engine=sq_query_engine,
+            metadata=ToolMetadata(
+                name=f"doc_search_{self.file_name}_summary",
+                description=f""" 
+# Tool type:
+
+Summary tool. Let's you read the full document.
+
+# Document information:
+
+{metadata_description}
+
+# Document summary:
+{self.metadata['summary']}
+
+# When you should use this tool:
+
+Use this tool only when you need to read the full document described above.
+                """,
+            ),
+        )
+
+        retriever_tool = RetrieverTool(
+            retriever=recursive_retriever,
+            metadata=ToolMetadata(
+                name=f"doc_search_{self.file_name}_retriever",
+                description=f"""
+# Tool type:
+
+Retriever tool. Returns you passages of the document which are relevant to your query.
+
+# Document information:
+
+{metadata_description}
+
+# Document summary:
+{self.metadata['summary']}
+
+# When you should use this tool:
+
+Use this tool when you need to find sources in the document."""
+            ),
+            node_postprocessors=node_postprocessors,
+        )
+
         doc_search_tool_wrapper = DocSearchToolWrapper(
-            tool=mix_query_engine_tool,
+            semantic_tool=mix_query_engine_tool,
+            summary_tool=sq_query_engine_tool,
+            retriever_tool = retriever_tool,
             metadata=doc_tool_metadata,
             name=mix_query_engine_tool.metadata.name,
             tool_class="DocSearchToolWrapper",
@@ -198,21 +299,7 @@ This document has the following metadata:
 
         # TODO: We should add a summery query engine tool. Without SubQuestionQueryEngine in between, we should give summary tools to top-level LLM.
 
-        # print(" - building summary query engine tool...")
-        # summary_query_engine_tool = QueryEngineTool(
-        #     query_engine=summary_query_engine,
-        #     metadata=ToolMetadata(
-        #         name=f"{self.file_name}_summary",
-        #         description=f"""ONLY use this tool when you need to summarize the document. NORMALLY YOU DO NOT NEED TO SUMMARIZE THE DOCUMENT.
-
-        #         This document has the following metadata:
-        #         {metadata_description}
-
-        #         And the following summary:
-        #         {self.metadata['summary']}
-        #         """,
-        #     ),
-        # )
+        
 
         # print(" - building question generator ...")
         # question_gen = LLMQuestionGenerator.from_defaults(
