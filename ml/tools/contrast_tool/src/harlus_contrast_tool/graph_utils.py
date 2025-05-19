@@ -13,8 +13,11 @@ from .custom_types import (
     HighlightArea, 
     DocSearchRetrievedNode, 
     TavilyToolRetrievedWebsite,
-    DocSearchNodeMetadata
+    DocSearchNodeMetadata,
+    ClaimComment,
+    LinkComment,
 )
+from .pdf_utils import _get_highlight_area_from_pdf_search
 from langgraph.config import get_stream_writer
 from llama_index.core.schema import NodeWithScore
 from langchain_tavily import TavilySearch
@@ -163,14 +166,14 @@ async def process_statement_source_text(statement_source_text, contrast, interna
         pdf_highlight_area = node_highlight_area
     file_path = max_node.metadata.file_path
     return ClaimComment(
-        file_path=max_node.metadata.file_path,
+        file_path=file_path,
         highlight_area=pdf_highlight_area,
         text=contrast["verdict_statement"],
         links=contrast["link_comments"],
         verdict=_convert_verdict(contrast["verdict"]),
     )
 
-async def process_contrast(contrast, internal_tools, external_tools):
+async def _process_contrast(contrast, internal_tools, external_tools):
     print("starting new contrast")
     evidence_source_texts = contrast["evidence_source_texts"]
     contrast["link_comments"] = []

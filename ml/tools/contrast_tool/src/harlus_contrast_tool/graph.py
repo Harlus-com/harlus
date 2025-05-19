@@ -22,6 +22,7 @@ from .graph_utils import (
     _convert_verdict,
     _parse_tool_class,
     BasicToolNode,
+    _process_contrast,
 )
 from .custom_types import (
     ContrastToolGraphState, 
@@ -35,6 +36,7 @@ from .utils import (
     robust_load_json,
     sanitize_tool_name,
 )
+import asyncio
 
 
 
@@ -269,50 +271,17 @@ class ContrastAgentGraph:
 
     
     async def _extract_claim_comments_from_driver_tree(self, parsed_driver_tree):
-        claim_comments = []
-        for contrast in parsed_driver_tree:
-            evidence_source_texts = contrast["evidence_source_texts"]
-            contrast["link_comments"] = []
-            for evidence_source_text in evidence_source_texts:
-                all_nodes = []
-                for retriever_tool in self.tools["external"]["doc_search_retriever"]:
-                    tool_result = await retriever_tool.ainvoke(evidence_source_text)
-                    retrieved_nodes = tool_result.raw_output
-                    all_nodes.extend(retrieved_nodes)
-                score_to_node = {node.score: node for node in all_nodes}
-                max_node = score_to_node[max(score_to_node.keys())]
-                max_node = _convert_node_with_score_to_retrieved_nodes(max_node)
-                highlight_area = _get_highlight_area(max_node)
-                link_comment = LinkComment(
-                    file_path=max_node.metadata.file_path,
-                    highlight_area=highlight_area,
-                    text=contrast["evidence"],
-                )
-                contrast["link_comments"].append(link_comment)
 
-            statement_source_texts = contrast["statement_source_texts"]
-            contrast["statement_nodes"] = []
-            for statement_source_text in statement_source_texts:
-                all_bounding_boxes = []
-                all_nodes = []
-                for retriever_tool in self.tools["internal"]["doc_search_retriever"]:
-                    tool_result = await retriever_tool.ainvoke(statement_source_text)
-                    retrieved_nodes = tool_result.raw_output
-                    all_nodes.extend(retrieved_nodes)
-                score_to_node = {node.score: node for node in all_nodes}
-                max_node = score_to_node[max(score_to_node.keys())]
-                max_node = _convert_node_with_score_to_retrieved_nodes(max_node)
-                bounding_boxes = _get_bounding_boxes(max_node)
-                all_bounding_boxes.extend(bounding_boxes)
-                highlight_area = HighlightArea(bounding_boxes=all_bounding_boxes, jump_to_page_number=max_node.metadata.page_nb)
-                claim_comment = ClaimComment(
-                    file_path=max_node.metadata.file_path,
-                    highlight_area=highlight_area,
-                    text=contrast["verdict_statement"],
-                    links=contrast["link_comments"],
-                    verdict=_convert_verdict(contrast["verdict"]),
-                )
-                claim_comments.append(claim_comment)
+        claim_comments = []
+        contrast_tasks = [_process_contrast(
+                contrast, 
+                self.tools["internal"]["doc_search_retriever"], 
+                self.tools["external"]["doc_search_retriever"]
+            ) for contrast in parsed_driver_tree]
+        results = await asyncio.gather(*contrast_tasks)
+        for result in results:
+            claim_comments.extend(result)
+
         return claim_comments
     
     async def _get_source_nodes(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
