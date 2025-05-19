@@ -127,7 +127,67 @@ def _parse_tool_class(tool) -> str:
             return "doc_search"
         else:
             raise ValueError(f" - {tool} is not a recognized tool.")
+
+async def _get_highlight_area_from_best_retrieved_node(search_text: str, retriever_tools: list[any]):
+    all_nodes = []
+    for retriever_tool in retriever_tools:
+        tool_result = await retriever_tool.ainvoke(search_text)
+        retrieved_nodes = tool_result.raw_output
+        all_nodes.extend(retrieved_nodes)
+    score_to_node = {node.score: node for node in all_nodes}
+    max_node = score_to_node[max(score_to_node.keys())]
+    max_node = _convert_node_with_score_to_retrieved_nodes(max_node)
+    highlight_area = _get_highlight_area(max_node)
+    return highlight_area, max_node
+
+
+
+async def process_evidence_source_text(evidence_source_text, contrast, external_tools):
+    node_highlight_area, max_node = await _get_highlight_area_from_best_retrieved_node(evidence_source_text, external_tools)
+    pdf_highlight_area = _get_highlight_area_from_pdf_search(evidence_source_text, max_node.metadata.file_path)
+    if pdf_highlight_area is None:
+        print("-- > pdf_highlight_area is None for the evidence source text: ", evidence_source_text)
+        pdf_highlight_area = node_highlight_area
+    file_path = max_node.metadata.file_path
+    return LinkComment(
+        file_path=file_path,
+        highlight_area=pdf_highlight_area,
+        text=contrast["evidence"],
+    )
+
+async def process_statement_source_text(statement_source_text, contrast, internal_tools):
+    node_highlight_area, max_node = await _get_highlight_area_from_best_retrieved_node(statement_source_text, internal_tools)
+    pdf_highlight_area = _get_highlight_area_from_pdf_search(statement_source_text, max_node.metadata.file_path)
+    if pdf_highlight_area is None:
+        print("-- > pdf_highlight_area is None for the statement source text: ", statement_source_text)
+        pdf_highlight_area = node_highlight_area
+    file_path = max_node.metadata.file_path
+    return ClaimComment(
+        file_path=max_node.metadata.file_path,
+        highlight_area=pdf_highlight_area,
+        text=contrast["verdict_statement"],
+        links=contrast["link_comments"],
+        verdict=_convert_verdict(contrast["verdict"]),
+    )
+
+async def process_contrast(contrast, internal_tools, external_tools):
+    print("starting new contrast")
+    evidence_source_texts = contrast["evidence_source_texts"]
+    contrast["link_comments"] = []
     
+    # Process all evidence source texts concurrently
+    evidence_tasks = [process_evidence_source_text(evidence_source_text, contrast, external_tools) 
+                      for evidence_source_text in evidence_source_texts]
+    link_comments = await asyncio.gather(*evidence_tasks)
+    contrast["link_comments"] = link_comments
+    
+    # Process all statement source texts concurrently
+    statement_source_texts = contrast["statement_source_texts"]
+    contrast["statement_nodes"] = []
+    statement_tasks = [process_statement_source_text(statement_source_text, contrast, internal_tools) 
+                       for statement_source_text in statement_source_texts]
+    claim_comments = await asyncio.gather(*statement_tasks)
+    return claim_comments
 
 class BasicToolNode:
     
