@@ -47,6 +47,8 @@ async def analyze(
         pickle.dump(claim_comments, open(f"{cache_file_path}_claim_comments.pkl", "wb"))
         json.dump(driver_tree, open(f"{cache_file_path}_driver_tree.json", "w"))
 
+
+
     response_comments = []
     time_now = datetime.now().isoformat()
     i = 1

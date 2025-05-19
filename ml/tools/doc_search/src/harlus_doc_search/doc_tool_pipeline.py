@@ -282,7 +282,7 @@ Use this tool when you need to find sources in the document."""
         )
 
         doc_search_tool_wrapper = DocSearchToolWrapper(
-            semantic_tool=mix_query_engine_tool,
+            semantic_tool=mix_query_engine_tool, 
             summary_tool=sq_query_engine_tool,
             retriever_tool = retriever_tool,
             metadata=doc_tool_metadata,
