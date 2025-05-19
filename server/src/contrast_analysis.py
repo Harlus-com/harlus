@@ -6,7 +6,7 @@ import uuid
 from src.file_store import FileStore, Workspace
 from src.tool_library import ToolLibrary
 import pickle
-
+import json
 cache_file_path_base = "contrast_analysis"
 
 
@@ -35,15 +35,17 @@ async def analyze(
     contrast_agent.set_thread(thread_id)
 
    
-    cache_file_path = os.path.join(f"{old_file_id}_{new_file_id}_cache.pkl")
+    cache_file_path = os.path.join(f"{old_file_id}_{new_file_id}")
     
     if os.path.exists(cache_file_path):
-        claim_comments = pickle.load(open(cache_file_path, "rb"))
+        claim_comments = pickle.load(open(os.path.join(cache_file_path, "claim_comments.pkl"), "rb"))
+        driver_tree = json.load(open(os.path.join(cache_file_path, "driver_tree.json"), "r"))
     else:
-        claim_comments = await contrast_agent.run(
+        claim_comments, driver_tree = await contrast_agent.run(
             f"What impact does {new_file.absolute_path} have on {old_file.absolute_path}?"
         )
-        pickle.dump(claim_comments, open(cache_file_path, "wb"))
+        pickle.dump(claim_comments, open(f"{cache_file_path}_claim_comments.pkl", "wb"))
+        json.dump(driver_tree, open(f"{cache_file_path}_driver_tree.json", "w"))
 
     response_comments = []
     time_now = datetime.now().isoformat()

@@ -14,7 +14,7 @@ Do not summarize or rephrase the documents. Focus on aligning their content with
 For each driver, keep the original JSON structure, and add the following fields:
 
 - "evidence": A short summary of what the external evidence says about the driver’s statement.
-- "evidence_source_texts": A list of direct quotes from the external documents.
+- "evidence_source_texts":  A list of direct source text excerpts from EXTERNAL DOCUMENTS. You should USE EXACTLY the same text as in the source and cannot come from the driver tree itself.
 - "verdict": One of "support", "contradict", "neutral", or "mixed".
 - "verdict_statement": A short explanation of why you chose that verdict.
 

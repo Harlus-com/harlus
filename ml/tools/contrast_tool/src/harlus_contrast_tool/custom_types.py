@@ -41,14 +41,6 @@ class TavilyToolRetrievedWebsite(BaseModel):
     url: str
     content: str
 
-class ContrastToolGraphState(TypedDict):
-    internal_messages: Annotated[list, add_messages]
-    internal_retrieved_nodes: list[DocSearchRetrievedNode]
-    external_messages: Annotated[list, add_messages]
-    external_retrieved_nodes: list[DocSearchRetrievedNode]
-    driver_tree: str
-    output: any
-
 
 class HighlightArea(BaseModel):
     bounding_boxes: List[BoundingBox]
@@ -70,5 +62,16 @@ class ClaimComment(BaseModel):
     highlight_area: HighlightArea
     links: List[LinkComment]
     verdict: Literal["true", "false", "unknown"]
+
+class ContrastToolGraphState(TypedDict):
+    internal_messages: Annotated[list, add_messages]
+    internal_retrieved_nodes: list[DocSearchRetrievedNode]
+    external_messages: Annotated[list, add_messages]
+    external_retrieved_nodes: list[DocSearchRetrievedNode]
+    driver_tree: str
+    claim_comments: list[ClaimComment]
+
+
+
 
 

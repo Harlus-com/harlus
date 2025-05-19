@@ -13,7 +13,6 @@ Return a **DRIVER TREE** in **JSON format**. Each driver is a separate JSON obje
 
 - "label": a unique driver ID (e.g., "#D-1", "#D-1-1", "#D-1-1-2")
 - "statement": the investment reason
-- "statement_source_texts": a list of text excerpts supporting the statement
 
 Structure:
 - Top-level drivers: #D-1, #D-2
@@ -25,12 +24,10 @@ Example:
   {
     "label": "#D-1",
     "statement": "The company share price is undervalued",
-    "statement_source_texts": []
   },
   {
     "label": "#D-1-1",
     "statement": "Free cash flow is expected to grow",
-    "statement_source_texts": []
   }
 ]
 ```

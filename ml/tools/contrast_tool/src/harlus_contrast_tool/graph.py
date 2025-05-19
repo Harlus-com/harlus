@@ -129,11 +129,13 @@ class ContrastAgentGraph:
 
         get_tree_tool_node = BasicToolNode(tools=self.tools["internal"]["doc_search_summary"], tool_name_to_metadata=self.tool_name_to_metadata["internal"]["doc_search_summary"], message_state_key="internal_messages", retrieved_items_state_key="internal_retrieved_items")
         refine_tree_tool_node = BasicToolNode(tools=self.tools["internal"]["doc_search_retriever"], tool_name_to_metadata=self.tool_name_to_metadata["internal"]["doc_search_retriever"], message_state_key="internal_messages", retrieved_items_state_key="internal_retrieved_items")
+        add_statement_source_texts_tool_node = BasicToolNode(tools=self.tools["internal"]["doc_search_retriever"], tool_name_to_metadata=self.tool_name_to_metadata["internal"]["doc_search_retriever"], message_state_key="internal_messages", retrieved_items_state_key="internal_retrieved_items")
         verify_tree_tool_node = BasicToolNode(tools=self.tools["external"]["doc_search_retriever"], tool_name_to_metadata=self.tool_name_to_metadata["external"]["doc_search_retriever"], message_state_key="external_messages", retrieved_items_state_key="external_retrieved_items")
         
         self.tool_nodes = {
             "get_tree": get_tree_tool_node,
             "refine_tree": refine_tree_tool_node,
+            "add_statement_source_texts": add_statement_source_texts_tool_node,
             "verify_tree": verify_tree_tool_node,
         }
 
@@ -182,6 +184,29 @@ class ContrastAgentGraph:
             "driver_tree": driver_tree,
         }
        
+    async def _add_statement_source_texts(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
+        
+        print("[harlus_contrast_tool] adding statement source texts")
+
+        with open(os.path.join(os.path.dirname(__file__), "prompts/add_statement_source_texts_prompt.md"), "r") as f:
+            system_prompt = f.read()
+        
+        system_prompt = system_prompt + self.tools_descriptions["internal"]["doc_search_retriever"]
+        prompt = [
+            SystemMessage(content=system_prompt),
+            *state["internal_messages"],
+            state["driver_tree"],
+        ]
+        message = await self.refine_tree_llm.ainvoke(prompt)
+            
+        if hasattr(message, "tool_calls") and message.tool_calls:
+            driver_tree = state["driver_tree"]
+        else:
+            driver_tree = message.content
+        yield {
+            "internal_messages": [message],
+            "driver_tree": driver_tree,
+        }
 
     async def _refine_tree(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
         
@@ -295,7 +320,7 @@ class ContrastAgentGraph:
         driver_tree = state["driver_tree"]
         parsed_driver_tree = robust_load_json(driver_tree)
         yield {
-            "output": await self._extract_claim_comments_from_driver_tree(parsed_driver_tree)
+            "claim_comments": await self._extract_claim_comments_from_driver_tree(parsed_driver_tree)
         }
 
 
@@ -324,19 +349,30 @@ class ContrastAgentGraph:
         graph_builder.add_node("refine_tree", self._refine_tree, metadata={"name": "refine_tree"})
         graph_builder.add_node("verify_tree", self._verify_tree, metadata={"name": "verify_tree"})
         graph_builder.add_node("format_output", self._format_output, metadata={"name": "format_output"})
+        graph_builder.add_node("add_statement_source_texts", self._add_statement_source_texts, metadata={"name": "add_statement_source_texts"})
         graph_builder.add_node("get_source_nodes", self._get_source_nodes, metadata={"name": "get_source_nodes"})
         graph_builder.add_node("tools_get_tree", self.tool_nodes["get_tree"], metadata={"name": "tools_get_tree"})
         graph_builder.add_node("tools_verify_tree", self.tool_nodes["verify_tree"], metadata={"name": "tools_verify_tree"})
         graph_builder.add_node("tools_refine_tree", self.tool_nodes["refine_tree"], metadata={"name": "tools_refine_tree"})
-        
+        graph_builder.add_node("tools_add_statement_source_texts", self.tool_nodes["add_statement_source_texts"], metadata={"name": "tools_add_statement_source_texts"})
         # Get tree loop
         graph_builder.add_edge(START, "get_tree")
         graph_builder.add_conditional_edges(
             "get_tree",
             self._custom_tools_condition_internal,
-            {"tools":"tools_get_tree", "no_tools":"refine_tree"}
+            {"tools":"tools_get_tree", "no_tools":"add_statement_source_texts"}
         )
         graph_builder.add_edge("tools_get_tree", "get_tree")
+
+
+        # Add statement source texts loop
+        graph_builder.add_conditional_edges(
+            "add_statement_source_texts",
+            self._custom_tools_condition_internal,
+            {"tools":"tools_add_statement_source_texts", "no_tools":"refine_tree"}
+        )
+        graph_builder.add_edge("tools_add_statement_source_texts", "add_statement_source_texts")
+
 
         # refine tree loop
         graph_builder.add_conditional_edges(
@@ -362,7 +398,11 @@ class ContrastAgentGraph:
 
     async def _get_claim_comments(self, graph):
         state = await graph.aget_state(self.config)
-        return state.values.get("output", [])
+        return state.values.get("claim_comments", [])
+    
+    async def _get_driver_tree(self, graph):
+        state = await graph.aget_state(self.config)
+        return state.values.get("driver_tree", "")
     
     async def _get_state(self):
         async with AsyncSqliteSaver.from_conn_string(self.db_path) as memory:
@@ -392,7 +432,8 @@ class ContrastAgentGraph:
             ):
                 pass 
             claim_comments = await self._get_claim_comments(graph)
-            return claim_comments
+            driver_tree = await self._get_driver_tree(graph)
+            return claim_comments, driver_tree
 
         
     async def stream(self, user_message: str):
