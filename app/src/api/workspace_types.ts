@@ -20,7 +20,6 @@ export interface WorkspaceFile {
 
 export interface WorkspaceFolder {
   id: string;
-  name: string;
   workspaceId: string;
   appDir: string[];
 }
