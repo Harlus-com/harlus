@@ -72,6 +72,14 @@ class LocalClient extends BaseWebClient {
   }
 }
 
+// ELECTRON CLIENTS
+// Right now there are two because we're not sure what our long term approach will need to be based off security.
+// Ideally we don't proxy requests through node, but more and more it's looking like that's the model we'll need to have.
+
+/**
+ * Client for the electron app. Makes requests directly to the server except for uploading files,
+ * because only the node process can access the file system.
+ */
 class ElectronClient extends BaseWebClient {
   constructor(private readonly electron: ElectronAPI) {
     super();
@@ -112,8 +120,6 @@ class ElectronClient extends BaseWebClient {
 
 /**
  * Proxies all requests to the electron app -- this allows passing a custom certificate to the server.
- *
- * Note: I don't think we'll need to do this, but leaving this option in place, incase we decide we want to do so in the future.
  */
 class ElectronProxyClient implements ServerClient {
   constructor(private readonly electron: ElectronAPI) {}

@@ -15,5 +15,10 @@ export interface WorkspaceFile {
   name: string;
   absolutePath: string;
   workspaceId: string;
-  appDir: string | null;
+  appDir: string[];
+}
+
+export interface WorkspaceFolder {
+  workspaceId: string;
+  appDir: string[];
 }

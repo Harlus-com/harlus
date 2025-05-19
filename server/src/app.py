@@ -470,4 +470,9 @@ async def upload_file(
     return file
 
 
+@api_router.get("/workspace/folders")
+def get_folders(workspace_id: str = Query(..., alias="workspaceId")):
+    return file_store.get_folders(workspace_id)
+
+
 app.include_router(api_router)
