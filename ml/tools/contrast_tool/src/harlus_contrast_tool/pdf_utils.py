@@ -102,7 +102,7 @@ def _get_highlight_area_from_pdf_search(
         if best_hit_for_sentence:
             collected.append(
                 {
-                    "page":     best_hit_for_sentence[0],
+                    "page":     best_hit_for_sentence[0]-1,
                     "bbox":     best_hit_for_sentence[1],
                     "sentence": sent,
                     "score":    best_hit_for_sentence[2],
@@ -112,8 +112,8 @@ def _get_highlight_area_from_pdf_search(
     if len(collected_list) == 0:
         return None
     bounding_boxes = []
-    page_width = doc[collected_list[0]["page"]-1].rect.width
-    page_height = doc[collected_list[0]["page"]-1].rect.height
+    page_width = doc[collected_list[0]["page"]].rect.width
+    page_height = doc[collected_list[0]["page"]].rect.height
     for collected in collected_list:
         bounding_boxes.append(BoundingBox(
             left=collected["bbox"].x0 / page_width * 100,
