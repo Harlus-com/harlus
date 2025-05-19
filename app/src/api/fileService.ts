@@ -1,18 +1,16 @@
 // Service to handle file operations and communication with the backend API
-import { WorkspaceFile } from "./workspace_types";
+import { WorkspaceFile, WorkspaceFolder } from "./workspace_types";
 import { ChatMessage } from "../chat/chat_types";
 import { client } from "./client";
 import { ClaimComment } from "./comment_types";
 // Mock API service for now - will be replaced with actual API calls
 class FileService {
-  // Add files to the workspace
   addFiles(filePaths: string[], workspaceId: string): Promise<WorkspaceFile[]> {
     return Promise.all(
       filePaths.map((path) => client.post("/file/load", { path, workspaceId }))
     );
   }
 
-  // Get all files in the workspace
   async getFiles(workspaceId?: string): Promise<WorkspaceFile[]> {
     return client.get(`/workspace/files?workspaceId=${workspaceId}`);
   }
@@ -39,11 +37,11 @@ class FileService {
       oldFileId: file1Id,
       newFileId: file2Id,
     });
-    
+
     if (workspaceId) {
       params.append("workspaceId", workspaceId);
     }
-    
+
     const comments = await client.get(`/contrast/analyze?${params.toString()}`);
     console.log("[FileService] Comments:", comments);
     return comments;
@@ -67,6 +65,10 @@ class FileService {
 
   forceSyncFile(file: WorkspaceFile): Promise<boolean> {
     return client.post(`/file/force_sync`, { fileId: file.id });
+  }
+
+  async getFolders(workspaceId: string): Promise<WorkspaceFolder[]> {
+    return client.get(`/workspace/folders?workspaceId=${workspaceId}`);
   }
 }
 
