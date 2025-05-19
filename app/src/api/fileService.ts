@@ -32,12 +32,18 @@ class FileService {
   // Run contrast analysis between two files
   async runContrastAnalysis(
     file1Id: string,
-    file2Id: string
+    file2Id: string,
+    workspaceId?: string
   ): Promise<ClaimComment[]> {
     const params = new URLSearchParams({
       oldFileId: file1Id,
       newFileId: file2Id,
     });
+    
+    if (workspaceId) {
+      params.append("workspaceId", workspaceId);
+    }
+    
     const comments = await client.get(`/contrast/analyze?${params.toString()}`);
     console.log("[FileService] Comments:", comments);
     return comments;

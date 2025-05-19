@@ -10,15 +10,9 @@ assert "OPENAI_API_KEY" in os.environ, "OPENAI_API_KEY is not set in the environ
 assert "TAVILY_API_KEY" in os.environ, "TAVILY_API_KEY is not set in the environment variables."
 
 
-<<<<<<< HEAD
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY environment variable is not set")
 
 LLM = ChatOpenAI(model="gpt-4o-mini", temperature=0, api_key=OPENAI_API_KEY)
 TAVILY_TOOL = TavilySearch(max_results=5)
-=======
-
-LLM = ChatOpenAI(model="gpt-4o-mini", temperature=0, api_key=os.environ["OPENAI_API_KEY"])
-TAVILY_TOOL = TavilySearch(max_results=5)
->>>>>>> d112146 (integrate contrast tool)

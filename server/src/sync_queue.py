@@ -8,10 +8,6 @@ from src.tool_library import ToolLibrary
 from src.file_store import File, FileStore
 from src.sync_status import SyncStatus
 from harlus_doc_search import DocToolLoader
-<<<<<<< HEAD
-=======
-
->>>>>>> d112146 (integrate contrast tool)
 
 loaders = [
     DocToolLoader(),

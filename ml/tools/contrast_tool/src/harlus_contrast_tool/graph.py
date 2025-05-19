@@ -160,7 +160,7 @@ class ContrastAgentGraph:
     # TODO: Use SummaryIndexRetrieverTool to get the full document
     async def _get_tree(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
         
-        print("[harlus_chat] getting tree")
+        print("[harlus_contrast_tool] getting tree")
 
         with open(os.path.join(os.path.dirname(__file__), "prompts/get_tree_prompt.md"), "r") as f:
             system_prompt = f.read()
@@ -185,7 +185,7 @@ class ContrastAgentGraph:
 
     async def _refine_tree(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
         
-        print("[harlus_chat] refining tree")
+        print("[harlus_contrast_tool] refining tree")
 
         with open(os.path.join(os.path.dirname(__file__), "prompts/refine_tree_prompt.md"), "r") as f:
             system_prompt = f.read()
@@ -209,7 +209,7 @@ class ContrastAgentGraph:
     
 
     async def _verify_tree(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
-        print("[harlus_chat] verifying tree")
+        print("[harlus_contrast_tool] verifying tree")
         with open(os.path.join(os.path.dirname(__file__), "prompts/verify_tree_prompt.md"), "r") as f:
             system_prompt = f.read()
         system_prompt = system_prompt + self.tools_descriptions["external"]["doc_search_retriever"]
@@ -229,7 +229,7 @@ class ContrastAgentGraph:
         }
 
     async def _format_output(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
-        print("[harlus_chat] formatting output")
+        print("[harlus_contrast_tool] formatting output")
         with open(os.path.join(os.path.dirname(__file__), "prompts/format_output_prompt.md"), "r") as f:
             system_prompt = f.read()
         system_prompt = system_prompt + self.tools_descriptions["external"]["doc_search_retriever"]
@@ -250,7 +250,7 @@ class ContrastAgentGraph:
             contrast["link_comments"] = []
             for evidence_source_text in evidence_source_texts:
                 all_nodes = []
-                for retriever_tool in self.tools["internal"]["doc_search_retriever"]:
+                for retriever_tool in self.tools["external"]["doc_search_retriever"]:
                     tool_result = await retriever_tool.ainvoke(evidence_source_text)
                     retrieved_nodes = tool_result.raw_output
                     all_nodes.extend(retrieved_nodes)
@@ -291,7 +291,7 @@ class ContrastAgentGraph:
         return claim_comments
     
     async def _get_source_nodes(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
-        print("[harlus_chat] getting claim comments")
+        print("[harlus_contrast_tool] getting claim comments")
         driver_tree = state["driver_tree"]
         parsed_driver_tree = robust_load_json(driver_tree)
         yield {
@@ -385,13 +385,14 @@ class ContrastAgentGraph:
         }
         async with AsyncSqliteSaver.from_conn_string(self.db_path) as memory:
             graph = self.graph_builder.compile(checkpointer=memory)
-            _ = await graph.astream(
+            async for message_chunk in graph.astream(
                 input_state,
                 stream_mode="custom",
                 config = self.config
-            )
-        claim_comments = await self._get_claim_comments(graph)
-        return claim_comments
+            ):
+                pass 
+            claim_comments = await self._get_claim_comments(graph)
+            return claim_comments
 
         
     async def stream(self, user_message: str):
@@ -410,7 +411,7 @@ class ContrastAgentGraph:
             graph = self.graph_builder.compile(checkpointer=memory)
         
             # 1. stream the answer 
-            print("[harlus_chat] Streaming answer...")
+            print("[harlus_contrast_tool] Streaming answer...")
             async for message_chunk in graph.astream(
                 input_state,
                 stream_mode="custom",
@@ -426,7 +427,7 @@ class ContrastAgentGraph:
                 
                 
             # 2. stream the claim comments
-            print("[harlus_chat] Streaming claim comments...")
+            print("[harlus_contrast_tool] Streaming claim comments...")
             data = await self._get_claim_comments(graph)
             data = [d.model_dump() for d in data]
             response = '\n'.join([
@@ -434,7 +435,7 @@ class ContrastAgentGraph:
                     f'event: claim_comments',
                     '\n\n'
             ])
-            print(f"[harlus_chat] Sent {len(data)} claim comments")
+            print(f"[harlus_contrast_tool] Sent {len(data)} claim comments")
             yield response
             
 

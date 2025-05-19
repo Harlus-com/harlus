@@ -1,18 +1,10 @@
 from llama_index.llms.openai import OpenAI
 from llama_index.embeddings.openai import OpenAIEmbedding
 import os
-<<<<<<< HEAD
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY environment variable is not set")
-=======
-from dotenv import load_dotenv
-
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "python", "env", ".env"))
-assert "OPENAI_API_KEY" in os.environ, "OPENAI_API_KEY is not set in the environment variables."
-
->>>>>>> d112146 (integrate contrast tool)
 
 NUM_WORKERS = 20
 
