@@ -3,7 +3,7 @@ import { WorkspaceFile } from "@/api/workspace_types";
 import { fileService } from "@/api/fileService";
 
 // react-pdf-viewer imports
-import { Worker, Viewer } from "@react-pdf-viewer/core";
+import { Worker, Viewer, SpecialZoomLevel } from "@react-pdf-viewer/core";
 import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
 import { highlightPlugin, Trigger } from "@react-pdf-viewer/highlight";
 // styles for core and default layout
@@ -129,7 +129,7 @@ const PdfViewer = ({ file }: PdfViewerProps) => {
           <Viewer
             fileUrl={fileUrl}
             plugins={[defaultLayoutPluginInstance, highlightPluginInstance]}
-            defaultScale={1}
+            defaultScale={SpecialZoomLevel.PageWidth}
             onPageChange={(e) => {
               // This is just for tracking the current page
               // The actual page change is handled by initialPage prop
