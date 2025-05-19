@@ -98,5 +98,4 @@ async def analyze(
                 "verdict": comment.verdict,
             }
         )
-    print(f"[server-contrast-analysis] sending response comments: {response_comments}")
     return response_comments
