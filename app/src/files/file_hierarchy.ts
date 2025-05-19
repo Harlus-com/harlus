@@ -11,9 +11,10 @@ function extend(nodeToExtend: FolderNode, segments: string[]) {
   if (segments.length === 0) {
     return;
   }
+  const newFileName = segments[0];
   const newNode = {
-    name: segments[0],
-    path: [segments[0]],
+    name: newFileName,
+    path: [...nodeToExtend.path, newFileName],
     children: new Map(),
     files: [],
   };
@@ -39,7 +40,7 @@ export function buildFolderTree(
   folders: WorkspaceFolder[]
 ): FolderNode {
   const root: FolderNode = {
-    name: "",
+    name: "root",
     path: [],
     children: new Map(),
     files: [],

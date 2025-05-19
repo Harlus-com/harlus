@@ -51,6 +51,7 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
     });
   });
   const loadFiles = async () => {
+    console.log("[FileContext] loadFiles", workspaceId);
     const files = await fileService.getFiles(workspaceId);
     const folders = await fileService.getFolders(workspaceId);
     setFiles(files);
