@@ -4,9 +4,6 @@ contextBridge.exposeInMainWorld("electron", {
   openFileDialog: () => ipcRenderer.invoke("open-file-dialog"),
   getFileContent: (filePath: string) =>
     ipcRenderer.invoke("get-file-content", filePath),
-  getServerPort: () => 8000,
-  //getServerHost: () => "http://127.0.0.1",
-  getServerHost: () => "http://harlus-api-dev.eastus.azurecontainer.io",
   getFileStats: (filePath: string) =>
     ipcRenderer.invoke("get-file-stats", filePath),
   get: (path: string, authHeader: string) =>
@@ -20,4 +17,12 @@ contextBridge.exposeInMainWorld("electron", {
   upload: (filePath: string, workspaceId: string, authHeader: string) =>
     ipcRenderer.invoke("server-upload", filePath, workspaceId, authHeader),
   getBaseUrl: () => ipcRenderer.invoke("get-base-url"),
+  attachEventForwarder: (callback: (event: any) => void) =>
+    ipcRenderer.on("event-forwarder", (_, event) => callback(event)),
+  createEventSource: (url: string) =>
+    ipcRenderer.invoke("create-event-source", url),
+  addEventListener: (eventSourceId: string, eventName: string) =>
+    ipcRenderer.invoke("add-event-listener", eventSourceId, eventName),
+  closeEventSource: (eventSourceId: string) =>
+    ipcRenderer.invoke("close-event-source", eventSourceId),
 });
