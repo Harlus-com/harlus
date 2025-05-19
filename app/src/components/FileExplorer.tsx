@@ -93,108 +93,33 @@ const FileExplorer: React.FC = () => {
 
   const renderFolder = (folder: FolderNode, level: number = 0) => {
     const pathKey = folder.path.join("/");
-    const isExpanded = folder.path.length === 0 || expandedFolders.has(pathKey);
     const hasChildren = folder.children.size > 0 || folder.files.length > 0;
     const isRoot = folder.path.length === 0;
-
-    // Skip rendering the root folder itself
-    if (isRoot) {
-      return (
-        <>
-          {Array.from(folder.children.values()).map((child) =>
-            renderFolder(child, level)
-          )}
-          {folder.files.map((file) => (
-            <div
-              key={file.id}
-              className={cn(
-                "flex items-center p-2 rounded-md",
-                "hover:bg-muted",
-                selectedFileIds.includes(file.id) && "bg-muted font-medium"
-              )}
-              style={getIndentStyle(level)}
-            >
-              <div
-                className="flex items-center flex-1 min-w-0 cursor-pointer"
-                onClick={() => handleOpenInGroup(file, FileGroupCount.ONE)}
-              >
-                <File size={14} className="mr-2 flex-shrink-0 text-blue-500" />
-                <span className="truncate text-sm flex-1">{file.name}</span>
-                <FileStatusIndicator file={file} className="ml-2" />
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="p-1 hover:bg-muted rounded-md flex-shrink-0 ml-2">
-                    <MoreVertical size={14} className="text-muted-foreground" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                      <Columns2 size={14} className="mr-2" />
-                      Open in file group
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
-                      {fileGroupCounts().map((groupNumber) => (
-                        <DropdownMenuItem
-                          key={groupNumber}
-                          onClick={() =>
-                            handleOpenInGroup(
-                              file,
-                              groupNumber as FileGroupCount
-                            )
-                          }
-                        >
-                          {groupNumber}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-                  <DropdownMenuItem onClick={(e) => handlePing(file, e)}>
-                    <RotateCcw size={14} className="mr-2" />
-                    Sync
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => handleForceSync(file, e)}>
-                    <RefreshCw size={14} className="mr-2" />
-                    Force Reload
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="text-red-500 focus:text-red-500"
-                    onClick={(e) => handleDeleteFile(file, e)}
-                  >
-                    <Trash2 size={14} className="mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          ))}
-        </>
-      );
-    }
+    const isExpanded = isRoot || expandedFolders.has(pathKey);
 
     return (
       <div key={pathKey} className="select-none">
-        <div
-          className={cn(
-            "flex items-center p-2 rounded-md cursor-pointer",
-            "hover:bg-muted"
-          )}
-          style={getIndentStyle(level)}
-          onClick={() => toggleFolder(pathKey)}
-        >
-          {hasChildren ? (
-            isExpanded ? (
-              <ChevronDown size={14} className="mr-2 flex-shrink-0" />
+        {!isRoot && (
+          <div
+            className={cn(
+              "flex items-center p-2 rounded-md cursor-pointer",
+              "hover:bg-muted"
+            )}
+            style={getIndentStyle(level)}
+            onClick={() => toggleFolder(pathKey)}
+          >
+            {hasChildren ? (
+              isExpanded ? (
+                <ChevronDown size={14} className="mr-2 flex-shrink-0" />
+              ) : (
+                <ChevronRight size={14} className="mr-2 flex-shrink-0" />
+              )
             ) : (
-              <ChevronRight size={14} className="mr-2 flex-shrink-0" />
-            )
-          ) : (
-            <div className="w-6" />
-          )}
-          <span className="text-sm">{folder.name}</span>
-        </div>
-
+              <div className="w-6" />
+            )}
+            <span className="text-sm">{folder.name}</span>
+          </div>
+        )}
         {isExpanded && (
           <>
             {Array.from(folder.children.values()).map((child) =>
@@ -297,7 +222,7 @@ const FileExplorer: React.FC = () => {
 
       <div className="p-3 border-t border-border">
         <div className="text-xs text-muted-foreground">
-          {files.length} files
+          Drag PDF files here to analyze
         </div>
       </div>
     </div>
