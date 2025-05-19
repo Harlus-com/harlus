@@ -4,3 +4,4 @@
 *.pdf
 *.egg-info
 dev
+__pycache__
