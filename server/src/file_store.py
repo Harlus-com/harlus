@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+from typing import Union
 import uuid
 from pydantic import BaseModel, ConfigDict, Field
 from src.file_util import get_flat_folder_hierarchy
@@ -215,8 +216,6 @@ class FileStore:
             workspace_id=workspace_id,
             app_dir=app_dir,
         )
-        print("FILE: ", file)
-        print("Copying file to", absolute_path)
         os.makedirs(os.path.dirname(absolute_path), exist_ok=True)  # CHANGE TO FALSE
         shutil.copy(path, absolute_path)
         self._add_file(file)
@@ -305,7 +304,17 @@ class FileStore:
         ]
         return len(matching_folder) > 0
 
-    def _open(self, workspace: Workspace, file_path: str, mode: str) -> File:
+    def _open(
+        self,
+        workspace_or_workspace_id: Union[Workspace, str],
+        file_path: str,
+        mode: str,
+    ) -> File:
+        workspace = (
+            self.get_workspaces()[workspace_or_workspace_id]
+            if isinstance(workspace_or_workspace_id, str)
+            else workspace_or_workspace_id
+        )
         return open(self.app_data_path.joinpath(workspace.dir_name, file_path), mode)
 
     def get_file_path_to_id(self, workspace_id: str) -> dict[str, str]:
@@ -315,3 +324,113 @@ class FileStore:
         ) as f:
             files = [File.model_validate(file) for file in json.load(f)]
         return {file.absolute_path: file.id for file in files}
+
+    def delete_folder(self, workspace_id: str, app_dir: list[str]) -> bool:
+        all_file_children = self._get_all_file_children(workspace_id, app_dir)
+        all_folder_children = self._get_all_folder_children(workspace_id, app_dir)
+        for file in all_file_children:
+            self.delete_file(file.id, workspace_id)
+        for folder in all_folder_children:
+            self._delete_folder_internal(workspace_id, folder.app_dir)
+
+    def _delete_folder_internal(self, workspace_id: str, app_dir: list[str]) -> bool:
+        folders = self.get_folders(workspace_id)
+        new_folders = [
+            folder for folder in folders if not _is_equal_path(folder.app_dir, app_dir)
+        ]
+        with self._open(workspace_id, "folders.json", "w") as f:
+            json.dump([folder.model_dump() for folder in new_folders], f, indent=2)
+
+    def _get_all_file_children(
+        self, workspace_id: str, app_dir: list[str]
+    ) -> list[File]:
+        files = self.get_files(workspace_id).values()
+        return [file for file in files if _is_sub_path(file.app_dir, app_dir)]
+
+    def _get_all_folder_children(
+        self, workspace_id: str, app_dir: list[str]
+    ) -> list[Folder]:
+        folders = self.get_folders(workspace_id)
+        return [folder for folder in folders if _is_sub_path(folder.app_dir, app_dir)]
+
+    def move_folder(
+        self, workspace_id: str, app_dir: list[str], new_parent_dir: list[str]
+    ) -> bool:
+        all_file_children = self._get_all_file_children(workspace_id, app_dir)
+        all_folder_children = self._get_all_folder_children(workspace_id, app_dir)
+        for file in all_file_children:
+            self._change_file_path_prefix(file, app_dir, new_parent_dir)
+        for folder in all_folder_children:
+            self._change_folder_path_prefix(folder, app_dir, new_parent_dir)
+
+    def _change_file_path_prefix(
+        self, file: File, old_prefix: list[str], new_prefix: list[str]
+    ) -> None:
+        sub_path = _get_sub_path(file.app_dir, old_prefix)
+        new_app_dir = [*new_prefix, *sub_path]
+        file.app_dir = new_app_dir
+        self._update_file(file)
+
+    def _update_file(self, file: File) -> None:
+        files = self.get_files(file.workspace_id)
+        files[file.id] = file
+        with self._open(file.workspace_id, "files.json", "w") as f:
+            json.dump([file.model_dump() for file in files.values()], f, indent=2)
+
+    def _change_folder_path_prefix(
+        self, folder: Folder, old_prefix: list[str], new_prefix: list[str]
+    ) -> None:
+        sub_path = _get_sub_path(folder.app_dir, old_prefix)
+        old_app_dir = folder.app_dir
+        new_app_dir = [*new_prefix, *sub_path]
+        folder.app_dir = new_app_dir
+        folder.name = new_app_dir[-1]
+        new_folders = self._replace_folder(folder, old_app_dir)
+        with self._open(folder.workspace_id, "folders.json", "w") as f:
+            json.dump([folder.model_dump() for folder in new_folders], f, indent=2)
+
+    def _replace_folder(self, folder: Folder, old_app_dir: list[str]) -> list[Folder]:
+        new_folders = []
+        for f in self.get_folders(folder.workspace_id):
+            if _is_equal_path(f.app_dir, old_app_dir):
+                new_folders.append(folder)
+            else:
+                new_folders.append(f)
+        return new_folders
+
+    def rename_folder(
+        self, workspace_id: str, app_dir: list[str], new_name: str
+    ) -> bool:
+        new_app_dir = [*app_dir[:-1], new_name]
+        self.move_folder(workspace_id, app_dir, new_app_dir)
+
+    def move_file(
+        self, workspace_id: str, file_id: str, new_parent_dir: list[str]
+    ) -> bool:
+        file = self.get_file(file_id, workspace_id)
+        file.app_dir = new_parent_dir
+        self._update_file(file)
+
+
+def _get_sub_path(path: list[str], prefix: list[str]) -> list[str]:
+    if not _is_sub_path(path, prefix):
+        raise ValueError(f"Path {path} is not a subpath of {prefix}")
+    return path[len(prefix) :]
+
+
+def _is_equal_path(path: list[str], prefix: list[str]) -> bool:
+    if len(path) != len(prefix):
+        return False
+    for i in range(len(prefix)):
+        if path[i] != prefix[i]:
+            return False
+    return True
+
+
+def _is_sub_path(path: list[str], prefix: list[str]) -> bool:
+    if len(path) < len(prefix):
+        return False
+    for i in range(len(prefix)):
+        if path[i] != prefix[i]:
+            return False
+    return True

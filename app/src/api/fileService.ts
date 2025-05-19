@@ -67,6 +67,59 @@ class FileService {
   getFolders(workspaceId: string): Promise<WorkspaceFolder[]> {
     return client.get(`/workspace/folders?workspaceId=${workspaceId}`);
   }
+
+  createFolder(
+    workspaceId: string,
+    appDir: string[]
+  ): Promise<WorkspaceFolder> {
+    return client.post(`/workspace/create_folder`, {
+      workspaceId,
+      appDir,
+    });
+  }
+
+  deleteFolder(workspaceId: string, appDir: string[]): Promise<boolean> {
+    return client.post(`/workspace/delete_folder`, {
+      workspaceId,
+      appDir,
+    });
+  }
+
+  renameFolder(
+    workspaceId: string,
+    appDir: string[],
+    newName: string
+  ): Promise<boolean> {
+    return client.post(`/workspace/rename_folder`, {
+      workspaceId,
+      appDir,
+      newName,
+    });
+  }
+
+  moveFolder(
+    workspaceId: string,
+    appDir: string[],
+    newParentDir: string[]
+  ): Promise<boolean> {
+    return client.post(`/workspace/move_folder`, {
+      workspaceId,
+      appDir,
+      newParentDir,
+    });
+  }
+
+  moveFile(
+    workspaceId: string,
+    fileId: string,
+    newParentDir: string[]
+  ): Promise<boolean> {
+    return client.post(`/workspace/move_file`, {
+      workspaceId,
+      fileId,
+      newParentDir,
+    });
+  }
 }
 
 export const fileService = new FileService();
