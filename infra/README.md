@@ -114,3 +114,48 @@ Now that we have Azure SSO, we could (and probably should drop lLient certificat
 
 So if you adopt Azure AD you can drop the client certificate layer.
 TLS is still required for encryption, but mTLS is optional once bearer-token auth controls access.
+
+# Locally Running Docker Compose
+
+Note: Make sure you're not also running a local fast api vai `python main.py` otherwise this will all fail.
+
+## Update localhost -> api
+
+In the `nginx.conf` replaces instances of `proxy_pass http://localhost:8000;` with `proxy_pass http://api:8000;`.
+
+## Build local nginx
+
+(from infra dir)
+
+```
+docker build -t harlus-nginx nginx-mtls
+```
+
+## Build local server
+
+(from root dir)
+
+docker build -t harlus-server .
+
+## Update /etc/hosts file
+
+Add this line to /etc/hosts (requires sudo to edit)
+
+Note: you might need to also run these commands afterwards, but I don't think so:
+
+```
+sudo dscacheutil -flushcache
+sudo killall -HUP mDNSResponder
+```
+
+```
+127.0.0.1   harlus-api-dev.eastus.azurecontainer.io
+```
+
+Note: This maps harlus-api-dev.eastus.azurecontainer.io back to localhost. This is necessary becasue the server cert is generated to match harlus-api-dev.eastus.azurecontainer.io. We could create a dedicated dev cert, but this is less work for now...
+
+## Run docker compose
+
+(from infra dir)
+
+docker compose up

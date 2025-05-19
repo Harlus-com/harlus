@@ -286,13 +286,15 @@ async def get_contrast_analyze(
     workspace_id: str = Query(..., alias="workspaceId"),
 ):
     """Analyze the contrast between two files"""
-    return await analyze(old_file_id, new_file_id, file_store, tool_library, workspace_id)
+    return await analyze(
+        old_file_id, new_file_id, file_store, tool_library, workspace_id
+    )
 
 
 @api_router.get("/file/get")
 def get_file(
     file_id: str = Query(None, alias="fileId"),
-    file_path: str = Query(None, alias="file_path"),
+    file_path: str = Query(None, alias="filePath"),
 ):
     print("Getting file from id", file_id, "or path", file_path)
     if file_id:

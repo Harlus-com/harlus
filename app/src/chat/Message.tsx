@@ -3,7 +3,6 @@ import { fileService } from "@/api/fileService";
 import {
   ChatSourceCommentGroup,
   MessagePair,
-  Thread,
   ThreadSavedState,
 } from "./chat_types";
 import { AssistantMessage } from "./AssistantMessage";

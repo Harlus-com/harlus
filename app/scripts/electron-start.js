@@ -12,7 +12,7 @@ let viteProcess = null;
 
 function startViteDevServer() {
   console.log("Starting Vite development server...");
-  viteProcess = spawn("npm", ["run", "dev"], {
+  viteProcess = spawn("npm", ["run", "dev", "--", "--no-open"], {
     stdio: "inherit",
     shell: true,
   });

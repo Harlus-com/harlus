@@ -8,15 +8,33 @@ import axios from "axios";
 import FormData from "form-data";
 import https from "https";
 import { EventSource } from "eventsource";
-import { Agent as UndiciAgent, fetch as undiciFetch } from "undici";
+import { Agent as UndiciAgent } from "undici";
 
-// Runs an electron app against a local Vite dev server
 const args = process.argv;
 const useRemoteServer = !!args.find((arg) => arg === "--remote-server");
-console.log("USE REMOTE SERVER", useRemoteServer);
-const baseUrl = useRemoteServer
-  ? "http://harlus-api-dev.eastus.azurecontainer.io"
-  : "http://127.0.0.1:8000";
+const useLocalDockerSsl = !!args.find((arg) => arg === "--local-docker");
+
+if (useLocalDockerSsl && useRemoteServer) {
+  throw new Error("Cannot use both local SSL and remote server");
+}
+
+function getBaseUrl() {
+  if (useLocalDockerSsl) {
+    console.log(
+      "Using local docker with SSL, relying on /etc/hosts to map harlus-api-dev.eastus.azurecontainer.io to localhost"
+    );
+    return "https://harlus-api-dev.eastus.azurecontainer.io:8000";
+  }
+  if (useRemoteServer) {
+    console.log(
+      "Using remote server, make sure /etc/hosts does not override harlus-api-dev.eastus.azurecontainer.io"
+    );
+    return "https://harlus-api-dev.eastus.azurecontainer.io";
+  }
+  return "http://127.0.0.1:8000";
+}
+
+const baseUrl = getBaseUrl();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,7 +58,6 @@ const httpsDispatcher = new UndiciAgent({
 const fetchWithMtls = (url, init) =>
   fetch(url, { ...init, dispatcher: httpsDispatcher });
 
-// Keep track of event sources
 const eventSources = new Map();
 
 function createWindow() {
@@ -250,12 +267,6 @@ const childProcesses = [];
 app.whenReady().then(() => {
   const mainWindow = createWindow();
   setupIPCHandlers(mainWindow);
-
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
 });
 
 app.on("window-all-closed", () => {

@@ -361,6 +361,21 @@ const ChatPanel: React.FC = () => {
             }
             return newPairs;
           });
+        },
+        // onStreamError handler - when an error occurs in the event source
+        (error) => {
+          console.error("[ChatPanel] Error while streaming:", error);
+          setIsLoading(false);
+          setIsEventSourceActive(false);
+          setCurrentPairId(null);
+          updateAndSaveMessages((prev) => {
+            const newPairs = [...prev];
+            const currentPair = newPairs.find((pair) => pair.id === pairId);
+            if (currentPair && currentPair.assistantMessage) {
+              currentPair.assistantMessage.hasStreamError = true;
+            }
+            return newPairs;
+          });
         }
       );
     } catch (error) {
