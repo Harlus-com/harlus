@@ -19,7 +19,6 @@ export interface WorkspaceFile {
 }
 
 export interface WorkspaceFolder {
-  id: string;
   workspaceId: string;
   appDir: string[];
 }
