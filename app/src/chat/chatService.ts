@@ -70,13 +70,11 @@ export class ChatService {
 
       this.eventSource.addEventListener("planning_message", (event) => {
         const newContent = JSON.parse(event.data).text;
-        console.log("PLANNING MESSAGE TIME: " + new Date());
         onMessage(newContent, "planning_message");
       });
 
       this.eventSource.addEventListener("reading_message", (event) => {
         const newContent = JSON.parse(event.data).text;
-        console.log("READING MESSAGE TIME: " + new Date());
         onMessage(newContent, "reading_message");
       });
 
@@ -145,7 +143,6 @@ export class ChatService {
           onSources(updatedChatSourceCommentGroups);
         } catch (error) {
           console.error("[ChatService] Error processing sources:", error);
-          onError(error);
         }
       });
 
@@ -158,6 +155,10 @@ export class ChatService {
 
       // 7. handle errors in the event source
       this.eventSource.addEventListener("error", (error) => {
+        if (!this.eventSource) {
+          console.log("Event source is already closed");
+          return;
+        }
         console.error("EventSource error:", error);
         this.eventSource?.close();
         this.eventSource = null;

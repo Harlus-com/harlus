@@ -8,15 +8,21 @@ import axios from "axios";
 import FormData from "form-data";
 import https from "https";
 import { EventSource } from "eventsource";
-import { Agent as UndiciAgent, fetch as undiciFetch } from "undici";
+import { Agent as UndiciAgent } from "undici";
 
 // Runs an electron app against a local Vite dev server
 const args = process.argv;
 const useRemoteServer = !!args.find((arg) => arg === "--remote-server");
 console.log("USE REMOTE SERVER", useRemoteServer);
 const baseUrl = useRemoteServer
-  ? "http://harlus-api-dev.eastus.azurecontainer.io"
-  : "http://127.0.0.1:8000";
+  ? "https://harlus-api-dev.eastus.azurecontainer.io"
+  : "https://harlus-api-dev.eastus.azurecontainer.io:8000";
+
+if (!useRemoteServer) {
+  console.log(
+    "Using local server, relying on /etc/hosts to map harlus-api-dev.eastus.azurecontainer.io to localhost"
+  );
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

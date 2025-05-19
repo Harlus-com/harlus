@@ -59,7 +59,7 @@ class FileService {
 
   async getFileFromPath(filePath: string): Promise<WorkspaceFile> {
     const params = new URLSearchParams({
-      file_path: filePath,
+      filePath: filePath,
     });
     const file = await client.get(`/file/get?${params.toString()}`);
     return file;
