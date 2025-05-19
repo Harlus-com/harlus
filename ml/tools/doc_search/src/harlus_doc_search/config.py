@@ -10,13 +10,16 @@ NUM_WORKERS = 20
 
 LLM_LIBRARY = {
     "openai-gpt-4o-mini": OpenAI(
-        model="gpt-4o-mini", temperature=0, api_key=OPENAI_API_KEY
+        model="gpt-4o-mini", temperature=0, api_key=os.environ["OPENAI_API_KEY"]
     ),
     "openai-gpt-3.5-turbo": OpenAI(
-        model="gpt-3.5-turbo", temperature=0, api_key=OPENAI_API_KEY
+        model="gpt-3.5-turbo", temperature=0, api_key=os.environ["OPENAI_API_KEY"]
     ),
     "openai-text-embedding-3-large": OpenAIEmbedding(
-        model="text-embedding-3-large", api_key=OPENAI_API_KEY
+        model="text-embedding-3-large", api_key=os.environ["OPENAI_API_KEY"]
+    ),
+    "openai-gpt-4o": OpenAI(
+        model="gpt-4o", temperature=0, api_key=os.environ["OPENAI_API_KEY"]
     ),
 }
 

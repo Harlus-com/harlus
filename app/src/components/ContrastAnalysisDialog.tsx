@@ -16,6 +16,7 @@ import { timestampNow } from "@/api/api_util";
 import { v4 as uuidv4 } from "uuid";
 import { FileGroupCount, TopLevelPanelId } from "./panels";
 import { useFileViewContext } from "@/files/FileViewContext";
+import { useParams } from "react-router-dom";
 
 export interface ContrastResult {
   fileId: string;
@@ -45,6 +46,7 @@ const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
   files,
   setVisiblePanels,
 }) => {
+  const { workspaceId } = useParams();
   const { openFiles } = useFileViewContext();
   const [selectedFile1, setSelectedFile1] = useState<WorkspaceFile | null>(
     null
@@ -63,7 +65,8 @@ const ContrastAnalysisDialog: React.FC<ContrastAnalysisDialogProps> = ({
     try {
       const result = await fileService.runContrastAnalysis(
         selectedFile1.id,
-        selectedFile2.id
+        selectedFile2.id,
+        workspaceId
       );
       const commentGroup: CommentGroup = {
         name: `Compare ${selectedFile1.name} and ${selectedFile2.name}`,

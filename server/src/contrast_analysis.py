@@ -1,65 +1,56 @@
-import json
 import os
-import time
 from datetime import datetime
 
-from harlus_contrast_tool.api_interfaces import ClaimComment
-
-from src.file_store import FileStore
+from harlus_contrast_tool.graph import ContrastAgentGraph
+import uuid
+from src.file_store import FileStore, Workspace
 from src.tool_library import ToolLibrary
-
-
+import pickle
+import json
 cache_file_path_base = "contrast_analysis"
-# Set this to the desired cache response
-cache_file_path_target = "contrast_analysis_1.json"
 
 
-def analyze(
-    old_file_id: str, new_file_id: str, file_store: FileStore, tool_library: ToolLibrary
+async def analyze(
+    old_file_id: str, 
+    new_file_id: str, 
+    file_store: FileStore, 
+    tool_library: ToolLibrary,
+    workspace_id: str
 ):
+    workspace = file_store.get_workspaces()[workspace_id]
     old_file = file_store.get_file(old_file_id)
     new_file = file_store.get_file(new_file_id)
-    thesis_qengine = tool_library.get_tool(
-        old_file.absolute_path, "claim_query_engine_tool"
+
+    old_file_doc_search_tool_wrapper = tool_library.get_tool(
+        old_file.absolute_path, "doc_search"
     )
-    thesis_sentence_retriever_tool = tool_library.get_tool(
-        old_file.absolute_path, "sentence_retriever_tool"
+    new_file_doc_search_tool_wrapper = tool_library.get_tool(
+        new_file.absolute_path, "doc_search"
     )
-    update_qengine = tool_library.get_tool(
-        new_file.absolute_path, "verdict_query_engine_tool"
-    )
-    update_sentence_retriever = tool_library.get_tool(
-        new_file.absolute_path, "sentence_retriever_tool"
-    )
-    if os.path.exists(cache_file_path_target):
-        time.sleep(3)
-        with open(cache_file_path_target, "r") as f:
-            comments = json.load(f)
-            comments = [ClaimComment(**comment) for comment in comments]
+
+    thread_id = f"{old_file_id}_{new_file_id}_{uuid.uuid4()}"
+    contrast_dir = os.path.join(workspace.absolute_path, cache_file_path_base)
+    contrast_agent = ContrastAgentGraph(persist_dir=contrast_dir)
+    contrast_agent.update_tools([old_file_doc_search_tool_wrapper.get()], [new_file_doc_search_tool_wrapper.get()])
+    contrast_agent.set_thread(thread_id)
+
+   
+    cache_file_path = os.path.join(f"{old_file_id}_{new_file_id}")
+    
+    if os.path.exists(cache_file_path):
+        claim_comments = pickle.load(open(os.path.join(cache_file_path, "claim_comments.pkl"), "rb"))
+        driver_tree = json.load(open(os.path.join(cache_file_path, "driver_tree.json"), "r"))
     else:
-        comments = tool.run(
-            old_file.absolute_path,
-            thesis_qengine.get(),
-            thesis_sentence_retriever_tool.get(),
-            new_file.absolute_path,
-            update_qengine.get(),
-            update_sentence_retriever.get(),
+        claim_comments, driver_tree = await contrast_agent.run(
+            f"What impact does {new_file.absolute_path} have on {old_file.absolute_path}?"
         )
-        for i in range(1, 100):
-            new_cache_file_path = f"{cache_file_path_base}_{i}.json"
-            if not os.path.exists(new_cache_file_path):
-                with open(new_cache_file_path, "w") as f:
-                    json.dump(
-                        [comment.model_dump() for comment in comments],
-                        f,
-                        indent=2,
-                    )
-                break
+        pickle.dump(claim_comments, open(f"{cache_file_path}_claim_comments.pkl", "wb"))
+        json.dump(driver_tree, open(f"{cache_file_path}_driver_tree.json", "w"))
 
     response_comments = []
-    time_now = datetime.datetime.now().isoformat()
+    time_now = datetime.now().isoformat()
     i = 1
-    for comment in comments:
+    for comment in claim_comments:
         i = i + 1
         response_comments.append(
             {
@@ -74,7 +65,7 @@ def analyze(
                             "top": box.top,
                             "width": box.width,
                             "height": box.height,
-                            "page": box.page - 1,  # Zero Based
+                            "page": box.page, 
                         }
                         for box in comment.highlight_area.bounding_boxes
                     ],
@@ -92,7 +83,7 @@ def analyze(
                                     "top": box.top,
                                     "width": box.width,
                                     "height": box.height,
-                                    "page": box.page - 1,  # Zero Based
+                                    "page": box.page,  
                                 }
                                 for box in link.highlight_area.bounding_boxes
                             ],
@@ -105,5 +96,5 @@ def analyze(
                 "verdict": comment.verdict,
             }
         )
-
+    print(f"[server-contrast-analysis] sending response comments: {response_comments}")
     return response_comments
