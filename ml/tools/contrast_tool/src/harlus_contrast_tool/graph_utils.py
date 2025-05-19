@@ -19,7 +19,7 @@ from langgraph.config import get_stream_writer
 from llama_index.core.schema import NodeWithScore
 from langchain_tavily import TavilySearch
 import fitz
-
+import asyncio
 
 def _get_last_message(state: dict | ContrastToolGraphState, state_key: str = "messages") -> AIMessage:
     if messages := state.get(state_key, []):
@@ -201,18 +201,26 @@ class BasicToolNode:
         retrieved_items = []
         
 
+        tasks = []
         for tool_call in message.tool_calls:
             tool_type = self._parse_tool_call_type(tool_call)
             
             if tool_type == "doc_search":
-                retrieved_nodes, tool_message = await self._process_doc_search_tool_call(tool_call)
+                tasks.append(self._process_doc_search_tool_call(tool_call))
+            elif tool_type == "tavily_search":
+                tasks.append(self._process_tavily_search_tool_call(tool_call))
+        
+        results = await asyncio.gather(*tasks)
+        
+        for result in results:
+            if isinstance(result[0], list) and isinstance(result[0][0], DocSearchRetrievedNode):
+                retrieved_nodes, tool_message = result
                 tool_messages.append(tool_message)
                 retrieved_items.extend(retrieved_nodes)
-            elif tool_type == "tavily_search":
-                tavily_tool_retrieved_websites, tool_message = await self._process_tavily_search_tool_call(tool_call)
+            elif isinstance(result[0], list) and isinstance(result[0][0], TavilyToolRetrievedWebsite):
+                tavily_tool_retrieved_websites, tool_message = result
                 tool_messages.append(tool_message)
                 retrieved_items.extend(tavily_tool_retrieved_websites)
-            
         
         yield {
             self.message_state_key: tool_messages,

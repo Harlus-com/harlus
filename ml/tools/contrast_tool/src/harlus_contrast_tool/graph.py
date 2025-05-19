@@ -232,7 +232,7 @@ class ContrastAgentGraph:
         print("[harlus_contrast_tool] formatting output")
         with open(os.path.join(os.path.dirname(__file__), "prompts/format_output_prompt.md"), "r") as f:
             system_prompt = f.read()
-        system_prompt = system_prompt + self.tools_descriptions["external"]["doc_search_retriever"]
+        system_prompt = system_prompt
         prompt = [
             SystemMessage(content=system_prompt),
             state["driver_tree"],
