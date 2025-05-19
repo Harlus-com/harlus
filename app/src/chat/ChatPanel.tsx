@@ -372,10 +372,6 @@ const ChatPanel: React.FC = () => {
             const newPairs = [...prev];
             const currentPair = newPairs.find((pair) => pair.id === pairId);
             if (currentPair && currentPair.assistantMessage) {
-              const currentMessage = currentPair.assistantMessage.content;
-              /*currentPair.assistantMessage.content =
-                currentMessage +
-                "\n\nSorry, there was an error while streaming the response.";*/
               currentPair.assistantMessage.hasStreamError = true;
             }
             return newPairs;

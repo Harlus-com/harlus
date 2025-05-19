@@ -159,6 +159,7 @@ export class ChatService {
       this.eventSource.addEventListener("error", (error) => {
         // For some reason with SSL, the server always ends with an error, after the complete event
         // This might not even be an SSL issue, but a nginx in general issue (or maybe docker, but don't think so)
+        // I'm also not always seeing this error, so _shrug_
         if (!this.eventSource) {
           console.log("Event source is already closed");
           return;
