@@ -41,7 +41,7 @@ from .utils import (
 
 
 
-class ChatAgentGraph:
+class ContrastAgentGraph:
 
     def __init__(self,  persist_dir: str):
         
@@ -54,7 +54,6 @@ class ChatAgentGraph:
         self.graph = None
         self.tools_descriptions = {}
 
-    
     
     def _add_tool(self, tool, metadata_dict, doc_type: str, tool_type: str):
         if doc_type not in self.tools:
@@ -376,7 +375,25 @@ class ChatAgentGraph:
             graph = self.graph_builder.compile(checkpointer=memory)
             return graph.get_graph().draw_ascii()
         
+    async def run(self, user_message: str):
+        input_state = {
+            "internal_messages": [("user", user_message)], 
+            "external_messages": [("user", "")], 
+            "driver_tree": "",
+            "internal_retrieved_items": [],
+            "external_retrieved_items": [],
+        }
+        async with AsyncSqliteSaver.from_conn_string(self.db_path) as memory:
+            graph = self.graph_builder.compile(checkpointer=memory)
+            _ = await graph.astream(
+                input_state,
+                stream_mode="custom",
+                config = self.config
+            )
+        claim_comments = await self._get_claim_comments(graph)
+        return claim_comments
 
+        
     async def stream(self, user_message: str):
         input_state = {
             "internal_messages": [("user", user_message)], 
@@ -385,6 +402,8 @@ class ChatAgentGraph:
             "internal_retrieved_items": [],
             "external_retrieved_items": [],
         }
+
+        
 
         # Use the database path from persist_dir
         async with AsyncSqliteSaver.from_conn_string(self.db_path) as memory:

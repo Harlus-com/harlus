@@ -210,7 +210,7 @@ class ChatAgentGraph:
                 and tool.tool_class == "DocSearchToolWrapper"
             ):
                 print(" - adding doc search tool")
-                lctool = tool.tool.to_langchain_tool()
+                lctool = tool.semantic_tool.to_langchain_tool()
                 self.tools.append(lctool)
                 self.tool_name_to_metadata.update(
                     {

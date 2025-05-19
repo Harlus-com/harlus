@@ -1,65 +1,47 @@
-import json
 import os
-import time
 from datetime import datetime
 
-from harlus_contrast_tool.api_interfaces import ClaimComment
+from harlus_contrast_tool.graph import ContrastAgentGraph
 
-from src.file_store import FileStore
+from src.file_store import FileStore, Workspace
 from src.tool_library import ToolLibrary
 
-
 cache_file_path_base = "contrast_analysis"
-# Set this to the desired cache response
-cache_file_path_target = "contrast_analysis_1.json"
 
 
-def analyze(
-    old_file_id: str, new_file_id: str, file_store: FileStore, tool_library: ToolLibrary
+async def analyze(
+    old_file_id: str, 
+    new_file_id: str, 
+    file_store: FileStore, 
+    tool_library: ToolLibrary,
+    workspace: Workspace
 ):
     old_file = file_store.get_file(old_file_id)
     new_file = file_store.get_file(new_file_id)
-    thesis_qengine = tool_library.get_tool(
-        old_file.absolute_path, "claim_query_engine_tool"
+
+
+    old_file_doc_search_tool = tool_library.get_tool(
+        old_file.absolute_path, "doc_search"
     )
-    thesis_sentence_retriever_tool = tool_library.get_tool(
-        old_file.absolute_path, "sentence_retriever_tool"
+    new_file_doc_search_tool = tool_library.get_tool(
+        new_file.absolute_path, "doc_search"
     )
-    update_qengine = tool_library.get_tool(
-        new_file.absolute_path, "verdict_query_engine_tool"
+
+    thread_id = f"{old_file_id}_{new_file_id}"
+    contrast_dir = os.path.join(workspace.absolute_path, cache_file_path_base)
+    contrast_agent = ContrastAgentGraph(persist_dir=contrast_dir)
+    contrast_agent.update_tools([old_file_doc_search_tool], [new_file_doc_search_tool])
+    contrast_agent.set_thread(thread_id)
+
+   
+    claim_comments = await contrast_agent.run(
+        f"What impact does {new_file.absolute_path} have on {old_file.absolute_path}?"
     )
-    update_sentence_retriever = tool_library.get_tool(
-        new_file.absolute_path, "sentence_retriever_tool"
-    )
-    if os.path.exists(cache_file_path_target):
-        time.sleep(3)
-        with open(cache_file_path_target, "r") as f:
-            comments = json.load(f)
-            comments = [ClaimComment(**comment) for comment in comments]
-    else:
-        comments = tool.run(
-            old_file.absolute_path,
-            thesis_qengine.get(),
-            thesis_sentence_retriever_tool.get(),
-            new_file.absolute_path,
-            update_qengine.get(),
-            update_sentence_retriever.get(),
-        )
-        for i in range(1, 100):
-            new_cache_file_path = f"{cache_file_path_base}_{i}.json"
-            if not os.path.exists(new_cache_file_path):
-                with open(new_cache_file_path, "w") as f:
-                    json.dump(
-                        [comment.model_dump() for comment in comments],
-                        f,
-                        indent=2,
-                    )
-                break
 
     response_comments = []
     time_now = datetime.datetime.now().isoformat()
     i = 1
-    for comment in comments:
+    for comment in claim_comments:
         i = i + 1
         response_comments.append(
             {
