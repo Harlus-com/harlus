@@ -1,6 +1,15 @@
-from llama_index.core import KnowledgeGraphIndex
+from llama_index.core import KnowledgeGraphIndex, Document
+from llama_index.llms.openai import OpenAI
 
-triples = [
+triplets = [
+
+    # company properties
+    ("company", "has_property", "name"),
+    ("company", "has_property", "ticker"),
+    ("company", "has_property", "revenue"),
+    ("company", "has_property", "cost"),
+    ("company", "has_property", "profit"),
+
     # revenue
     ("revenue", "alias_of", "sales"),
     ("revenue", "alias_of", "top line"),
@@ -145,4 +154,11 @@ triples = [
     ("percent detractors", "negative_influence_on", "net promoter score"),
 ]
 
-kg_index = KnowledgeGraphIndex.from_triplets(triples)
+text = "\n".join([f"{s} {p} {o}." for s, p, o in triplets])
+documents = [Document(text=text)]
+
+KPI_KGRAPH = KnowledgeGraphIndex(
+    documents,
+    llm=OpenAI(model="gpt-3.5-turbo"),
+    kg_triplet_extract_fn=lambda x: triplets,
+)
