@@ -204,7 +204,6 @@ class BasicToolNode:
         tasks = []
         for tool_call in message.tool_calls:
             tool_type = self._parse_tool_call_type(tool_call)
-            
             if tool_type == "doc_search":
                 tasks.append(self._process_doc_search_tool_call(tool_call))
             elif tool_type == "tavily_search":

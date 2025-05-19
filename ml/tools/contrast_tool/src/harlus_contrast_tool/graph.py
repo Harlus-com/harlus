@@ -114,6 +114,8 @@ class ContrastAgentGraph:
             self.tools_descriptions[doc_type][tool_type] = ""
         self.tools_descriptions[doc_type][tool_type] = nl + nl.join([f"{sp} {t.name} {sp} \n\n {t.description}" for t in self.tools[doc_type][tool_type]]) + nl
         
+    # TODO: have one single BasicToolNode 
+    # TODO: rename to ToolExecutor
     def update_tools(self, internal_tools: list[DocSearchToolWrapper], external_tools: list[DocSearchToolWrapper]):
 
         self.tools = {}
@@ -162,6 +164,7 @@ class ContrastAgentGraph:
     # TODO: Use SummaryIndexRetrieverTool to get the full document
     async def _get_tree(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
         
+        # TODO: add comment 
         print("[harlus_contrast_tool] getting tree")
 
         with open(os.path.join(os.path.dirname(__file__), "prompts/get_tree_prompt.md"), "r") as f:
@@ -355,6 +358,7 @@ class ContrastAgentGraph:
         graph_builder.add_node("tools_verify_tree", self.tool_nodes["verify_tree"], metadata={"name": "tools_verify_tree"})
         graph_builder.add_node("tools_refine_tree", self.tool_nodes["refine_tree"], metadata={"name": "tools_refine_tree"})
         graph_builder.add_node("tools_add_statement_source_texts", self.tool_nodes["add_statement_source_texts"], metadata={"name": "tools_add_statement_source_texts"})
+        
         # Get tree loop
         graph_builder.add_edge(START, "get_tree")
         graph_builder.add_conditional_edges(
@@ -437,6 +441,7 @@ class ContrastAgentGraph:
 
         
     async def stream(self, user_message: str):
+        
         input_state = {
             "internal_messages": [("user", user_message)], 
             "external_messages": [("user", "")], 
@@ -447,7 +452,7 @@ class ContrastAgentGraph:
 
         
 
-        # Use the database path from persist_dir
+        # TODO: strip checkpointer 
         async with AsyncSqliteSaver.from_conn_string(self.db_path) as memory:
             graph = self.graph_builder.compile(checkpointer=memory)
         
