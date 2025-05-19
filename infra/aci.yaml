@@ -29,14 +29,14 @@ properties:
             cpu: 0.25
             memoryInGb: 0.5
         ports:
-          - port: 80
+          - port: 443
 
   osType: Linux
   ipAddress:
     type: Public
     dnsNameLabel: harlus-api-dev
     ports:
-      - port: 80
+      - port: 443
         protocol: tcp
 
   volumes:
