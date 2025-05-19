@@ -132,6 +132,11 @@ export const AssistantMessage: React.FC<{
             onSourceClick={handleSourceClick}
           />
         )}
+      {message.hasStreamError && (
+        <div className="text-red-500 text-xs mt-2">
+          Sorry, there was an error while streaming the response.
+        </div>
+      )}
     </div>
   );
 };

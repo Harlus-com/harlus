@@ -117,6 +117,8 @@ TLS is still required for encryption, but mTLS is optional once bearer-token aut
 
 # Locally Running Docker Compose
 
+Note: Make sure you're not also running a local fast api vai `python main.py` otherwise this will all fail.
+
 ## Update localhost -> api
 
 In the `nginx.conf` replaces instances of `proxy_pass http://localhost:8000;` with `proxy_pass http://api:8000;`.
@@ -139,6 +141,13 @@ docker build -t harlus-server .
 
 Add this line to /etc/hosts (requires sudo to edit)
 
+Note: you might need to also run these commands afterwards, but I don't think so:
+
+```
+sudo dscacheutil -flushcache
+sudo killall -HUP mDNSResponder
+```
+
 ```
 127.0.0.1   harlus-api-dev.eastus.azurecontainer.io
 ```
@@ -149,4 +158,4 @@ Note: This maps harlus-api-dev.eastus.azurecontainer.io back to localhost. This 
 
 (from infra dir)
 
-doccker compose up
+docker compose up

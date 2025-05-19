@@ -14,6 +14,7 @@ export interface ChatMessage {
   timestamp?: string;
   chatSourceCommentGroups: ChatSourceCommentGroup[];
   messageType?: "reading_message" | "answer_message" | "planning_message";
+  hasStreamError?: boolean;
 }
 
 export interface MessagePair {

@@ -51,7 +51,8 @@ export class ChatService {
     ) => void,
     onSources: (sources: ChatSourceCommentGroup[]) => void,
     onComplete: () => void,
-    onError: (error: any) => void
+    onError: (error: any) => void,
+    onStreamError: (error: any) => void
   ) {
     console.log("[ChatService] Initializing", {
       userQueryLength: userQuery.length,
@@ -143,6 +144,7 @@ export class ChatService {
           onSources(updatedChatSourceCommentGroups);
         } catch (error) {
           console.error("[ChatService] Error processing sources:", error);
+          onStreamError(error);
         }
       });
 
@@ -155,6 +157,8 @@ export class ChatService {
 
       // 7. handle errors in the event source
       this.eventSource.addEventListener("error", (error) => {
+        // For some reason with SSL, the server always ends with an error, after the complete event
+        // This might not even be an SSL issue, but a nginx in general issue (or maybe docker, but don't think so)
         if (!this.eventSource) {
           console.log("Event source is already closed");
           return;
@@ -162,7 +166,7 @@ export class ChatService {
         console.error("EventSource error:", error);
         this.eventSource?.close();
         this.eventSource = null;
-        onError(error);
+        onStreamError(error);
       });
     } catch (error) {
       console.error("Error setting up stream:", error);
