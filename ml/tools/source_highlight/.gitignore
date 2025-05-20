@@ -1,0 +1,10 @@
+artifacts
+__pycache__
+.venv
+dist
+*.egg-info
+*.pdf
+attributes
+dev
+*.ipynb
+*.pkl
