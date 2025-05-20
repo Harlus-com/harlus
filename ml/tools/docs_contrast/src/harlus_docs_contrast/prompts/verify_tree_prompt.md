@@ -14,7 +14,7 @@ Do not use information already present in the tree. Your job is to challenge the
 For each driver, keep the original JSON structure, and add the following fields:
 
 - "evidence": A short summary of what the external evidence says about the driver’s statement.
-- "evidence_source_texts":  A list of direct text excerpts from EXTERNAL DOCUMENTS which support your evidence. You should USE EXACTLY the same text as provided by the retriever tool.
+- "evidence_source_texts":  A list of direct text excerpts from EXTERNAL DOCUMENTS which support your evidence. You should USE EXACTLY the same text as provided by the retriever tool. Please make sure they are long enough while still being concise.
 - "verdict": One of "support", "contradict", "neutral", or "mixed".
 - "verdict_statement": A short explanation of why you chose that verdict.
 

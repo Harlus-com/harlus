@@ -21,7 +21,7 @@ class HighlightPipeline:
     def __init__(self, 
                  retrievers: list[Tool] = None, 
                  nodes: list[NodeWithScore] = None,
-                 verbose: int = 0
+                 verbose: int = 2
                  ):
     
         if retrievers is None and nodes is None:
@@ -36,6 +36,10 @@ class HighlightPipeline:
             source_text: str, 
             ) -> tuple[HighlightArea | None, str | None, str | None]:
         
+        if self.verbose > 1:
+            print(" ==== NodePipeline DEBUG set-up ==== ")
+
+
         # Determine entry point in pipeline. If nodes are provided, 
         # these are used. Otherwise we start with a retrieval step to get the
         # most relevant nodes.
@@ -44,6 +48,9 @@ class HighlightPipeline:
             start_with_nodes = True
         else:
             assert len(self.retrievers) > 0, "Either retrievers or nodes must be provided"
+
+        if self.verbose > 1:
+            print(" - start with nodes:", start_with_nodes)
         
         # Split source text into sentences to increase robustness
         # for large source texts at the cost of potentially double-matching small 
@@ -60,8 +67,14 @@ class HighlightPipeline:
             file_path = ""
             page_nb = 0
 
+            if self.verbose > 1:
+                print(" \n\n==== NodePipeline DEBUG : source text split iteration ==== ")
+                print(" - source_text_split:", source_text_split)
+
             # Retrieve nodes
             if not start_with_nodes:
+                if self.verbose > 1:
+                    print("\n\n <retriever step>")
                 best_retrieved_nodes = await _get_best_retrieved_nodes(
                     source_text, # use full source text for better performance
                     self.retrievers,
@@ -71,21 +84,21 @@ class HighlightPipeline:
                     state = "failed to retrieve nodes"
                     skip_to_bag_of_words = True
                     if self.verbose > 0:
-                        print(f"Warning: Failed to retrieve nodes for source text: {source_text_split}")
+                        print(f" - retriever step failed")
                 else:
                     page_nb = _get_page_from_node(best_retrieved_nodes[0])
                     file_path = _get_file_path_from_node(best_retrieved_nodes[0])
-
                     if self.verbose > 1:
-                        print(" ==== DEBUG : retrieved nodes ==== ")
+                        print(" - best retrieved nodes:")
                         for node in best_retrieved_nodes:
-                            print(node.text)
-                        print(" ==== ======================= ==== ")
+                            print("     - ", node.text)
             else:
                 best_retrieved_nodes = self.nodes
             
             # Extract source text from nodes with LLM
             if not skip_to_bag_of_words:
+                if self.verbose > 1:
+                    print("\n\n <source text extraction step>")
                 matched_text, matching_node = await _get_source_from_nodes_with_llm(
                     best_retrieved_nodes,
                     source_text_split
@@ -93,22 +106,22 @@ class HighlightPipeline:
                 if matched_text is None or matching_node is None:
                     state = "failed to retrieve source text"
                     if self.verbose > 0:
-                        print(f"Warning: Failed to retrieve source text for source text: {source_text_split}")
+                        print(f" - source text extraction step failed")
                     skip_to_bag_of_words = True
                 else:
                     can_use_node_bboxes = True
-                    
                     if self.verbose > 1:
-                        print(" ==== DEBUG : matched text ==== ")
-                        print(matched_text)
-                        print(" ==== ==================== ==== ")
+                        print(" - matched text: ", matched_text)
+                        print(" - matching node: ", matching_node.text)
 
 
             # Search the pdf for the exact source text
             if not skip_to_bag_of_words:
+                if self.verbose > 1:
+                    print("\n\n <fuzzy match step>")
                 file_path = _get_file_path_from_node(matching_node)
                 page_nb = _get_page_from_node(matching_node)
-                rects = _get_fuzzy_match_rects(
+                rects, pdf_matched_text = _get_fuzzy_match_rects(
                     matched_text,
                     file_path,
                     page_nb
@@ -116,14 +129,19 @@ class HighlightPipeline:
                 if rects is None:
                     state = "failed to retrieve rects with fuzzy match"
                     if self.verbose > 0:
-                        print(f"Warning: Failed to retrieve rects with fuzzy match: {source_text_split}")
+                        print(f" - fuzzy match step failed")
                     skip_to_bag_of_words = True
                 else:
                     state = "retrieved rects with fuzzy match"
                     bounding_boxes = [_get_bounding_box_from_rect(rect, file_path, page_nb) for rect in rects]
+                    if self.verbose > 1:
+                        print(" - fuzzy match succeeded")
+                        print(" - pdf matched text: ", pdf_matched_text)
             
             # Fall back to bag of words
             if skip_to_bag_of_words:
+                if self.verbose > 1:
+                    print("\n\n <bag of words step>")
                 rects = _get_bag_of_words_rects(
                     source_text_split,
                     file_path,
@@ -132,13 +150,17 @@ class HighlightPipeline:
                 if rects is None:
                     state = "failed to retrieve rects with bag of words"
                     if self.verbose > 0:
-                        print(f"Warning: Failed to retrieve rects with bag of words: {source_text_split}")
+                        print(f" - bag of words step failed")
                 else:
                     state = "retrieved rects with bag of words"
                     bounding_boxes = [_get_bounding_box_from_rect(rect, file_path, page_nb) for rect in rects]
+                    if self.verbose > 1:
+                        print(" - bag of words succeeded")
             
             # Fall back to node bounding boxes (if possible)
             if can_use_node_bboxes and len(bounding_boxes) == 0:
+                if self.verbose > 1:
+                    print("\n\n <node bounding boxes step>")
                 bounding_boxes = _get_bounding_boxes_from_node(
                     matching_node,
                     page_nb,
@@ -148,6 +170,10 @@ class HighlightPipeline:
 
             # Wrap the bounding boxes
             if len(bounding_boxes) > 0:
+
+                # remove any bounding boxes that are too thin
+                bounding_boxes = [bb for bb in bounding_boxes if bb.width > 1]
+
                 wrapped_bounding_boxes = {
                     "bounding_boxes": bounding_boxes,
                     "jump_to_page_number": page_nb,

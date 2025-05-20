@@ -13,22 +13,17 @@ async def _get_link_comment(
 
     highlight_area, file_path, state = await highlight_pipeline.run(source_text)
     if highlight_area is None:
-        print(" - no highlight area found, state:", state, " \n - source text:", source_text)
+        print("[harlus_docs_contrast] link comment: no highlight area found: \n     - state:", state, "\n     - source text:", source_text)
         return None
-    try:
+    
 
-        link_comment = LinkComment(
-            file_path=file_path,
-            highlight_area=HighlightArea(**highlight_area.model_dump()),
-            text=comment_text,
-        )
-    except Exception as e:
-        print(" - error creating link comment", e)
-        print(" - highlight area:", highlight_area)
-        print(" - file path:", file_path)
-        print(" - comment text:", comment_text)
-        assert False
+    link_comment = LinkComment(
+        file_path=file_path,
+        highlight_area=HighlightArea(**highlight_area.model_dump()),
+        text=comment_text,
+    )
     return link_comment
+    
 
 async def _get_claim_comment_from_source_text(
         source_text: str, 
@@ -40,7 +35,7 @@ async def _get_claim_comment_from_source_text(
     
     highlight_area, file_path, state = await highlight_pipeline.run(source_text)
     if highlight_area is None:
-        print(" - no highlight area found, state:", state, " \n - source text:", source_text)
+        print("[harlus_docs_contrast] claim comment: no highlight area found: \n     - state:", state, "\n     - source text:", source_text)
         return None
     return ClaimComment(
         file_path=file_path,
@@ -56,46 +51,54 @@ async def _get_claim_comments_from_contrast(
         evidence_retrievers: list[Tool]
     ) -> list[ClaimComment] | None:
 
-    source_texts = contrast["evidence_source_texts"]
-    comment_text = contrast["evidence"]
+    # We catch errors here as we expect with low frequency (<1/100) some contrast items 
+    # to not contain the right keys as they are LLM generated.
+    # eventually we can add proper checks per contrast and exit cleaner.
+    try:
 
-    evidence_highlight_pipeline = HighlightPipeline(
-        retrievers=evidence_retrievers,
-    )
-    
-    evidence_tasks = [
-        _get_link_comment(
-            source_text, 
-            comment_text, 
-            evidence_highlight_pipeline
-            ) 
-        for source_text in source_texts
-    ]
-    link_comments = await asyncio.gather(*evidence_tasks)
-    link_comments = _strip_none(link_comments)
-    if len(link_comments) == 0:
-        return None
+        source_texts = contrast["evidence_source_texts"]
+        comment_text = contrast["evidence"]
 
-    source_texts = contrast["statement_source_texts"]
-    comment_text = contrast["verdict_statement"]
-    verdict = _convert_verdict(contrast["verdict"])
-    statement_highlight_pipeline = HighlightPipeline(
-        retrievers=source_retrievers,
-    )
-    statement_tasks = [
-        _get_claim_comment_from_source_text(
-            source_text, 
-            comment_text, 
-            verdict, 
-            link_comments, 
-            statement_highlight_pipeline
-            ) 
-        for source_text in source_texts]
-    claim_comments = await asyncio.gather(*statement_tasks)
-    claim_comments = _strip_none(claim_comments)
-    if len(claim_comments) == 0:
+        evidence_highlight_pipeline = HighlightPipeline(
+            retrievers=evidence_retrievers,
+        )
+        
+        evidence_tasks = [
+            _get_link_comment(
+                source_text, 
+                comment_text, 
+                evidence_highlight_pipeline
+                ) 
+            for source_text in source_texts
+        ]
+        link_comments = await asyncio.gather(*evidence_tasks)
+        link_comments = _strip_none(link_comments)
+        if len(link_comments) == 0:
+            return None
+
+        source_texts = contrast["statement_source_texts"]
+        comment_text = contrast["verdict_statement"]
+        verdict = _convert_verdict(contrast["verdict"])
+        statement_highlight_pipeline = HighlightPipeline(
+            retrievers=source_retrievers,
+        )
+        statement_tasks = [
+            _get_claim_comment_from_source_text(
+                source_text, 
+                comment_text, 
+                verdict, 
+                link_comments, 
+                statement_highlight_pipeline
+                ) 
+            for source_text in source_texts]
+        claim_comments = await asyncio.gather(*statement_tasks)
+        claim_comments = _strip_none(claim_comments)
+        if len(claim_comments) == 0:
+            return None
+        return claim_comments
+    except Exception as e:
+        print(f"[harlus_docs_contrast] error getting claim comments from contrast: {e}")
         return None
-    return claim_comments
 
 
 async def _get_claim_comments_from_driver_tree(

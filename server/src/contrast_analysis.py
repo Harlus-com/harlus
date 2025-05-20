@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from harlus_contrast_tool.graph import ContrastAgentGraph
+from harlus_docs_contrast.graph import ContrastAgentGraph
 import uuid
 from src.file_store import FileStore, Workspace
 from src.tool_library import ToolLibrary
