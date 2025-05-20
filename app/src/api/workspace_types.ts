@@ -1,7 +1,7 @@
 export interface Workspace {
   id: string;
   name: string;
-  dirName: string;
+  localDir: string;
 }
 export type SyncStatus =
   | "SYNC_COMPLETE"
@@ -11,9 +11,8 @@ export type SyncStatus =
   | "UNKNOWN";
 
 export interface WorkspaceFile {
-  id: string;
+  id: string; // This should be renamed contentHash (maybe?)
   name: string;
-  absolutePath: string;
   workspaceId: string;
   appDir: string[];
 }

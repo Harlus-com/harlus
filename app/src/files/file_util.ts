@@ -5,6 +5,7 @@ import {
   isFileGroupCount,
 } from "./file_types";
 import { OpenFileGroup } from "@/components/OpenFileGroup";
+import { WorkspaceFile } from "@/api/workspace_types";
 
 export function getFileGroupsToOpen(
   filesToOpen: FilesToOpen
@@ -90,4 +91,16 @@ function groupsFileIsIn(
 
 export function fileGroupCounts() {
   return [FileGroupCount.ONE, FileGroupCount.TWO];
+}
+
+export function toWorkspaceFile(
+  workspaceId: string,
+  localFile: LocalFile
+): WorkspaceFile {
+  return {
+    id: localFile.contentHash,
+    name: localFile.name,
+    workspaceId,
+    appDir: localFile.pathRelativeToWorkspace,
+  };
 }

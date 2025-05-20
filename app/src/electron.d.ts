@@ -9,6 +9,18 @@ interface FileStats {
   path: string;
 }
 
+interface LocalFile {
+  contentHash: string; // Maps to id in WorkspaceFile
+  name: string; // Maps to name in WorkspaceFile
+  absolutePath: string; // Not represented in WorkspaceFile
+  pathRelativeToWorkspace: string[]; // Maps to appDir in WorkspaceFile
+}
+
+interface LocalFolder {
+  absolutePath: string;
+  pathRelativeToWorkspace: string[]; // Last segment is the folder name
+}
+
 interface ElectronAPI {
   getFileContent: (path: string) => Promise<ArrayBuffer | null>;
   getFileStats: (path: string) => Promise<FileStats | null>;
@@ -20,7 +32,7 @@ interface ElectronAPI {
   getBuffer: (path: string, authHeader: string) => Promise<ArrayBuffer>;
   delete: (path: string, authHeader: string) => Promise<any>;
   upload: (
-    filePath: string,
+    localFile: LocalFile,
     workspaceId: string,
     authHeader: string
   ) => Promise<void>;
@@ -28,6 +40,12 @@ interface ElectronAPI {
   createEventSource: (url: string) => Promise<string>;
   attachEventForwarder: (callback: (event: any) => void) => void;
   addEventListener: (eventSourceId: string, eventName: string) => void;
+  getLocalFiles: (localDir: string) => Promise<LocalFile[]>;
+  getLocalFolders: (localDir: string) => Promise<LocalFolder[]>;
+  watchWorkspace: (workspacePath: string) => void;
+  unwatchWorkspace: (workspacePath: string) => void;
+  onLocalFileSystemChange: (callback: (event: any) => void) => void;
+  openDirectoryDialog: () => Promise<string | null>;
 }
 
 declare interface Window {

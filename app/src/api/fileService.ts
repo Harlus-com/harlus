@@ -1,4 +1,4 @@
-import { WorkspaceFile, WorkspaceFolder } from "./workspace_types";
+import { Workspace, WorkspaceFile, WorkspaceFolder } from "./workspace_types";
 import { client } from "./client";
 import { ClaimComment } from "./comment_types";
 
@@ -9,8 +9,12 @@ class FileService {
     );
   }
 
-  async getFiles(workspaceId?: string): Promise<WorkspaceFile[]> {
-    return client.get(`/workspace/files?workspaceId=${workspaceId}`);
+  async getLocalFiles(workspace: Workspace): Promise<LocalFile[]> {
+    console.log("Getting files for workspace", workspace.id);
+    if (!window.electron) {
+      throw new Error("Electron is not available");
+    }
+    return window.electron.getLocalFiles(workspace.localDir);
   }
 
   deleteFile(file: WorkspaceFile): Promise<boolean> {
@@ -19,10 +23,11 @@ class FileService {
     );
   }
 
-  getFileData(file: WorkspaceFile): Promise<ArrayBuffer> {
-    return client.getBuffer(
-      `/file/handle?fileId=${file.id}&workspaceId=${file.workspaceId}`
-    );
+  readFileFromLocalFileSystem(file: LocalFile): Promise<ArrayBuffer> {
+    if (!window.electron) {
+      throw new Error("Electron is not available");
+    }
+    return window.electron.getFileContent(file.absolutePath);
   }
 
   async runContrastAnalysis(
@@ -44,17 +49,12 @@ class FileService {
     return comments;
   }
 
-  async getFileFromId(fileId: string): Promise<WorkspaceFile> {
+  // TODO: We should really get rid of this function and make sure the server only ever returns contentHash
+  async getFileFromServer(args: {
+    serverFilePath: string;
+  }): Promise<WorkspaceFile> {
     const params = new URLSearchParams({
-      fileId: fileId,
-    });
-    const file = await client.get(`/file/get?${params.toString()}`);
-    return file;
-  }
-
-  async getFileFromPath(filePath: string): Promise<WorkspaceFile> {
-    const params = new URLSearchParams({
-      filePath: filePath,
+      filePath: args.serverFilePath,
     });
     const file = await client.get(`/file/get?${params.toString()}`);
     return file;
@@ -64,8 +64,12 @@ class FileService {
     return client.post(`/file/force_sync`, { fileId: file.id });
   }
 
-  getFolders(workspaceId: string): Promise<WorkspaceFolder[]> {
-    return client.get(`/workspace/folders?workspaceId=${workspaceId}`);
+  async getLocalFolders(workspace: Workspace): Promise<LocalFolder[]> {
+    console.log("Getting folders for workspace", workspace.id);
+    if (!window.electron) {
+      throw new Error("Electron is not available");
+    }
+    return window.electron.getLocalFolders(workspace.localDir);
   }
 
   createFolder(

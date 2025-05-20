@@ -3,21 +3,24 @@ import { ipcMain, dialog } from "electron";
 import mime from "mime";
 import axios from "axios";
 import { EventSource } from "eventsource";
-import { ElectronAppState } from "./electron_types";
+import { ElectronAppState, LocalFile } from "./electron_types";
 import { Uploader } from "./upload";
+import {
+  getLocalFiles,
+  getLocalFolders,
+  WorkspaceWatcher,
+} from "./local_file_system";
 
 export function setupIpcHandlers(electronAppState: ElectronAppState) {
   const { mainWindow, baseUrl, httpsAgent, httpsDispatcher, eventSources } =
     electronAppState;
 
-  // TODO: Clean this up we're not using it
-  ipcMain.handle("open-file-dialog", async () => {
+  ipcMain.handle("open-directory-dialog", async () => {
     const { filePaths } = await dialog.showOpenDialog(mainWindow, {
-      properties: ["openFile", "multiSelections"],
-      filters: [{ name: "PDF Documents", extensions: ["pdf"] }],
+      properties: ["openDirectory"],
     });
 
-    return filePaths;
+    return filePaths[0] || null;
   });
 
   ipcMain.handle("get-file-stats", async (_, filePath) => {
@@ -106,9 +109,9 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
 
   ipcMain.handle(
     "server-upload",
-    (_, filePath: string, workspaceId: string, authHeader: string) => {
+    (_, localFile: LocalFile, workspaceId: string, authHeader: string) => {
       return new Uploader(electronAppState).upload(
-        filePath,
+        localFile,
         workspaceId,
         authHeader
       );
@@ -149,6 +152,32 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
     if (eventSource) {
       eventSource.close();
       eventSources.delete(eventSourceId);
+    }
+  });
+
+  ipcMain.handle("get-local-files", async (_, localDir: string) => {
+    return getLocalFiles(localDir);
+  });
+
+  ipcMain.handle("get-local-folders", async (_, localDir: string) => {
+    return getLocalFolders(localDir);
+  });
+
+  ipcMain.handle("watch-workspace", async (_, workspacePath: string) => {
+    const watcher = new WorkspaceWatcher(
+      (event: any) =>
+        mainWindow.webContents.send("local-file-system-change", event),
+      workspacePath
+    );
+    watcher.start();
+    electronAppState.workspaceWatchers.set(workspacePath, watcher);
+  });
+
+  ipcMain.handle("unwatch-workspace", async (_, workspacePath: string) => {
+    const watcher = electronAppState.workspaceWatchers.get(workspacePath);
+    if (watcher) {
+      watcher.stop();
+      electronAppState.workspaceWatchers.delete(workspacePath);
     }
   });
 }

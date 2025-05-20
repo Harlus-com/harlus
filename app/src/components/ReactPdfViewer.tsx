@@ -17,6 +17,7 @@ import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 // pdfjs worker for the Viewer
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
 import { useComments } from "@/comments/useComments";
+import { useFileContext } from "@/files/FileContext";
 
 interface PdfViewerProps {
   file: WorkspaceFile;
@@ -26,6 +27,7 @@ type Highlight = HighlightArea & { color: string };
 
 const PdfViewer = ({ file }: PdfViewerProps) => {
   const { getActiveComments, getSelectedComment } = useComments();
+  const { workspaceFileToLocalFile } = useFileContext();
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const activeComments = getActiveComments(file.id);
   const selectedComment = getSelectedComment(file.id);
@@ -86,7 +88,7 @@ const PdfViewer = ({ file }: PdfViewerProps) => {
 
     if (file) {
       fileService
-        .getFileData(file)
+        .readFileFromLocalFileSystem(workspaceFileToLocalFile(file))
         .then((data) => {
           if (!isMounted) return;
           const blob = new Blob([data], { type: "application/pdf" });

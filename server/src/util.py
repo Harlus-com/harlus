@@ -1,4 +1,6 @@
 import datetime
+import hashlib
+import re
 from pydantic import BaseModel
 
 
@@ -21,6 +23,14 @@ def clean_name(name: str) -> str:
         .replace("'", "")
         .replace('"', "")
     )
+
+
+def normalize_underscores(name: str) -> str:
+    return re.sub(r"_+", "_", name)
+
+
+def get_content_hash(path: str) -> str:
+    return hashlib.sha256(open(path, "rb").read()).hexdigest()
 
 
 class BoundingBoxConverter:

@@ -17,7 +17,9 @@ export async function convertClaimCommentToComments(
   claim: ClaimComment,
   group: CommentGroup
 ): Promise<Comment[]> {
-  const file = await fileService.getFileFromPath(claim.filePath);
+  const file = await fileService.getFileFromServer({
+    serverFilePath: claim.filePath,
+  });
   const links = await Promise.all(claim.links.map(convertLinkCommentToLink));
   const comment: Comment = {
     id: claim.id,
@@ -46,7 +48,9 @@ export async function convertClaimCommentToComments(
 async function convertLinkCommentToLink(
   comment: LinkComment
 ): Promise<CommentLink> {
-  const file = await fileService.getFileFromPath(comment.filePath);
+  const file = await fileService.getFileFromServer({
+    serverFilePath: comment.filePath,
+  });
   return {
     linkToCommentId: comment.id,
     text: `${file.name}, page ${
@@ -62,7 +66,9 @@ async function convertLinkCommentToComment(
   parentFile: WorkspaceFile,
   group: CommentGroup
 ): Promise<Comment> {
-  const file = await fileService.getFileFromPath(comment.filePath);
+  const file = await fileService.getFileFromServer({
+    serverFilePath: comment.filePath,
+  });
   return {
     id: comment.id,
     fileId: file.id,
@@ -91,7 +97,9 @@ export async function convertChatSourceCommentToComments(
   chatSourceComment: ChatSourceComment,
   group: CommentGroup
 ): Promise<Comment[]> {
-  const file = await fileService.getFileFromPath(chatSourceComment.filePath);
+  const file = await fileService.getFileFromServer({
+    serverFilePath: chatSourceComment.filePath,
+  });
   const comment: Comment = {
     id: chatSourceComment.id,
     fileId: file.id,
