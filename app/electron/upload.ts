@@ -2,8 +2,8 @@ import fs from "fs";
 import path from "path";
 import axios from "axios";
 import FormData from "form-data";
-import https from "https";
 import { ElectronAppState } from "./electron_types";
+import { walkFiles } from "./local_file_system";
 
 export class Uploader {
   constructor(private readonly state: ElectronAppState) {}
@@ -15,7 +15,7 @@ export class Uploader {
       console.log("uploading directory", filePath);
       const baseDir = path.basename(filePath);
       console.log("baseDir", baseDir);
-      const allFilePaths = await this.walk(filePath);
+      const allFilePaths = await walkFiles(filePath);
       for (const p of allFilePaths) {
         const relativeDir = path.relative(filePath, p).split(path.sep);
         const fileName = relativeDir.pop();
@@ -31,20 +31,6 @@ export class Uploader {
       results.push(
         await this.uploadFile(filePath, [], workspaceId, authHeader)
       );
-    }
-    return results;
-  }
-
-  private async walk(dir: string): Promise<string[]> {
-    let results: string[] = [];
-    for (const name of await fs.promises.readdir(dir)) {
-      const full = path.join(dir, name);
-      const st = await fs.promises.stat(full);
-      if (st.isDirectory()) {
-        results = results.concat(await this.walk(full));
-      } else {
-        results.push(full);
-      }
     }
     return results;
   }

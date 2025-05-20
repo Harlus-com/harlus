@@ -9,6 +9,18 @@ interface FileStats {
   path: string;
 }
 
+interface LocalFile {
+  contentHash: string;
+  absolutePath: string;
+  pathRelativeToWorkspace: string[];
+  name: string;
+}
+
+interface LocalFolder {
+  absolutePath: string;
+  pathRelativeToWorkspace: string[]; // Last segment is the folder name
+}
+
 interface ElectronAPI {
   getFileContent: (path: string) => Promise<ArrayBuffer | null>;
   getFileStats: (path: string) => Promise<FileStats | null>;
@@ -28,6 +40,8 @@ interface ElectronAPI {
   createEventSource: (url: string) => Promise<string>;
   attachEventForwarder: (callback: (event: any) => void) => void;
   addEventListener: (eventSourceId: string, eventName: string) => void;
+  getLocalFiles: (localDir: string) => Promise<LocalFile[]>;
+  getLocalFolders: (localDir: string) => Promise<LocalFolder[]>;
 }
 
 declare interface Window {

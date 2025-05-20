@@ -1,4 +1,4 @@
-import { WorkspaceFile, WorkspaceFolder } from "./workspace_types";
+import { Workspace, WorkspaceFile, WorkspaceFolder } from "./workspace_types";
 import { client } from "./client";
 import { ClaimComment } from "./comment_types";
 
@@ -9,8 +9,18 @@ class FileService {
     );
   }
 
-  async getFiles(workspaceId?: string): Promise<WorkspaceFile[]> {
-    return client.get(`/workspace/files?workspaceId=${workspaceId}`);
+  async getFiles(workspace: Workspace): Promise<WorkspaceFile[]> {
+    if (!window.electron) {
+      throw new Error("Electron is not available");
+    }
+    const localFiles = await window.electron.getLocalFiles(workspace.localDir);
+    return localFiles.map((localFile) => ({
+      id: localFile.contentHash,
+      name: localFile.name,
+      absolutePath: localFile.absolutePath,
+      workspaceId: workspace.id,
+      appDir: localFile.pathRelativeToWorkspace,
+    }));
   }
 
   deleteFile(file: WorkspaceFile): Promise<boolean> {
@@ -64,8 +74,17 @@ class FileService {
     return client.post(`/file/force_sync`, { fileId: file.id });
   }
 
-  getFolders(workspaceId: string): Promise<WorkspaceFolder[]> {
-    return client.get(`/workspace/folders?workspaceId=${workspaceId}`);
+  async getFolders(workspace: Workspace): Promise<WorkspaceFolder[]> {
+    if (!window.electron) {
+      throw new Error("Electron is not available");
+    }
+    const localFolders = await window.electron.getLocalFolders(
+      workspace.localDir
+    );
+    return localFolders.map((localFolder) => ({
+      workspaceId: workspace.id,
+      appDir: localFolder.pathRelativeToWorkspace,
+    }));
   }
 
   createFolder(

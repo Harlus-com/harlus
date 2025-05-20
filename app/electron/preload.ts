@@ -25,4 +25,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("add-event-listener", eventSourceId, eventName),
   closeEventSource: (eventSourceId: string) =>
     ipcRenderer.invoke("close-event-source", eventSourceId),
+  getLocalFiles: (localDir: string) =>
+    ipcRenderer.invoke("get-local-files", localDir),
+  getLocalFolders: (localDir: string) =>
+    ipcRenderer.invoke("get-local-folders", localDir),
 });
