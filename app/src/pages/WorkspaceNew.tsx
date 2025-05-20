@@ -15,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { workspaceService } from "@/api/workspaceService";
 import { useToast } from "@/components/ui/use-toast";
-import { FolderIcon } from "lucide-react";
 
 const formSchema = z.object({
   ticker: z.string().min(1).max(5),

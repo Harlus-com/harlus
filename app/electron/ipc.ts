@@ -15,15 +15,6 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
   const { mainWindow, baseUrl, httpsAgent, httpsDispatcher, eventSources } =
     electronAppState;
 
-  ipcMain.handle("open-file-dialog", async () => {
-    const { filePaths } = await dialog.showOpenDialog(mainWindow, {
-      properties: ["openFile", "multiSelections"],
-      filters: [{ name: "PDF Documents", extensions: ["pdf"] }],
-    });
-
-    return filePaths;
-  });
-
   ipcMain.handle("open-directory-dialog", async () => {
     const { filePaths } = await dialog.showOpenDialog(mainWindow, {
       properties: ["openDirectory"],
