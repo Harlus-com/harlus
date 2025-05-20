@@ -22,18 +22,12 @@ class ModelService {
     return client.post(`/file/sync`, {
       fileId: file.contentHash,
       workspaceId: workspaceId,
-      force: false, // TODO: Remove
     });
   }
 
-  forceSyncFile(workspaceId: string, file: LocalFile): Promise<boolean> {
-    fileService.deleteFile(toWorkspaceFile(workspaceId, file));
-    client.upload(file, workspaceId);
-    return client.post(`/file/sync`, {
-      fileId: file.contentHash,
-      workspaceId: workspaceId,
-      force: true, // TODO: Remove
-    });
+  async forceSyncFile(workspaceId: string, file: LocalFile): Promise<boolean> {
+    await fileService.deleteFile(toWorkspaceFile(workspaceId, file));
+    return this.startSyncFile(workspaceId, file);
   }
 }
 

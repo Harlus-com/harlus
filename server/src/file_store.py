@@ -32,6 +32,9 @@ class File(BaseModel):
     absolute_path: str = Field(alias="absolutePath")
     workspace_id: str = Field(alias="workspaceId")
 
+    def working_dir(self) -> str:
+        return os.path.dirname(self.absolute_path)
+
     model_config = ConfigDict(
         populate_by_name=True,
         alias_generator=snake_to_camel,
@@ -61,7 +64,7 @@ class FileStore:
     def get_file(self, file_id: str, workspace_id: str | None = None) -> File:
         if workspace_id is not None:
             return self.get_files(workspace_id)[file_id]
-        file = self._find_file(file_id)
+        file = self.find_file(file_id)
         if file is None:
             raise ValueError(f"File with id {file_id} not found")
         return file
@@ -170,9 +173,9 @@ class FileStore:
         file_dir_name = self._get_file_dir_name(path, app_dir)
         absolute_path = str(
             self.app_data_path.joinpath(
-                # TODO: DO NOT HARDCODE PDF!!!
                 workspace.dir_name,
                 file_dir_name,
+                # TODO: DO NOT HARDCODE PDF!!!
                 "content.pdf",
             )
         )

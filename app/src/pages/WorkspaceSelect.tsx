@@ -32,7 +32,7 @@ const WorkspaceSelect = () => {
   const { data: workspaces = [], status } = useQuery({
     queryKey: ["workspaces"],
     queryFn: () => workspaceService.getWorkspaces(),
-    refetchInterval: POLLING_INTERVAL,
+    refetchInterval: isLoading ? POLLING_INTERVAL : null,
     retry: false,
   });
 

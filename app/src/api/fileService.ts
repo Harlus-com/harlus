@@ -60,10 +60,6 @@ class FileService {
     return file;
   }
 
-  forceSyncFile(file: WorkspaceFile): Promise<boolean> {
-    return client.post(`/file/force_sync`, { fileId: file.id });
-  }
-
   async getLocalFolders(workspace: Workspace): Promise<LocalFolder[]> {
     console.log("Getting folders for workspace", workspace.id);
     if (!window.electron) {

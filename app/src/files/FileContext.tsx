@@ -16,8 +16,8 @@ interface FileContextType {
   getFolders: () => WorkspaceFolder[];
   getFile: (id: string) => WorkspaceFile;
   getFileSyncStatus: (id: string) => SyncStatus;
-  startSyncFile: (id: string) => void;
-  forceSyncFile: (id: string) => void;
+  startSyncFile: (localFile: LocalFile) => void;
+  forceSyncFile: (localFile: LocalFile) => void;
   notifyFileListChanged: () => void;
   workspaceFileToLocalFile: (workspaceFile: WorkspaceFile) => LocalFile | null;
 }
@@ -117,19 +117,17 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
     return fileSyncStatuses[id];
   };
 
-  const startSyncFile = async (id: string) => {
-    updateFileSyncStatus(id, "SYNC_PENDING");
-    // Wait for the server to have processed the request before attempting to poll the status
-    const localFile = files.find((file) => file.contentHash === id);
+  const startSyncFile = async (localFile: LocalFile) => {
+    updateFileSyncStatus(localFile.contentHash, "SYNC_PENDING");
     await modelService.startSyncFile(workspaceId, localFile);
+    // Wait for the server to have processed the request before attempting to poll the status
     statusManager.start();
   };
 
-  const forceSyncFile = async (id: string) => {
-    updateFileSyncStatus(id, "SYNC_PENDING");
-    // Wait for the server to have processed the request before attempting to poll the status
-    const localFile = files.find((file) => file.contentHash === id);
+  const forceSyncFile = async (localFile: LocalFile) => {
+    updateFileSyncStatus(localFile.contentHash, "SYNC_PENDING");
     await modelService.forceSyncFile(workspaceId, localFile);
+    // Wait for the server to have processed the request before attempting to poll the status
     statusManager.start();
   };
 

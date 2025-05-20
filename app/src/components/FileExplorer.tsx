@@ -55,6 +55,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     notifyFileListChanged,
     forceSyncFile,
     startSyncFile,
+    workspaceFileToLocalFile,
   } = useFileContext();
   const { getOpenFiles, openFiles } = useFileViewContext();
   const files = getFiles();
@@ -140,12 +141,12 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
 
   const handleForceSync = async (file: WorkspaceFile, e: React.MouseEvent) => {
     e.stopPropagation();
-    forceSyncFile(file.id);
+    forceSyncFile(workspaceFileToLocalFile(file));
   };
 
   const handlePing = async (file: WorkspaceFile, e: React.MouseEvent) => {
     e.stopPropagation();
-    startSyncFile(file.id);
+    startSyncFile(workspaceFileToLocalFile(file));
   };
 
   const toggleFolder = (path: string) => {

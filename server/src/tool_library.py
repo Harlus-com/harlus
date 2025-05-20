@@ -1,11 +1,27 @@
-from llama_index.core.tools import QueryEngineTool
-
 import os
 import dill
-from collections import defaultdict
-
+import json
+import time
+from src.util import timestamp_now
+from src.sync_status import SyncStatus
 from src.file_store import FileStore, File
 from harlus_doc_search import ToolWrapper
+from harlus_doc_search import DocToolLoader
+from enum import Enum
+
+
+class ToolSyncStatus(Enum):
+    SUCCESS = "SUCCESS"
+    ERROR = "ERROR"
+    NONE = "NONE"
+
+
+loaders = [
+    DocToolLoader(),
+]
+
+
+loaders_by_name = {loader.get_tool_name(): loader for loader in loaders}
 
 
 # TODO: add functionality to get all tools for a given workspace
@@ -14,37 +30,36 @@ from harlus_doc_search import ToolWrapper
 # llama_index built-in methods for storing and loading vector indices.
 # at load time, we could build the doc_search tool from the vector index.
 # Metadata could be stored seperately and pickled alongside the tool.
-#
-# TODO: Get rid of in-memory caching of tools. Just read them from disk every time.
 class ToolLibrary:
     def __init__(self, file_store: FileStore):
-        self.file_tools: dict[str, list[ToolWrapper]] = defaultdict(list)
         self.file_store = file_store
 
-    def delete_file_tools(self, file: File):
-        if file.absolute_path in self.file_tools:
-            del self.file_tools[file.absolute_path]
+    async def load(self, tool_name: str, file: File) -> ToolWrapper:
+        loader = loaders_by_name[tool_name]
+        tool_wrapper = await loader.load(file.absolute_path, file.name)
+        self._add_tool(file.absolute_path, tool_wrapper, overwrite=True)
 
-    def load_tools(self):
-        for file in self.file_store.get_all_files():
-            self._load_tools(file.absolute_path)
+    def has_all_tools(self, file: File):
+        return len(self.get_tools_to_sync(file)) == 0
 
-        for file_name, tools in self.file_tools.items():
-            print(f"Loaded tools for {file_name}: {[t.get_tool_name() for t in tools]}")
+    def get_tools_to_sync(self, file: File):
+        target_tools = loaders_by_name.keys()
+        print(f"Target tools: {target_tools}")
+        current_tools = [
+            t.get_tool_name() for t in self._load_tools(file.absolute_path)
+        ]
+        print(f"Current tools: {current_tools}")
+        return [t for t in target_tools if t not in current_tools]
 
     def get_tool_for_all_files(self, workspace_id: str, tool_name: str):
-        file_paths_in_workspace = self.file_store.get_file_path_to_id(
-            workspace_id
-        ).keys()
+        files = self.file_store.get_files(workspace_id)
         all_tools = []
-        for file_path in file_paths_in_workspace:
-            all_tools.extend(self.file_tools[file_path])
+        for file in files.values():
+            all_tools.extend(self._load_tools(file.absolute_path), filter=tool_name)
         return [t for t in all_tools if t.get_tool_name() == tool_name]
 
     def get_tool(self, file_path: str, tool_name: str):
-        matching_tools = [
-            t for t in self.file_tools[file_path] if t.get_tool_name() == tool_name
-        ]
+        matching_tools = self._load_tools(file_path, filter=tool_name)
         if len(matching_tools) == 0:
             raise ValueError(f"Tool {tool_name} not found for file {file_path}")
         if len(matching_tools) > 1:
@@ -53,20 +68,17 @@ class ToolLibrary:
 
     def has_tool(self, file_path: str, tool_name: str):
         print(f"Checking if tool {tool_name} exists for {file_path}")
-        if file_path not in self.file_tools:
-            print(f"File {file_path} not found")
-            return False
-        file_tools = [t.get_tool_name() for t in self.file_tools[file_path]]
+        file_tools = self._load_tools(file_path, filter=tool_name)
         tool_found = tool_name in file_tools
         print(
             f"Tool {tool_name} {'found' if tool_found else 'not found'} in {file_tools}"
         )
         return tool_found
 
-    def add_tool(
+    def _add_tool(
         self, file_path: str, tool_wrapper: ToolWrapper, overwrite: bool = False
     ):
-        current_tools = self.file_tools[file_path]
+        current_tools = self._load_tools(file_path)
         tool_name = tool_wrapper.get_tool_name()
         if tool_name in [t.get_tool_name() for t in current_tools] and not overwrite:
             raise ValueError(f"Tool {tool_name} already exists for file {file_path}")
@@ -81,11 +93,16 @@ class ToolLibrary:
                 f.write(value)
         self._load_tools(file_path)
 
-    def _load_tools(self, file_path):
+    def _load_tools(self, file_path, filter: str | None = None) -> list[ToolWrapper]:
         tools_dir = os.path.join(os.path.dirname(file_path), "tools")
+        print(f"Loading tools from {tools_dir}")
         if not os.path.exists(tools_dir):
-            return
+            print(f"Tools directory {tools_dir} does not exist")
+            return []
+        tools = []
         for tool_dir in os.listdir(tools_dir):
+            if filter is not None and tool_dir != filter:
+                continue
             tool_file = os.path.join(tools_dir, tool_dir, "tool.pkl")
             if not os.path.exists(tool_file):
                 print(f"Tool file {tool_file} does not exist")
@@ -96,4 +113,43 @@ class ToolLibrary:
                 # Then we can check that the file hash matches the current file on disk, otherwise discard the tool
                 tool = dill.load(f)
                 tool_wrapper = ToolWrapper(tool, tool_dir, debug_info={})
-                self.file_tools[file_path].append(tool_wrapper)
+                tools.append(tool_wrapper)
+        return tools
+
+    def write_sync_status(
+        self, file: File, tool_name: str, status: ToolSyncStatus, overwrite: bool = True
+    ):
+        last_sync_status_file = os.path.join(
+            os.path.dirname(file.absolute_path), "sync_status.json"
+        )
+        if not os.path.exists(last_sync_status_file):
+            with open(last_sync_status_file, "w") as f:
+                json.dump({}, f)
+        with open(last_sync_status_file, "r") as f:
+            last_sync_status = json.load(f)
+        if tool_name not in last_sync_status or overwrite:
+            last_sync_status[tool_name] = {
+                "status": status.value,
+                "timestamp": str(timestamp_now()),
+            }
+        with open(last_sync_status_file, "w") as f:
+            json.dump(last_sync_status, f, indent=2)
+
+    def get_last_sync_status(self, file_id: str) -> dict[str, ToolSyncStatus]:
+        file = self.file_store.get_file(file_id)
+        last_sync_status_file = os.path.join(
+            os.path.dirname(file.absolute_path), "sync_status.json"
+        )
+        statuses = {
+            tool_name: ToolSyncStatus.NONE for tool_name in loaders_by_name.keys()
+        }
+        if not os.path.exists(last_sync_status_file):
+            return statuses
+        with open(last_sync_status_file, "r") as f:
+            last_sync_status = json.load(f)
+        for tool_name, value in last_sync_status.items():
+            statuses[tool_name] = ToolSyncStatus(value["status"])
+        return statuses
+
+    def all_tool_names(self):
+        return loaders_by_name.keys()
