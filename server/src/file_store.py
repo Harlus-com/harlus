@@ -2,11 +2,14 @@ import json
 import os
 from pathlib import Path
 import shutil
-from typing import Union
+import tempfile
+from typing import Union, Iterator
 import uuid
 from pydantic import BaseModel, ConfigDict, Field
 from src.file_util import get_flat_folder_hierarchy
 from src.util import snake_to_camel, clean_name
+
+from src.sec_loader import SecSourceLoader, WebFileData
 
 
 class Workspace(BaseModel):
@@ -221,6 +224,7 @@ class FileStore:
         self._add_file(file)
         return file
 
+
     def add_folder(self, app_dir: list[str], workspace_id: str):
         if len(app_dir) == 0:
             raise ValueError("App dir cannot be empty")
@@ -424,6 +428,43 @@ class FileStore:
             app_dir=new_parent_dir,
         )
         self._update_file(new_file)
+
+
+    # TODO: remove the SEC specific naming
+    def download_sec_files(self, workspace_id: str) -> list[File]:
+        if workspace_id not in self.get_workspaces():
+            raise ValueError(f"Workspace with id {workspace_id} not found")
+        workspace = self.get_workspaces()[workspace_id]
+        ticker = workspace.name # Assuming workspace name is the ticker symbol
+        print(f"Fetching SEC files for ticker: {ticker} in workspace: {workspace.name}")
+
+        reports_dir = ["reports"]   # TODO: move to some config file
+        self.add_folder(reports_dir, workspace_id)
+        
+        existing_files = self._get_all_file_children(workspace_id, reports_dir)
+        existing_file_names = [f.name for f in existing_files]
+        print(f"Found {len(existing_file_names)} existing SEC filing stems in workspace {workspace.name}.")
+
+        sec_loader = SecSourceLoader()
+        # TODO: be more robust: check against existing file metada not just file name
+        new_file_data_iterator: Iterator[WebFileData] = sec_loader.get_new_files_to_fetch(ticker, existing_file_names)
+        print(f"Initiating content fetch for new filings using SecSourceLoader...")
+
+        files_added: list[File] = []
+        for file_data in new_file_data_iterator:
+            print(f"Processing file data for: {file_data.file_name_no_ext}")
+            
+            # TODO: make pretty file name for front end
+            # TODO: remove hard-coded .pdf extension
+            tmp_dir = tempfile.mkdtemp()
+            tmp_path = os.path.join(tmp_dir, f"{file_data.file_name_no_ext}.pdf")
+            with open(tmp_path, "wb") as out:
+                out.write(file_data.pdf_content)
+
+            file = self.copy_file_to_workspace(str(tmp_path), workspace_id, reports_dir)
+            files_added.append(file)
+
+        return files_added
 
 
 def _get_sub_path(path: list[str], prefix: list[str]) -> list[str]:
