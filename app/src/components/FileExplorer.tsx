@@ -12,7 +12,7 @@ import {
   Folder,
   Pencil,
 } from "lucide-react";
-import { WorkspaceFile, WorkspaceFolder } from "@/api/workspace_types";
+import { WorkspaceFile } from "@/api/workspace_types";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -72,6 +72,9 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
   const [openNewFolderPath, setOpenNewFolderPath] = React.useState<
     string | null
   >(null);
+  const [openRenamePath, setOpenRenamePath] = React.useState<string | null>(
+    null
+  );
   const [folderToDelete, setFolderToDelete] = React.useState<{
     path: string[];
     name: string;
@@ -109,7 +112,8 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
   const handleRenameFolder = async (path: string[], newName: string) => {
     if (!newName.trim()) return;
     await fileService.renameFolder(workspaceId, path, newName);
-    setEditingFolder(null);
+    setOpenRenamePath(null);
+    setNewFolderName("");
     notifyFileListChanged();
   };
 
@@ -173,8 +177,8 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     const hasChildren = folder.children.size > 0 || folder.files.length > 0;
     const isRoot = folder.path.length === 0;
     const isExpanded = isRoot || expandedFolders.has(pathKey);
-    const isEditing = editingFolder === pathKey;
     const isNewFolderOpen = openNewFolderPath === pathKey;
+    const isRenameOpen = openRenamePath === pathKey;
 
     const handleDragStart = (
       e: React.DragEvent,
@@ -226,117 +230,214 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
                 <ChevronRight size={14} className="mr-2 flex-shrink-0" />
               )
             ) : (
-              <div className="w-6" />
+              <div className="w-[22px] flex-shrink-0" />
             )}
-            {isEditing ? (
-              <Input
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleRenameFolder(folder.path, newFolderName);
-                  } else if (e.key === "Escape") {
-                    setEditingFolder(null);
-                    setNewFolderName("");
-                  }
-                }}
-                onClick={(e) => e.stopPropagation()}
-                autoFocus
-              />
-            ) : (
-              <>
-                <Folder
-                  size={14}
-                  className="mr-2 flex-shrink-0 text-yellow-500"
-                />
-                <span className="text-sm">{folder.name}</span>
-                <div className="ml-auto opacity-0 group-hover:opacity-100 flex items-center">
+            <Folder size={14} className="mr-2 flex-shrink-0 text-yellow-500" />
+            <span className="text-sm">{folder.name}</span>
+            <div className="ml-auto opacity-0 group-hover:opacity-100">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreVertical size={12} className="text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
-                      setEditingFolder(pathKey);
+                      setOpenRenamePath(pathKey);
                       setNewFolderName(folder.name);
                     }}
                   >
-                    <Pencil size={12} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0"
-                    onClick={(e) => handleDeleteFolder(folder.path, e)}
-                  >
-                    <Trash2 size={12} />
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-        {isExpanded && (
-          <>
-            <div className="pl-2">
-              <Popover
-                open={isNewFolderOpen}
-                onOpenChange={(open) => {
-                  if (!open) {
-                    setOpenNewFolderPath(null);
-                    setNewFolderName("");
-                  }
-                }}
-              >
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start text-xs"
+                    <Pencil size={12} className="mr-2" />
+                    Rename
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
                       setOpenNewFolderPath(pathKey);
                     }}
                   >
                     <FolderPlus size={12} className="mr-2" />
-                    New Folder
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-2" align="start">
-                  <div className="space-y-2">
-                    <Input
-                      value={newFolderName}
-                      onChange={(e) => setNewFolderName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          handleCreateFolder(folder.path);
-                        }
-                      }}
-                      placeholder="Enter folder name"
-                      autoFocus
-                    />
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setNewFolderName("");
-                          setOpenNewFolderPath(null);
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleCreateFolder(folder.path)}
-                      >
-                        Create
-                      </Button>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
+                    New Subfolder
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-red-500 focus:text-red-500"
+                    onClick={(e) => handleDeleteFolder(folder.path, e)}
+                  >
+                    <Trash2 size={12} className="mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
+          </div>
+        )}
+
+        <Popover
+          open={isNewFolderOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              setOpenNewFolderPath(null);
+              setNewFolderName("");
+            }
+          }}
+          modal={true}
+        >
+          <PopoverTrigger asChild>
+            <div className="hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenNewFolderPath(pathKey);
+                }}
+              >
+                <FolderPlus size={12} className="mr-2" />
+                New Folder
+              </Button>
+            </div>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-64 p-2"
+            align="start"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDownOutside={(e) => e.preventDefault()}
+          >
+            <div className="space-y-2">
+              <Input
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleCreateFolder(folder.path);
+                  }
+                }}
+                placeholder="Enter folder name"
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setNewFolderName("");
+                    setOpenNewFolderPath(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCreateFolder(folder.path);
+                  }}
+                >
+                  Create
+                </Button>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <Popover
+          open={isRenameOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              setOpenRenamePath(null);
+              setNewFolderName("");
+            }
+          }}
+          modal={true}
+        >
+          <PopoverTrigger asChild>
+            <div className="hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenRenamePath(pathKey);
+                  setNewFolderName(folder.name);
+                }}
+              >
+                <Pencil size={12} className="mr-2" />
+                Rename
+              </Button>
+            </div>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-64 p-2"
+            align="start"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDownOutside={(e) => e.preventDefault()}
+          >
+            <div className="space-y-2">
+              <Input
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleRenameFolder(folder.path, newFolderName);
+                  }
+                }}
+                placeholder="Enter new name"
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setNewFolderName("");
+                    setOpenRenamePath(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRenameFolder(folder.path, newFolderName);
+                  }}
+                >
+                  Rename
+                </Button>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {isExpanded && (
+          <>
+            {isRoot && (
+              <div className="pl-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenNewFolderPath(pathKey);
+                  }}
+                >
+                  <FolderPlus size={12} className="mr-2" />
+                  New Folder
+                </Button>
+              </div>
+            )}
             {Array.from(folder.children.values()).map((child) =>
               renderFolder(child, level + 1)
             )}
@@ -344,7 +445,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
               <div
                 key={file.id}
                 className={cn(
-                  "flex items-center p-2 rounded-md",
+                  "flex items-center p-2 rounded-md group",
                   "hover:bg-muted",
                   selectedFileIds.includes(file.id) && "bg-muted font-medium"
                 )}
@@ -354,6 +455,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
                   handleDragStart(e, "file", file.id, folder.path)
                 }
               >
+                <div className="w-[22px] flex-shrink-0" />
                 <div
                   className="flex items-center flex-1 min-w-0 cursor-pointer"
                   onClick={() => handleOpenInGroup(file, FileGroupCount.ONE)}
@@ -365,54 +467,63 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
                   <span className="truncate text-sm flex-1">{file.name}</span>
                   <FileStatusIndicator file={file} className="ml-2" />
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="p-1 hover:bg-muted rounded-md flex-shrink-0 ml-2">
-                      <MoreVertical
-                        size={14}
-                        className="text-muted-foreground"
-                      />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>
-                        <Columns2 size={14} className="mr-2" />
-                        Open in file group
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        {fileGroupCounts().map((groupNumber) => (
-                          <DropdownMenuItem
-                            key={groupNumber}
-                            onClick={() =>
-                              handleOpenInGroup(
-                                file,
-                                groupNumber as FileGroupCount
-                              )
-                            }
-                          >
-                            {groupNumber}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-                    <DropdownMenuItem onClick={(e) => handlePing(file, e)}>
-                      <RotateCcw size={14} className="mr-2" />
-                      Sync
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={(e) => handleForceSync(file, e)}>
-                      <RefreshCw size={14} className="mr-2" />
-                      Force Reload
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-500 focus:text-red-500"
-                      onClick={(e) => handleDeleteFile(file, e)}
-                    >
-                      <Trash2 size={14} className="mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="opacity-0 group-hover:opacity-100">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreVertical
+                          size={12}
+                          className="text-muted-foreground"
+                        />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <Columns2 size={12} className="mr-2" />
+                          Open in file group
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          {fileGroupCounts().map((groupNumber) => (
+                            <DropdownMenuItem
+                              key={groupNumber}
+                              onClick={() =>
+                                handleOpenInGroup(
+                                  file,
+                                  groupNumber as FileGroupCount
+                                )
+                              }
+                            >
+                              {groupNumber}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                      <DropdownMenuItem onClick={(e) => handlePing(file, e)}>
+                        <RotateCcw size={12} className="mr-2" />
+                        Sync
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => handleForceSync(file, e)}
+                      >
+                        <RefreshCw size={12} className="mr-2" />
+                        Force Reload
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-red-500 focus:text-red-500"
+                        onClick={(e) => handleDeleteFile(file, e)}
+                      >
+                        <Trash2 size={12} className="mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             ))}
           </>
