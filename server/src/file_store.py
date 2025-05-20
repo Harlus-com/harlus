@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from src.file_util import get_flat_folder_hierarchy
 from src.util import snake_to_camel, clean_name
 
-from src.sec_loader import SecSourceLoader, SECFileData
+from src.sec_loader import SecSourceLoader, WebFileData
 
 
 class Workspace(BaseModel):
@@ -496,21 +496,22 @@ class FileStore:
         self._update_file(new_file)
 
 
-    def _get_existing_sec_filing_stems(self, sec_app_dir: list[str], workspace_id: str) -> list[str]:
-        """
-        Gets a list of filename stems for existing SEC filings in the workspace.
-        """
-        existing_files = [
-            f for f in self.get_files(workspace_id).values()
-            if _is_sub_path(f.app_dir, sec_app_dir) # Check if the file is within the SEC directory or its subdirectories
-        ]
-        # Extract filename stems (assuming format stem.ext)
-        existing_stems = [Path(f.name).stem for f in existing_files]
-        # We might have both .htm and .pdf for the same stem, so get unique stems
-        return list(set(existing_stems))
+    # # NOTE: similar to get_files() but returns file names instead of IDs
+    # def _get_file_names_without_extensions(self, workspace_id: str, app_dir: list[str]) -> list[str]:
+    #     """
+    #     Gets a list of filenames for existing files in the workspace/app_dir
+    #     """
+    #     existing_files = [
+    #         f for f in self.get_files(workspace_id).values()
+    #         if _is_sub_path(f.app_dir, app_dir)
+    #     ]
+    #     # Extract filenames (assuming format name.ext)
+    #     existing_file_names = [Path(f.name).stem for f in existing_files]
+    #     # We might have both .htm and .pdf for the same stem, so get unique names
+    #     return list(set(existing_file_names))
 
 
-    # TODO: currently no state, discuss @EngSync whether FileStore should have SecSourceLoader in self
+    # TODO: remove the SEC specific naming
     def get_sec_files(self, workspace_id: str) -> list[File]:
         """
         Fetches SEC filings for the workspace's ticker using SecSourceLoader
@@ -529,45 +530,30 @@ class FileStore:
         self.add_folder(sec_app_dir, workspace_id)
         
         # instantiate SecSourceLoader
-        existing_sec_stems = self._get_existing_sec_filing_stems(sec_app_dir, workspace_id)
-        print(f"Found {len(existing_sec_stems)} existing SEC filing stems in workspace {workspace.name}.")
+        existing_files = self._get_all_file_children(workspace_id, sec_app_dir)
+        existing_file_names = [f.name for f in existing_files]
+        # existing_sec_file_names = self._get_file_names_without_extensions(workspace_id, sec_app_dir)
+        print(f"Found {len(existing_file_names)} existing SEC filing stems in workspace {workspace.name}.")
 
         sec_loader = SecSourceLoader()
-        sec_file_data_iterator: Iterator[SECFileData] = sec_loader.get_new_files_to_fetch(ticker, existing_sec_stems)
+        # TODO: check against existing file metada not file name
+        new_files_iterator: Iterator[WebFileData] = sec_loader.get_new_files_to_fetch(ticker, existing_file_names)
         print(f"Initiating content fetch for new filings using SecSourceLoader...")
 
         # iterate through the fetched file data and save directly to the workspace.
         files_added: list[File] = []
-        for file_data in sec_file_data_iterator:
-            print(f"Processing file data for: {file_data.filename_stem}")
-
-            # TODO: on need to spllit up html and pdf
-
-            # Save the source content if available
-            if file_data.source_content is not None:
-                try:
-                    file = self._save_file_content_to_workspace(
-                        filename=f"{file_data.filename_stem}.htm",
-                        content=file_data.source_content,
-                        workspace_id=workspace_id,
-                        app_dir=sec_app_dir
-                    )
-                    files_added.append(file)
-                except Exception as e:
-                    print(f"Error saving source file for {file_data.filename_stem}: {e}")
-
-            # Save the PDF content if available
-            if file_data.pdf_content is not None:
-                try:
-                    file = self._save_file_content_to_workspace(
-                        filename=f"{file_data.filename_stem}.pdf",
-                        content=file_data.pdf_content,
-                        workspace_id=workspace_id,
-                        app_dir=sec_app_dir
-                    )
-                    files_added.append(file)
-                except Exception as e:
-                    print(f"Error saving PDF file for {file_data.filename_stem}: {e}")
+        for file in new_files_iterator:
+            print(f"Processing file data for: {file.file_name_no_ext}")
+            try:
+                file = self._save_file_content_to_workspace(
+                    filename=f"{file.file_name_no_ext}.pdf",
+                    content=file.pdf_content,
+                    workspace_id=workspace_id,
+                    app_dir=sec_app_dir
+                )
+                files_added.append(file)
+            except Exception as e:
+                print(f"Error saving PDF file for {file.file_name_no_ext}: {e}")
 
         return files_added
 

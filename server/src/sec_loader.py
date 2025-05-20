@@ -220,15 +220,14 @@ class OpenBBFilingsLoader:
 # SEC source loader
 # ---------------------------------------------------------------------------
 
-class SECFileData:
-    def __init__(self, filename_stem: str, report_url: str, source_content: str | bytes, pdf_content: bytes | None):
-        self.filename_stem = filename_stem
+class WebFileData:
+    def __init__(self, file_name_no_ext: str, report_url: str, pdf_content: bytes | None):
+        self.file_name_no_ext = file_name_no_ext
         self.report_url = report_url
-        self.source_content = source_content
         self.pdf_content = pdf_content
 
     def __repr__(self):
-        return f"SECFileData(filename_stem='{self.filename_stem}', report_url='{self.report_url}', has_source={self.source_content is not None}, has_pdf={self.pdf_content is not None})"
+        return f"SECFileData(filename_stem='{self.filename_stem}', report_url='{self.report_url}', has_pdf={self.pdf_content is not None})"
 
 
 class SecSourceLoader:
@@ -239,79 +238,54 @@ class SecSourceLoader:
         self.selenium_loader = SeleniumWebLoader()
         self.request_loader = RequestWebLoader()
         self.obb_loader = OpenBBFilingsLoader()
-        self.webloader_mode = "selenium" # Default mode
 
-    # @property
-    # def config(self) -> dict[str, object]:
-    #     """Return the configuration dictionary for the SEC source loader."""
-    #     return self.config
 
     def _fetch(self, url: str) -> tuple[str | bytes, bytes | None]:
         """Fetches the source and PDF content for a given URL."""
-        if self.webloader_mode == "request":
-            # RequestWebLoader only provides source (as bytes)
-            source = self.request_loader.fetch(url)
-            pdf: bytes | None = None
-            # Decode source if it's bytes and we expect string for htm
-            if isinstance(source, bytes) and (url.lower().endswith('.htm') or url.lower().endswith('.html')):
-                 try:
-                     source = source.decode('utf-8', errors='ignore')
-                 except Exception as e:
-                     print(f"Warning: Could not decode source from {url}: {e}")
-                     # Keep as bytes if decoding fails
-        else: # Use Selenium by default
-            try:
-                self.selenium_loader.load(url)
-                source = self.selenium_loader.get_source()
-                pdf = self.selenium_loader.get_pdf()
-            except Exception as e:
-                print(f"Error fetching with Selenium from {url}: {e}")
-                # TODO: Fallback or raise? For now, return None for content
-                source = None
-                pdf = None
+        try:
+            self.selenium_loader.load(url)
+            # source = self.selenium_loader.get_source()
+            pdf = self.selenium_loader.get_pdf()
+        except Exception as e:
+            print(f"Error fetching with Selenium from {url}: {e}")
+            # TODO: Fallback or raise? For now, return None for content
+            # source = None
+            pdf = None
 
-        return source, pdf
+        return pdf
 
 
-    def get_new_files_to_fetch(self, ticker: str, existing_stems: List[str]) -> Iterator[SECFileData]:
+    def get_new_files_to_fetch(self, ticker: str, existing_file_names: List[str]) -> Iterator[WebFileData]:
         """
         Retrieves SEC filing metadata for the given ticker, filters out
         filings that already exist based on provided stems, fetches content
         for the new filings, and yields it as an iterator.
         """
-        print(f"SecSourceLoader: Getting filing metadata for {ticker} from OpenBB.")
-        # OpenBBFilingsLoader is instantiated in SecSourceLoader's __init__
-        # Call the non-caching get method
-        filings_metadata = self.obb_loader.get(ticker)
-        print(f"SecSourceLoader: Retrieved {len(filings_metadata)} potential SEC filings metadata from OpenBB.")
-
+        files_metadata = self.obb_loader.get(ticker)
         # Filter out filings that already exist in FileStore
-        filings_to_fetch_df = filings_metadata.filter(
-            ~pl.col("filename_stem").is_in(existing_stems)
+        files_to_fetch_df = files_metadata.filter(
+            ~pl.col("filename_stem").is_in(existing_file_names)
         )
-        print(f"SecSourceLoader: Found {len(filings_to_fetch_df)} new filings to fetch.")
+        print(f"SecSourceLoader: Found {len(files_to_fetch_df)} new filings to fetch.")
 
-        if filings_to_fetch_df.is_empty():
-            print("SecSourceLoader: No new filings to fetch.")
+        if files_to_fetch_df.is_empty():
             return # Yield nothing if no new files
 
-        print(f"SecSourceLoader: Initiating content fetch for {len(filings_to_fetch_df)} new filings.")
-
-        for row in filings_to_fetch_df.to_dicts():
-            filename_stem = row["filename_stem"]
+        for row in files_to_fetch_df.to_dicts():
+            file_name_no_ext = row["filename_stem"]
             report_url = row["report_url"]
-            print(f"SecSourceLoader: Fetching content for {filename_stem} from {report_url}")
-            source, pdf = self._fetch(report_url)
+            print(f"SecSourceLoader: Fetching content for {file_name_no_ext} from {report_url}")
+            pdf = self._fetch(report_url)
 
-            if source is not None or pdf is not None:
-                 yield SECFileData(
-                     filename_stem=filename_stem,
+            if pdf is not None:
+                 yield WebFileData(
+                     file_name_no_ext=file_name_no_ext,
                      report_url=report_url,
-                     source_content=source,
-                     pdf_content=pdf
+                     pdf_content=pdf,
                  )
             else:
-                 print(f"Warning: Could not fetch content for {filename_stem} from {report_url}")
+                 print(f"Warning: Could not fetch content for {file_name_no_ext} from {report_url}")
+
 
     def __del__(self) -> None:
         print("SecSourceLoader: Cleaning up resources.")
@@ -335,4 +309,4 @@ class SecSourceLoader:
                 print(f"Error cleaning up OpenBB loader: {e}")
 
 
-__all__ = ["OpenBBFilingsLoader", "SecSourceLoader", "SECFileData"]
+__all__ = ["OpenBBFilingsLoader", "SecSourceLoader", "WebFileData"]
