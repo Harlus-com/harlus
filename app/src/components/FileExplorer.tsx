@@ -59,7 +59,9 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     id: string;
     path: string[];
   } | null>(null);
-  const [isNewFolderOpen, setIsNewFolderOpen] = React.useState(false);
+  const [openNewFolderPath, setOpenNewFolderPath] = React.useState<
+    string | null
+  >(null);
 
   const selectedFileIds: string[] = [];
   for (const fileGroup of Object.values(getOpenFiles())) {
@@ -78,7 +80,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     if (!newFolderName.trim()) return;
     await fileService.createFolder(workspaceId, [...parentPath, newFolderName]);
     setNewFolderName("");
-    setIsNewFolderOpen(false);
+    setOpenNewFolderPath(null);
     notifyFileListChanged();
   };
 
@@ -149,6 +151,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     const isRoot = folder.path.length === 0;
     const isExpanded = isRoot || expandedFolders.has(pathKey);
     const isEditing = editingFolder === pathKey;
+    const isNewFolderOpen = openNewFolderPath === pathKey;
 
     const handleDragStart = (
       e: React.DragEvent,
@@ -253,12 +256,24 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
         {isExpanded && (
           <>
             <div className="pl-2">
-              <Popover open={isNewFolderOpen} onOpenChange={setIsNewFolderOpen}>
+              <Popover
+                open={isNewFolderOpen}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setOpenNewFolderPath(null);
+                    setNewFolderName("");
+                  }
+                }}
+              >
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="w-full justify-start text-xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenNewFolderPath(pathKey);
+                    }}
                   >
                     <FolderPlus size={12} className="mr-2" />
                     New Folder
@@ -283,7 +298,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
                         size="sm"
                         onClick={() => {
                           setNewFolderName("");
-                          setIsNewFolderOpen(false);
+                          setOpenNewFolderPath(null);
                         }}
                       >
                         Cancel
