@@ -15,6 +15,7 @@ from src.sec_loader import SecSourceLoader, WebFileData
 class Workspace(BaseModel):
     id: str
     name: str
+    local_dir: str = Field(alias="localDir")
     dir_name: str = Field(alias="dirName")
     absolute_path: str = Field(alias="absolutePath")
 
@@ -140,7 +141,7 @@ class FileStore:
         with self._open(workspace, "folders.json", "r") as f:
             return [Folder.model_validate(folder) for folder in json.load(f)]
 
-    def create_workspace(self, name: str) -> Workspace:
+    def create_workspace(self, name: str, local_dir: str) -> Workspace:
         workspaces = self.get_workspaces().values()
         for workspace in workspaces:
             if workspace.name == name:
@@ -157,6 +158,7 @@ class FileStore:
             name=name,
             dir_name=dir_name,
             absolute_path=str(self.app_data_path.joinpath(dir_name)),
+            local_dir=local_dir,
         )
         os.makedirs(self.app_data_path.joinpath(workspace.dir_name), exist_ok=True)
         with open(

@@ -52,8 +52,8 @@ export abstract class ElectronApp {
 
     function createWindow() {
       const mainWindow = new BrowserWindow({
-        width: 1200,
-        height: 800,
+        width: 1800,
+        height: 1200,
         minWidth: 800,
         minHeight: 400,
         webPreferences: {

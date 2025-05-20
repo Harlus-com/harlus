@@ -169,12 +169,13 @@ def load_folder(request: LoadFolderRequest):
 
 class CreateWorkspaceRequest(BaseModel):
     name: str
+    local_dir: str = Field(alias="localDir")
 
 
 @api_router.post("/workspace/create")
 async def create_workspace(request: CreateWorkspaceRequest):
     print("Creating workspace", request.name)
-    workspace = file_store.create_workspace(request.name)
+    workspace = file_store.create_workspace(request.name, request.local_dir)
     chat_store.add_workspace(workspace)
     comment_store.add_workspace(workspace)
     return workspace

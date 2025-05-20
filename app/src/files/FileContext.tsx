@@ -72,7 +72,7 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
     setWorkspaceFiles(files.map((file) => toWorkspaceFile(workspaceId, file)));
     setWorkspaceFolders(
       folders.map((folder) => ({
-        workspaceId: workspace.id,
+        workspaceId: workspaceId,
         appDir: folder.pathRelativeToWorkspace,
       }))
     );

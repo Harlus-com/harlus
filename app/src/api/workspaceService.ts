@@ -18,7 +18,6 @@ class WorkspaceService {
   async getWorkspace(id: string): Promise<Workspace> {
     console.log("Getting workspace", id);
     const workspace = await client.get(`/workspace/get?workspaceId=${id}`);
-    workspace.localDir = "/Users/danielglasgow/Desktop/AMAT";
     return workspace;
   }
 

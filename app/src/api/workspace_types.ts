@@ -1,7 +1,6 @@
 export interface Workspace {
   id: string;
   name: string;
-  dirName: string;
   localDir: string;
 }
 export type SyncStatus =
