@@ -23,6 +23,16 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { fileService } from "@/api/fileService";
 import FileStatusIndicator from "./FileStatusIndicator";
 import { FileGroupCount } from "./panels";
@@ -62,6 +72,10 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
   const [openNewFolderPath, setOpenNewFolderPath] = React.useState<
     string | null
   >(null);
+  const [folderToDelete, setFolderToDelete] = React.useState<{
+    path: string[];
+    name: string;
+  } | null>(null);
 
   const selectedFileIds: string[] = [];
   for (const fileGroup of Object.values(getOpenFiles())) {
@@ -86,8 +100,10 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
 
   const handleDeleteFolder = async (path: string[], e: React.MouseEvent) => {
     e.stopPropagation();
-    await fileService.deleteFolder(workspaceId, path);
-    notifyFileListChanged();
+    setFolderToDelete({
+      path,
+      name: path[path.length - 1],
+    });
   };
 
   const handleRenameFolder = async (path: string[], newName: string) => {
@@ -143,6 +159,13 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
 
   const getIndentStyle = (level: number) => {
     return { marginLeft: `${level * 0.5}rem` };
+  };
+
+  const confirmDeleteFolder = async () => {
+    if (!folderToDelete) return;
+    await fileService.deleteFolder(workspaceId, folderToDelete.path);
+    setFolderToDelete(null);
+    notifyFileListChanged();
   };
 
   const renderFolder = (folder: FolderNode, level: number = 0) => {
@@ -401,27 +424,53 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
   const folderTree = buildFolderTree(files, folders);
 
   return (
-    <div className="h-full bg-sidebar border-r border-border flex flex-col">
-      <div className="flex-1 overflow-auto p-2 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300">
-        <div className="mb-2">
-          <div className="pl-1 mt-1 space-y-1">
-            {files.length === 0 ? (
-              <div className="text-muted-foreground text-sm italic p-2">
-                No files yet. Drag and drop PDFs here.
-              </div>
-            ) : (
-              renderFolder(folderTree)
-            )}
+    <>
+      <div className="h-full bg-sidebar border-r border-border flex flex-col">
+        <div className="flex-1 overflow-auto p-2 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300">
+          <div className="mb-2">
+            <div className="pl-1 mt-1 space-y-1">
+              {files.length === 0 ? (
+                <div className="text-muted-foreground text-sm italic p-2">
+                  No files yet. Drag and drop PDFs here.
+                </div>
+              ) : (
+                renderFolder(folderTree)
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-3 border-t border-border">
+          <div className="text-xs text-muted-foreground">
+            Drag PDF files here to analyze
           </div>
         </div>
       </div>
 
-      <div className="p-3 border-t border-border">
-        <div className="text-xs text-muted-foreground">
-          Drag PDF files here to analyze
-        </div>
-      </div>
-    </div>
+      <AlertDialog
+        open={!!folderToDelete}
+        onOpenChange={(open) => !open && setFolderToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Folder</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {folderToDelete?.path.join("/")}?
+              This will delete all subfolders and files.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteFolder}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 
