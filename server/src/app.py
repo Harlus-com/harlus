@@ -475,4 +475,59 @@ def get_folders(workspace_id: str = Query(..., alias="workspaceId")):
     return file_store.get_folders(workspace_id)
 
 
+class CreateFolderRequest(BaseModel):
+    workspace_id: str = Field(alias="workspaceId")
+    app_dir: list[str] = Field(alias="appDir")
+
+
+@api_router.post("/workspace/create_folder")
+def create_folder(request: CreateFolderRequest):
+    file_store.add_folder(request.app_dir, request.workspace_id)
+
+
+class DeleteFolderRequest(BaseModel):
+    workspace_id: str = Field(alias="workspaceId")
+    app_dir: list[str] = Field(alias="appDir")
+
+
+@api_router.post("/workspace/delete_folder")
+def delete_folder(request: DeleteFolderRequest):
+    file_store.delete_folder(request.workspace_id, request.app_dir)
+
+
+class RenameFolderRequest(BaseModel):
+    workspace_id: str = Field(alias="workspaceId")
+    app_dir: list[str] = Field(alias="appDir")
+    new_name: str = Field(alias="newName")
+
+
+@api_router.post("/workspace/rename_folder")
+def rename_folder(request: RenameFolderRequest):
+    file_store.rename_folder(request.workspace_id, request.app_dir, request.new_name)
+
+
+class MoveFolderRequest(BaseModel):
+    workspace_id: str = Field(alias="workspaceId")
+    app_dir: list[str] = Field(alias="appDir")
+    new_parent_dir: list[str] = Field(alias="newParentDir")
+
+
+@api_router.post("/workspace/move_folder")
+def move_folder(request: MoveFolderRequest):
+    file_store.move_folder(
+        request.workspace_id, request.app_dir, request.new_parent_dir
+    )
+
+
+class MoveFileRequest(BaseModel):
+    workspace_id: str = Field(alias="workspaceId")
+    file_id: str = Field(alias="fileId")
+    new_parent_dir: list[str] = Field(alias="newParentDir")
+
+
+@api_router.post("/workspace/move_file")
+def move_file(request: MoveFileRequest):
+    file_store.move_file(request.workspace_id, request.file_id, request.new_parent_dir)
+
+
 app.include_router(api_router)
