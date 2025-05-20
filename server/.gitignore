@@ -9,4 +9,3 @@ workspace
 .log
 *.ipynb
 data
-cache

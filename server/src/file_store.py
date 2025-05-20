@@ -511,7 +511,7 @@ class FileStore:
 
 
     # TODO: currently no state, discuss @EngSync whether FileStore should have SecSourceLoader in self
-    def get_sec_files(self, workspace_id: str):
+    def get_sec_files(self, workspace_id: str) -> list[File]:
         """
         Fetches SEC filings for the workspace's ticker using SecSourceLoader
         and adds them to the workspace under the SEC filings directory.
@@ -537,37 +537,39 @@ class FileStore:
         print(f"Initiating content fetch for new filings using SecSourceLoader...")
 
         # iterate through the fetched file data and save directly to the workspace.
-        files_added_count = 0
+        files_added: list[File] = []
         for file_data in sec_file_data_iterator:
             print(f"Processing file data for: {file_data.filename_stem}")
+
+            # TODO: on need to spllit up html and pdf
 
             # Save the source content if available
             if file_data.source_content is not None:
                 try:
-                    self._save_file_content_to_workspace(
+                    file = self._save_file_content_to_workspace(
                         filename=f"{file_data.filename_stem}.htm",
                         content=file_data.source_content,
                         workspace_id=workspace_id,
                         app_dir=sec_app_dir
                     )
-                    files_added_count += 1
+                    files_added.append(file)
                 except Exception as e:
                     print(f"Error saving source file for {file_data.filename_stem}: {e}")
 
             # Save the PDF content if available
             if file_data.pdf_content is not None:
                 try:
-                    self._save_file_content_to_workspace(
+                    file = self._save_file_content_to_workspace(
                         filename=f"{file_data.filename_stem}.pdf",
                         content=file_data.pdf_content,
                         workspace_id=workspace_id,
                         app_dir=sec_app_dir
                     )
-                    files_added_count += 1
+                    files_added.append(file)
                 except Exception as e:
                     print(f"Error saving PDF file for {file_data.filename_stem}: {e}")
 
-        print(f"Finished processing new SEC file data. Added {files_added_count} files to workspace.")
+        return files_added
 
 
 def _get_sub_path(path: list[str], prefix: list[str]) -> list[str]:
