@@ -32,10 +32,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 config: dict[str, object] = {}
 
-# config["workspace_path"] = "workspace/wood"
-# config["agent_cache_in_workspace"] = ".cache/agents"
-# config["fetch_cache_in_workspace"] = ".cache/fetches"
-
 config["webdriver_throttle"] = 8  # nb pulls per second
 config["webdriver_timeout"] = 10  # nb of seconds
 config["obb_refetch_interval"] = 60  # minutes before refetching the same ticker
@@ -66,7 +62,6 @@ config["pdf_page_settings"] = {
 
 
 class WebLoader:
-    """Base class for simple web loaders."""
 
     def __init__(self) -> None:
         pass
@@ -79,7 +74,6 @@ class WebLoader:
     
 
 class SeleniumWebLoader(WebLoader):
-    """Retrieve web content using Selenium."""
 
     def __init__(self) -> None:
         chrome_options = Options()
@@ -127,7 +121,6 @@ class SeleniumWebLoader(WebLoader):
 
 
 class RequestWebLoader(WebLoader):
-    """Simple requests based loader."""
 
     def __init__(self) -> None:
         pass
@@ -147,7 +140,6 @@ class RequestWebLoader(WebLoader):
 
 
 class OpenBBFilingsLoader:
-    """Load filings from OpenBB with basic caching."""
 
     def __init__(self) -> None:
         self.config = config
@@ -162,7 +154,6 @@ class OpenBBFilingsLoader:
 
     # TODO: could add start and end dates
     def _fetch(self, ticker: str) -> pl.DataFrame:
-        """Fetches the latest filings data from OpenBB."""
         print(f"OpenBBFilingsLoader: Fetching fresh data for {ticker}")
         out = obb.equity.fundamental.filings(
             ticker,
@@ -206,9 +197,6 @@ class OpenBBFilingsLoader:
 
     # TODO: revert caching to reduce calls to OpenBB
     def get(self, ticker: str) -> pl.DataFrame:
-        """
-        Gets SEC filings data from OpenBB by fetching fresh data every time.
-        """
         return self._fetch(ticker)
 
     def __del__(self) -> None:
@@ -231,7 +219,7 @@ class WebFileData:
 
 
 class SecSourceLoader:
-    """Download filings from the SEC website."""
+    """Download filings through OpenBloomberg."""
 
     def __init__(self) -> None:
         self.config = config
@@ -241,7 +229,6 @@ class SecSourceLoader:
 
 
     def _fetch(self, url: str) -> tuple[str | bytes, bytes | None]:
-        """Fetches the source and PDF content for a given URL."""
         try:
             self.selenium_loader.load(url)
             # source = self.selenium_loader.get_source()
@@ -256,20 +243,14 @@ class SecSourceLoader:
 
 
     def get_new_files_to_fetch(self, ticker: str, existing_file_names: List[str]) -> Iterator[WebFileData]:
-        """
-        Retrieves SEC filing metadata for the given ticker, filters out
-        filings that already exist based on provided stems, fetches content
-        for the new filings, and yields it as an iterator.
-        """
         files_metadata = self.obb_loader.get(ticker)
-        # Filter out filings that already exist in FileStore
         files_to_fetch_df = files_metadata.filter(
             ~pl.col("filename_stem").is_in(existing_file_names)
         )
         print(f"SecSourceLoader: Found {len(files_to_fetch_df)} new filings to fetch.")
 
         if files_to_fetch_df.is_empty():
-            return # Yield nothing if no new files
+            return
 
         for row in files_to_fetch_df.to_dicts():
             file_name_no_ext = row["filename_stem"]
@@ -289,7 +270,6 @@ class SecSourceLoader:
 
     def __del__(self) -> None:
         print("SecSourceLoader: Cleaning up resources.")
-        # Ensure WebLoaders are cleaned up when SecSourceLoader is garbage collected
         if hasattr(self, 'selenium_loader') and self.selenium_loader:
             try:
                 del self.selenium_loader
