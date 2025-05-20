@@ -86,7 +86,7 @@ const PdfViewer = ({ file }: PdfViewerProps) => {
 
     if (file) {
       fileService
-        .getFileData(file)
+        .readFileFromLocalFileSystem(file)
         .then((data) => {
           if (!isMounted) return;
           const blob = new Blob([data], { type: "application/pdf" });

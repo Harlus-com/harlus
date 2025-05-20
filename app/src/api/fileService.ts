@@ -30,10 +30,11 @@ class FileService {
     );
   }
 
-  getFileData(file: WorkspaceFile): Promise<ArrayBuffer> {
-    return client.getBuffer(
-      `/file/handle?fileId=${file.id}&workspaceId=${file.workspaceId}`
-    );
+  readFileFromLocalFileSystem(file: WorkspaceFile): Promise<ArrayBuffer> {
+    if (!window.electron) {
+      throw new Error("Electron is not available");
+    }
+    return window.electron.getFileContent(file.absolutePath);
   }
 
   async runContrastAnalysis(
