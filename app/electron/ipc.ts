@@ -10,7 +10,7 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
   const { mainWindow, baseUrl, httpsAgent, httpsDispatcher, eventSources } =
     electronAppState;
 
-  // Handle file opening dialog
+  // TODO: Clean this up we're not using it
   ipcMain.handle("open-file-dialog", async () => {
     const { filePaths } = await dialog.showOpenDialog(mainWindow, {
       properties: ["openFile", "multiSelections"],
@@ -20,7 +20,6 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
     return filePaths;
   });
 
-  // Get file stats
   ipcMain.handle("get-file-stats", async (_, filePath) => {
     try {
       const stats = await fs.promises.stat(filePath);
@@ -39,7 +38,6 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
     }
   });
 
-  // Get file content
   ipcMain.handle("get-file-content", async (_, filePath) => {
     try {
       console.log("getting file content", filePath);
@@ -51,7 +49,6 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
     }
   });
 
-  // Server API handlers
   ipcMain.handle("server-get", async (_, path: string, authHeader: string) => {
     const url = `${baseUrl}${path}`;
     const response = await axios.get(url, {
@@ -121,6 +118,7 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
   ipcMain.handle("get-base-url", () => {
     return baseUrl;
   });
+
   ipcMain.handle("add-event-listener", async (_, eventSourceId, eventName) => {
     const eventSource = eventSources.get(eventSourceId);
     if (eventSource) {

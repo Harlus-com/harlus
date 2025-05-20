@@ -18,7 +18,7 @@ export class Uploader {
       const allFilePaths = await this.walk(filePath);
       for (const p of allFilePaths) {
         const relativeDir = path.relative(filePath, p).split(path.sep);
-        const fileName = relativeDir.pop(); // Remove the file name
+        const fileName = relativeDir.pop();
         if (!fileName || fileName.startsWith(".")) {
           continue;
         }
