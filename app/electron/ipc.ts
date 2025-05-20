@@ -5,6 +5,7 @@ import axios from "axios";
 import { EventSource } from "eventsource";
 import { ElectronAppState } from "./electron_types";
 import { Uploader } from "./upload";
+import { getLocalFiles, getLocalFolders } from "./local_file_system";
 
 export function setupIpcHandlers(electronAppState: ElectronAppState) {
   const { mainWindow, baseUrl, httpsAgent, httpsDispatcher, eventSources } =
@@ -150,5 +151,13 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
       eventSource.close();
       eventSources.delete(eventSourceId);
     }
+  });
+
+  ipcMain.handle("get-local-files", async (_, localDir: string) => {
+    return getLocalFiles(localDir);
+  });
+
+  ipcMain.handle("get-local-folders", async (_, localDir: string) => {
+    return getLocalFolders(localDir);
   });
 }

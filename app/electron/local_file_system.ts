@@ -38,6 +38,10 @@ export async function getLocalFiles(localDir: string): Promise<LocalFile[]> {
   const allFilePaths = await walkFiles(localDir);
 
   for (const filePath of allFilePaths) {
+    const fileName = path.basename(filePath);
+    if (fileName.startsWith(".")) {
+      continue;
+    }
     const content = await fs.readFile(filePath);
     const contentHash = crypto
       .createHash("sha256")
@@ -49,7 +53,7 @@ export async function getLocalFiles(localDir: string): Promise<LocalFile[]> {
       contentHash,
       absolutePath: filePath,
       pathRelativeToWorkspace: relativePath,
-      name: path.basename(filePath),
+      name: fileName,
     });
   }
 
@@ -63,8 +67,11 @@ export async function getLocalFolders(
   const allFolderPaths = await walkFolders(localDir, localDir);
 
   for (const folderPath of allFolderPaths) {
+    const folderName = path.basename(folderPath);
+    if (folderName.startsWith(".")) {
+      continue;
+    }
     const relativePath = path.relative(localDir, folderPath).split(path.sep);
-
     folders.push({
       absolutePath: folderPath,
       pathRelativeToWorkspace: relativePath,

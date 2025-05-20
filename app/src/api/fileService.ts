@@ -10,6 +10,7 @@ class FileService {
   }
 
   async getFiles(workspace: Workspace): Promise<WorkspaceFile[]> {
+    console.log("Getting files for workspace", workspace.id);
     if (!window.electron) {
       throw new Error("Electron is not available");
     }
@@ -75,6 +76,7 @@ class FileService {
   }
 
   async getFolders(workspace: Workspace): Promise<WorkspaceFolder[]> {
+    console.log("Getting folders for workspace", workspace.id);
     if (!window.electron) {
       throw new Error("Electron is not available");
     }

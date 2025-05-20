@@ -2,11 +2,13 @@ import { modelService } from "@/api/model_service";
 import { fileService } from "@/api/fileService";
 import {
   SyncStatus,
+  Workspace,
   WorkspaceFile,
   WorkspaceFolder,
 } from "@/api/workspace_types";
 import { createContext, useContext, useEffect, useState } from "react";
 import { FileStatusManager } from "./file_status_manager";
+import { workspaceService } from "@/api/workspaceService";
 
 interface FileContextType {
   getFiles: () => WorkspaceFile[];
@@ -39,6 +41,7 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
 }) => {
   const [files, setFiles] = useState<WorkspaceFile[]>([]);
   const [folders, setFolders] = useState<WorkspaceFolder[]>([]);
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [fileSyncStatuses, setFileSyncStatuses] = useState<
     Record<string, SyncStatus>
   >({});
@@ -52,10 +55,17 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
   });
   const loadFiles = async () => {
     console.log("[FileContext] loadFiles", workspaceId);
-    const files = await fileService.getFiles(workspaceId);
-    const folders = await fileService.getFolders(workspaceId);
+    const resolvedWorkspace =
+      workspace ?? (await workspaceService.getWorkspace(workspaceId));
+    if (!workspace) {
+      setWorkspace(resolvedWorkspace);
+    }
+    console.log("RESOLVED WORKSPACE", resolvedWorkspace);
+    const files = await fileService.getFiles(resolvedWorkspace);
+    const folders = await fileService.getFolders(resolvedWorkspace);
     setFiles(files);
     setFolders(folders);
+    setWorkspace(workspace);
   };
 
   useEffect(() => {
