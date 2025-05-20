@@ -8,9 +8,10 @@ class WorkspaceService {
     return client.get("/workspace/all");
   }
 
-  async createWorkspace(name: string, files: FileStats[]): Promise<Workspace> {
+  async createWorkspace(name: string, localDir: string): Promise<Workspace> {
     const workspace = await client.post("/workspace/create", {
       name,
+      localDir,
     });
     return workspace;
   }

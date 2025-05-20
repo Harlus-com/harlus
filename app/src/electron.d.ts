@@ -45,6 +45,8 @@ interface ElectronAPI {
   watchWorkspace: (workspacePath: string) => void;
   unwatchWorkspace: (workspacePath: string) => void;
   onLocalFileSystemChange: (callback: (event: any) => void) => void;
+  openFileDialog: () => Promise<string[]>;
+  openDirectoryDialog: () => Promise<string | null>;
 }
 
 declare interface Window {

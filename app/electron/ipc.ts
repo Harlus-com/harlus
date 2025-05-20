@@ -15,7 +15,6 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
   const { mainWindow, baseUrl, httpsAgent, httpsDispatcher, eventSources } =
     electronAppState;
 
-  // TODO: Clean this up we're not using it
   ipcMain.handle("open-file-dialog", async () => {
     const { filePaths } = await dialog.showOpenDialog(mainWindow, {
       properties: ["openFile", "multiSelections"],
@@ -23,6 +22,14 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
     });
 
     return filePaths;
+  });
+
+  ipcMain.handle("open-directory-dialog", async () => {
+    const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+      properties: ["openDirectory"],
+    });
+
+    return filePaths[0] || null;
   });
 
   ipcMain.handle("get-file-stats", async (_, filePath) => {

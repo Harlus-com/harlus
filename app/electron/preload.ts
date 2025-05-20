@@ -4,6 +4,7 @@ console.log("PRELOAD");
 
 contextBridge.exposeInMainWorld("electron", {
   openFileDialog: () => ipcRenderer.invoke("open-file-dialog"),
+  openDirectoryDialog: () => ipcRenderer.invoke("open-directory-dialog"),
   getFileContent: (filePath: string) =>
     ipcRenderer.invoke("get-file-content", filePath),
   getFileStats: (filePath: string) =>
