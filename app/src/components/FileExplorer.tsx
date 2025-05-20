@@ -541,7 +541,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
             <div className="pl-1 mt-1 space-y-1">
               {files.length === 0 ? (
                 <div className="text-muted-foreground text-sm italic p-2">
-                  No files yet. Drag and drop PDFs here.
+                  No files yet.
                 </div>
               ) : (
                 renderFolder(folderTree)
@@ -552,7 +552,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
 
         <div className="p-3 border-t border-border">
           <div className="text-xs text-muted-foreground">
-            Drag PDF files here to analyze
+            {getFileFolderText(files.length, folders.length)}
           </div>
         </div>
       </div>
@@ -583,5 +583,26 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     </>
   );
 };
+
+function getFileFolderText(fileCount: number, folderCount: number) {
+  let fileText = "";
+  if (fileCount > 0) {
+    fileText = `${fileCount} ${fileCount === 1 ? "file" : "files"}`;
+  }
+  let folderText = "";
+  if (folderCount > 0) {
+    folderText = `${folderCount} ${folderCount === 1 ? "folder" : "folders"}`;
+  }
+  if (fileText && folderText) {
+    return `${fileText}, ${folderText}`;
+  }
+  if (fileText) {
+    return fileText;
+  }
+  if (folderText) {
+    return folderText;
+  }
+  return "No files or folders";
+}
 
 export default FileExplorer;

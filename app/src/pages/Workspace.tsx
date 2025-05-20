@@ -12,7 +12,6 @@ import { Panel, PanelGroup } from "react-resizable-panels";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChatThreadProvider } from "@/chat/ChatThreadContext";
 import { FileContextProvider } from "@/files/FileContext";
-import { FileDragAndDropOverlay } from "@/files/FileDragAndDropOverlay";
 import { FileViewContextProvider } from "@/files/FileViewContext";
 
 // The default sizes scale relative to each other.
@@ -81,41 +80,39 @@ export default function Workspace() {
                 direction="horizontal"
                 className="flex-1"
               >
-                <FileDragAndDropOverlay workspaceId={workspaceId!}>
-                  {visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER) && (
-                    <Panel
-                      id={FILE_EXPLORER.id}
-                      order={1}
-                      defaultSize={FILE_EXPLORER.defaultSize}
-                      minSize={FILE_EXPLORER.minSize}
-                      className="bg-blue-50 h-full w-auto"
-                    >
-                      <FileExplorer workspaceId={workspaceId!} />
-                    </Panel>
-                  )}
-                  <PanelDivider />
+                {visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER) && (
                   <Panel
-                    id={FILE_VIEWER.id}
-                    order={2}
-                    defaultSize={FILE_VIEWER.defaultSize}
-                    minSize={FILE_VIEWER.minSize}
+                    id={FILE_EXPLORER.id}
+                    order={1}
+                    defaultSize={FILE_EXPLORER.defaultSize}
+                    minSize={FILE_EXPLORER.minSize}
+                    className="bg-blue-50 h-full w-auto"
                   >
-                    <FileView />
+                    <FileExplorer workspaceId={workspaceId!} />
                   </Panel>
-                  {visiblePanels.includes(TopLevelPanelId.CHAT) && (
-                    <PanelDivider />
-                  )}
-                  {visiblePanels.includes(TopLevelPanelId.CHAT) && (
-                    <Panel
-                      id={CHAT.id}
-                      order={4}
-                      defaultSize={CHAT.defaultSize}
-                      minSize={CHAT.minSize}
-                    >
-                      <ChatPanel />
-                    </Panel>
-                  )}
-                </FileDragAndDropOverlay>
+                )}
+                <PanelDivider />
+                <Panel
+                  id={FILE_VIEWER.id}
+                  order={2}
+                  defaultSize={FILE_VIEWER.defaultSize}
+                  minSize={FILE_VIEWER.minSize}
+                >
+                  <FileView />
+                </Panel>
+                {visiblePanels.includes(TopLevelPanelId.CHAT) && (
+                  <PanelDivider />
+                )}
+                {visiblePanels.includes(TopLevelPanelId.CHAT) && (
+                  <Panel
+                    id={CHAT.id}
+                    order={4}
+                    defaultSize={CHAT.defaultSize}
+                    minSize={CHAT.minSize}
+                  >
+                    <ChatPanel />
+                  </Panel>
+                )}
               </PanelGroup>
             </div>
           </CommentsProvider>
