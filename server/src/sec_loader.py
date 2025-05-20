@@ -36,10 +36,6 @@ config: dict[str, object] = {}
 # config["agent_cache_in_workspace"] = ".cache/agents"
 # config["fetch_cache_in_workspace"] = ".cache/fetches"
 
-# config["dir_internal_reports"] = "internal"
-# config["dir_earnings_call"] = "earnings_call"
-# config["dir_sec_filings"] = "sec"
-
 config["webdriver_throttle"] = 8  # nb pulls per second
 config["webdriver_timeout"] = 10  # nb of seconds
 config["obb_refetch_interval"] = 60  # minutes before refetching the same ticker
@@ -57,7 +53,6 @@ config["pdf_page_settings"] = {
     "marginLeft": 0.4,
     "marginRight": 0.4,
 }
-
 
 # Default cache directory for sec_loader's internal caching (like OpenBB data)
 # This should be outside the FileStore's managed workspace directories.
@@ -338,72 +333,6 @@ class SecSourceLoader:
                 del self.obb_loader
             except Exception as e:
                 print(f"Error cleaning up OpenBB loader: {e}")
-
-    # @staticmethod
-    # def _get_extension(response: str | bytes | None) -> str:
-    #     if isinstance(response, str):
-    #         extension = "htm"
-    #     else:
-    #         if response is not None and response.startswith(b"%PDF"):
-    #             extension = "pdf"
-    #         else:
-    #             extension = "htm"
-    #     return extension
-
-    # def get_folder(self, ticker: str) -> str:
-    #     return f"{self.data_path.joinpath(ticker, self.config['dir_sec_filings'])}"
-
-    # def _save(self, target: str, content: str | bytes | None, binary: bool = False) -> None:
-    #     Path(target).parent.mkdir(parents=True, exist_ok=True)
-    #     try:
-    #         if binary:
-    #             with open(target, "wb") as f:
-    #                 if content:
-    #                     f.write(content)
-    #         else:
-    #             with open(target, "w") as f:
-    #                 if isinstance(content, bytes):
-    #                     f.write(content.decode("utf-8", errors="ignore"))
-    #                 elif content:
-    #                     f.write(content)
-    #     except Exception as e:  # pragma: no cover - thin wrapper
-    #         print(f"Error writing file {target}: {str(e)}")
-
-    # def _get_filesystem_filings_list(self, ticker: str) -> list[str]:
-    #     folder = self._get_folder(ticker)
-    #     Path(folder).mkdir(parents=True, exist_ok=True)
-    #     return [f for f in os.listdir(folder) if f.endswith(".htm")]
-
-    # def _get_online_filings_list(self, ticker: str) -> list[str]:
-    #     df = self.obb_loader.get(ticker)
-    #     return df.select("filename_stem").to_series().to_list()
-
-    # def _get_files_to_fetch(self, ticker: str) -> list[str]:
-    #     filesystem = self._get_filesystem_filings_list(ticker)
-    #     online = self._get_online_filings_list(ticker)
-    #     return [f for f in online if f not in filesystem]
-
-    # def download_files(
-    #         self, 
-    #         ticker: str,
-    #         start_date: date | None = None, 
-    #         end_date: date | None = None,
-    #     ) -> None:
-    #     target_filenames = self._get_files_to_fetch(ticker)
-    #     df = self.obb_loader.get(ticker)
-    #     df = df.filter(pl.col("filename_stem").is_in(target_filenames))
-    #     folder = self._get_folder(ticker)
-    #     for row in df.to_dicts():
-    #         print(f"SecSourceLoader: Downloading {row['filename_stem']}")
-    #         source, pdf = self._fetch(row["report_url"])
-    #         filename = row["filename_stem"]
-    #         extension = self._get_extension(source)
-    #         target_source = f"{folder}/{filename}.{extension}"
-    #         target_pdf = f"{folder}/{filename}.pdf"
-    #         self._save(target_source, source, binary=False)
-    #         self._save(target_pdf, pdf, binary=True)
-
-
 
 
 __all__ = ["OpenBBFilingsLoader", "SecSourceLoader", "SECFileData"]
