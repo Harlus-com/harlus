@@ -1,10 +1,3 @@
-"""Utilities for fetching SEC filings and web content.
-
-This module consolidates the original helpers from
-``ml/tools/file_loaders/src/harlus_file_loaders`` into a single
-location for use by the server code.
-"""
-
 from __future__ import annotations
 
 import base64
@@ -34,7 +27,6 @@ config: dict[str, object] = {}
 
 config["webdriver_throttle"] = 8  # nb pulls per second
 config["webdriver_timeout"] = 10  # nb of seconds
-config["obb_refetch_interval"] = 60  # minutes before refetching the same ticker
 
 config["sec_relevant_filings"] = {"10-Q", "10-K", "8-K", "6-K"}
 
@@ -49,11 +41,6 @@ config["pdf_page_settings"] = {
     "marginLeft": 0.4,
     "marginRight": 0.4,
 }
-
-# Default cache directory for sec_loader's internal caching (like OpenBB data)
-# This should be outside the FileStore's managed workspace directories.
-# DEFAULT_SEC_CACHE_DIR = Path(__file__).parent.parent.joinpath("cache", ".sec_cache")
-# DEFAULT_SEC_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ---------------------------------------------------------------------------
@@ -84,8 +71,6 @@ class SeleniumWebLoader(WebLoader):
             '--user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
             'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"'
         )
-        # Consider managing the driver lifecycle more explicitly if needed
-        # For now, initializing here.
         self.driver = webdriver.Chrome(options=chrome_options)
         self.config = config
         super().__init__()
@@ -97,7 +82,7 @@ class SeleniumWebLoader(WebLoader):
                 EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
             sleep(1 / self.config["webdriver_throttle"])
-        except Exception as e:  # pragma: no cover - thin wrapper
+        except Exception as e:
             raise Exception(f"SeleniumWebLoader: Error accessing {url}: {str(e)}")
 
     def get_source(self) -> str:
@@ -110,28 +95,12 @@ class SeleniumWebLoader(WebLoader):
         return out
 
     def __del__(self) -> None:
-        # Check if driver is still active before quitting
         try:
-            # Ensure the driver is not None before quitting
             if self.driver:
                 self.driver.quit()
-                self.driver = None # Set to None after quitting
+                self.driver = None
         except Exception as e:
             print(f"Error quitting Selenium driver: {e}")
-
-
-class RequestWebLoader(WebLoader):
-
-    def __init__(self) -> None:
-        pass
-
-    def fetch(self, url: str) -> bytes:
-        out = requests.get(url).content
-        return out
-    
-    def __del__(self) -> None:
-        print("RequestWebLoader: Cleaning up resources.")
-        # Doesn't have specific cleanup, but a __del__ can be added for consistency or logging
 
 
 # ---------------------------------------------------------------------------
@@ -143,9 +112,6 @@ class OpenBBFilingsLoader:
 
     def __init__(self) -> None:
         self.config = config
-        # Ensure OpenBB is logged in - this might need to be handled externally
-        # or within a dedicated OpenBB setup function if credentials change.
-        # For now, keeping it here as per original code structure.
         try:
             obb.account.login(pat=os.getenv("OPENBB_PAT"))
             obb.user.credentials.fmp_api_key = os.getenv("FMP_API_KEY")
@@ -177,24 +143,6 @@ class OpenBBFilingsLoader:
         print(f"OpenBBFilingsLoader: Successfully fetched data for {ticker}")
         return out
 
-    # def _get_cache_folder(self, ticker: str) -> Path:
-    #     # Use the default SEC cache directory for OpenBB data caching
-    #     return DEFAULT_SEC_CACHE_DIR.joinpath(ticker, self.config['fetch_cache_in_workspace'])
-
-    # @staticmethod
-    # def _get_fetch_datetime_from_df_filename(filename: str) -> datetime:
-    #     # Assuming filename format isYYYYMMDDHHMM_ticker_sec_filings.parquet
-    #     try:
-    #         datetime_str = filename.split("_")[0]
-    #         return datetime.strptime(datetime_str, "%Y%m%d%H%M")
-    #     except (ValueError, IndexError) as e:
-    #         print(f"Warning: Could not parse datetime from filename {filename}: {e}")
-    #         # Return a very old datetime to ensure refetch
-    #         return datetime.min
-
-    # def _get_df_filename(self, ticker: str) -> str:
-    #     return f"{datetime.now().strftime('%Y%m%d%H%M')}_{ticker}_sec_filings"
-
     # TODO: revert caching to reduce calls to OpenBB
     def get(self, ticker: str) -> pl.DataFrame:
         return self._fetch(ticker)
@@ -224,7 +172,6 @@ class SecSourceLoader:
     def __init__(self) -> None:
         self.config = config
         self.selenium_loader = SeleniumWebLoader()
-        self.request_loader = RequestWebLoader()
         self.obb_loader = OpenBBFilingsLoader()
 
 
@@ -275,12 +222,6 @@ class SecSourceLoader:
                 del self.selenium_loader
             except Exception as e:
                 print(f"Error cleaning up Selenium loader: {e}")
-
-        if hasattr(self, 'request_loader') and self.request_loader:
-            try:
-                del self.request_loader
-            except Exception as e:
-                print(f"Error cleaning up Request loader: {e}")
 
         if hasattr(self, 'obb_loader') and self.obb_loader:
             try:

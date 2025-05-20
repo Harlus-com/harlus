@@ -472,11 +472,6 @@ async def upload_file(
 
 @api_router.post("/workspace/download_sec_data")
 async def download_sec_data(workspace_id: str = Query(..., alias="workspaceId")):
-    """
-    Fetches new SEC filings for the specified workspace's ticker
-    and saves them to the workspace.
-    """
-    
     files = file_store.download_sec_files(workspace_id)
     for file in files:
         await sync_queue.queue_model_sync(file)
