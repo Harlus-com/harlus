@@ -25,7 +25,7 @@ Return the driver tree as a **flat JSON list**. Each item must include:
 
 - `"label"`: Driver ID (e.g., "#D-1", "#D-1-1", "#D-1-1-2"). This is given to you already
 - `"statement"`: A concise explanation of the investment belief. This is given to you already.
-- `"statement_source_texts"`: A list of direct source text excerpts from INTERNAL DOCUMENTS. This is your job, they should be EXACT COPIES of the text you saw.
+- `"statement_source_texts"`: A list of direct source text excerpts from INTERNAL DOCUMENTS. This is your job, they should be EXACT COPIES of the text you saw. Please make sure they are long enough while still being concise.
 
 ==== Example ====
 ```json

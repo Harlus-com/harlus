@@ -55,10 +55,10 @@ def _get_bounding_boxes_from_node(
             if bbox_in is not None:
                 bbox_out = BoundingBox(
                     left=bbox_in["l"] / page_width * 100,
-                    top=bbox_in["t"] / page_height * 100,
+                    top=(page_height - bbox_in["t"]) / page_height * 100,
                     width=(bbox_in["r"] - bbox_in["l"]) / page_width * 100,
                     height=(bbox_in["t"] - bbox_in["b"]) / page_height * 100,
-                    page=page_nb,
+                    page=page_nb-1,
                 )
                 bounding_boxes.append(bbox_out)
     return bounding_boxes
