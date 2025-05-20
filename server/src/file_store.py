@@ -6,7 +6,6 @@ import tempfile
 from typing import Union, Iterator
 import uuid
 from pydantic import BaseModel, ConfigDict, Field
-from src.file_util import get_flat_folder_hierarchy
 from src.util import get_content_hash, normalize_underscores, snake_to_camel, clean_name
 
 from src.sec_loader import SecSourceLoader, WebFileData
@@ -41,21 +40,6 @@ class File(BaseModel):
     )
 
 
-class Folder(BaseModel):
-    """Folder in the workspace"""
-
-    """
-    Has duel purpose as key and as a folder name in the workspace
-    For example, if the folder is "reports/earnings", the app_dir is ["reports", "earnings"]
-    """
-    app_dir: list[str] = Field(default=[], alias="appDir")
-    """Convenience field for the folder name in the workspace (will allways be the last element of the app_dir)"""
-    name: str
-    workspace_id: str
-
-    model_config = ConfigDict(frozen=True, populate_by_name=True)
-
-
 class FileStore:
     def __init__(self, app_data_path: Path):
         print("Initializing FileStore with app_data_path", app_data_path)
@@ -72,9 +56,6 @@ class FileStore:
                     os.makedirs(workspace_path, exist_ok=True)
                     if not os.path.exists(workspace_path.joinpath("files.json")):
                         with open(workspace_path.joinpath("files.json"), "w") as f:
-                            json.dump([], f, indent=2)
-                    if not os.path.exists(workspace_path.joinpath("folders.json")):
-                        with open(workspace_path.joinpath("folders.json"), "w") as f:
                             json.dump([], f, indent=2)
 
     def get_file(self, file_id: str, workspace_id: str | None = None) -> File:
@@ -136,11 +117,6 @@ class FileStore:
             json.dump([w.model_dump() for w in updated_workspaces], f, indent=2)
         return True
 
-    def get_folders(self, workspace_id: str) -> list[Folder]:
-        workspace = self.get_workspaces()[workspace_id]
-        with self._open(workspace, "folders.json", "r") as f:
-            return [Folder.model_validate(folder) for folder in json.load(f)]
-
     def create_workspace(self, name: str, local_dir: str) -> Workspace:
         workspaces = self.get_workspaces().values()
         for workspace in workspaces:
@@ -163,10 +139,6 @@ class FileStore:
         os.makedirs(self.app_data_path.joinpath(workspace.dir_name), exist_ok=True)
         with open(
             self.app_data_path.joinpath(workspace.dir_name, "files.json"), "w"
-        ) as f:
-            json.dump([], f, indent=2)
-        with open(
-            self.app_data_path.joinpath(workspace.dir_name, "folders.json"), "w"
         ) as f:
             json.dump([], f, indent=2)
         self._add_workspace(workspace)
@@ -215,24 +187,6 @@ class FileStore:
         self._add_file(file)
         return file
 
-    def add_folder(self, app_dir: list[str], workspace_id: str):
-        if len(app_dir) == 0:
-            raise ValueError("App dir cannot be empty")
-        folder = Folder(
-            app_dir=app_dir,
-            name=app_dir[-1],
-            workspace_id=workspace_id,
-        )
-        workspace = self.get_workspaces()[workspace_id]
-        current_folders = self.get_folders(workspace_id)
-        if folder in current_folders:
-            return
-        new_folders = [folder.model_dump() for folder in current_folders] + [
-            folder.model_dump()
-        ]
-        with self._open(workspace, "folders.json", "w") as f:
-            json.dump(new_folders, f, indent=2)
-
     def _add_file(self, file: File):
         workspace = self.get_workspaces()[file.workspace_id]
         current_files = self.get_files(file.workspace_id).values()
@@ -268,32 +222,6 @@ class FileStore:
                 return file
         return None
 
-    def copy_folder_to_workspace(self, path: str, workspace_id: str) -> Folder:
-        flat_folder_hierarchy = get_flat_folder_hierarchy(path)
-        if flat_folder_hierarchy.max_depth > 10:
-            raise ValueError(
-                f"Folder {path} is too deep, max depth is 10, current depth is {flat_folder_hierarchy.max_depth}"
-            )
-        folder_count = len(flat_folder_hierarchy.folders)
-        file_count = len(flat_folder_hierarchy.file_to_folder)
-        if file_count > 10000:
-            raise ValueError(
-                f"Folder {path} has too many files, max is 10,000, current is {file_count}"
-            )
-        if folder_count > 1000:
-            raise ValueError(
-                f"Folder {path} has too many folders, max is 1,000, current is {folder_count}"
-            )
-        for folder in flat_folder_hierarchy.folders:
-            app_dir = folder.split(os.sep)
-            self.add_folder(app_dir, workspace_id)
-
-    def _folder_exists(self, app_dir: list[str], workspace_id: str) -> bool:
-        matching_folder = [
-            f for f in self.get_folders(workspace_id) if f.app_dir == app_dir
-        ]
-        return len(matching_folder) > 0
-
     def _open(
         self,
         workspace_or_workspace_id: Union[Workspace, str],
@@ -315,42 +243,10 @@ class FileStore:
             files = [File.model_validate(file) for file in json.load(f)]
         return {file.absolute_path: file.id for file in files}
 
-    def delete_folder(self, workspace_id: str, app_dir: list[str]) -> bool:
-        all_file_children = self._get_all_file_children(workspace_id, app_dir)
-        all_folder_children = self._get_all_folder_children(workspace_id, app_dir)
-        for file in all_file_children:
-            self.delete_file(file.id, workspace_id)
-        for folder in all_folder_children:
-            self._delete_folder_internal(workspace_id, folder.app_dir)
-
-    def _delete_folder_internal(self, workspace_id: str, app_dir: list[str]) -> bool:
-        folders = self.get_folders(workspace_id)
-        new_folders = [
-            folder for folder in folders if not _is_equal_path(folder.app_dir, app_dir)
-        ]
-        with self._open(workspace_id, "folders.json", "w") as f:
-            json.dump([folder.model_dump() for folder in new_folders], f, indent=2)
-
     def _get_all_file_children(
         self, workspace_id: str, app_dir: list[str]
     ) -> list[File]:
         return []
-
-    def _get_all_folder_children(
-        self, workspace_id: str, app_dir: list[str]
-    ) -> list[Folder]:
-        folders = self.get_folders(workspace_id)
-        return [folder for folder in folders if _is_sub_path(folder.app_dir, app_dir)]
-
-    def move_folder(
-        self, workspace_id: str, app_dir: list[str], new_parent_dir: list[str]
-    ) -> bool:
-        all_file_children = self._get_all_file_children(workspace_id, app_dir)
-        all_folder_children = self._get_all_folder_children(workspace_id, app_dir)
-        for file in all_file_children:
-            self._change_file_path_prefix(file, app_dir, new_parent_dir)
-        for folder in all_folder_children:
-            self._change_folder_path_prefix(folder, app_dir, new_parent_dir)
 
     def _change_file_path_prefix(
         self, file: File, old_prefix: list[str], new_prefix: list[str]
@@ -362,35 +258,6 @@ class FileStore:
         files[file.id] = file
         with self._open(file.workspace_id, "files.json", "w") as f:
             json.dump([file.model_dump() for file in files.values()], f, indent=2)
-
-    def _change_folder_path_prefix(
-        self, folder: Folder, old_prefix: list[str], new_prefix: list[str]
-    ) -> None:
-        sub_path = _get_sub_path(folder.app_dir, old_prefix)
-        new_app_dir = [*new_prefix, *sub_path]
-        new_folder = Folder(
-            app_dir=new_app_dir,
-            name=new_app_dir[-1],
-            workspace_id=folder.workspace_id,
-        )
-        new_folders = self._replace_folder(new_folder, folder.app_dir)
-        with self._open(folder.workspace_id, "folders.json", "w") as f:
-            json.dump([folder.model_dump() for folder in new_folders], f, indent=2)
-
-    def _replace_folder(self, folder: Folder, old_app_dir: list[str]) -> list[Folder]:
-        new_folders = []
-        for f in self.get_folders(folder.workspace_id):
-            if _is_equal_path(f.app_dir, old_app_dir):
-                new_folders.append(folder)
-            else:
-                new_folders.append(f)
-        return new_folders
-
-    def rename_folder(
-        self, workspace_id: str, app_dir: list[str], new_name: str
-    ) -> bool:
-        new_app_dir = [*app_dir[:-1], new_name]
-        self.move_folder(workspace_id, app_dir, new_app_dir)
 
     def move_file(
         self, workspace_id: str, file_id: str, new_parent_dir: list[str]
@@ -414,18 +281,11 @@ class FileStore:
         print(f"Fetching SEC files for ticker: {ticker} in workspace: {workspace.name}")
 
         reports_dir = ["reports"]  # TODO: move to some config file
-        self.add_folder(reports_dir, workspace_id)
-
-        existing_files = self._get_all_file_children(workspace_id, reports_dir)
-        existing_file_names = [f.name for f in existing_files]
-        print(
-            f"Found {len(existing_file_names)} existing SEC filing stems in workspace {workspace.name}."
-        )
 
         sec_loader = SecSourceLoader()
-        # TODO: be more robust: check against existing file metada not just file name
+        # TODO: be more robust: check against existing downloaded files
         new_file_data_iterator: Iterator[WebFileData] = (
-            sec_loader.get_new_files_to_fetch(ticker, existing_file_names)
+            sec_loader.get_new_files_to_fetch(ticker, [])
         )
         print(f"Initiating content fetch for new filings using SecSourceLoader...")
 
@@ -444,27 +304,3 @@ class FileStore:
             files_added.append(file)
 
         return files_added
-
-
-def _get_sub_path(path: list[str], prefix: list[str]) -> list[str]:
-    if not _is_sub_path(path, prefix):
-        raise ValueError(f"Path {path} is not a subpath of {prefix}")
-    return path[len(prefix) :]
-
-
-def _is_equal_path(path: list[str], prefix: list[str]) -> bool:
-    if len(path) != len(prefix):
-        return False
-    for i in range(len(prefix)):
-        if path[i] != prefix[i]:
-            return False
-    return True
-
-
-def _is_sub_path(path: list[str], prefix: list[str]) -> bool:
-    if len(path) < len(prefix):
-        return False
-    for i in range(len(prefix)):
-        if path[i] != prefix[i]:
-            return False
-    return True

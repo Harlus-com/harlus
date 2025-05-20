@@ -58,7 +58,7 @@ class WebLoader:
 
     def get(self, url: str):
         raise NotImplementedError
-    
+
 
 class SeleniumWebLoader(WebLoader):
 
@@ -90,7 +90,9 @@ class SeleniumWebLoader(WebLoader):
         return out
 
     def get_pdf(self) -> bytes:
-        tmp = self.driver.execute_cdp_cmd("Page.printToPDF", config["pdf_page_settings"])
+        tmp = self.driver.execute_cdp_cmd(
+            "Page.printToPDF", config["pdf_page_settings"]
+        )
         out = base64.b64decode(tmp["data"])
         return out
 
@@ -124,8 +126,8 @@ class OpenBBFilingsLoader:
         out = obb.equity.fundamental.filings(
             ticker,
             provider="fmp",
-            limit=10, # Limit to 10 as in original code, adjust if needed
-            ).to_polars()
+            limit=10,  # Limit to 10 as in original code, adjust if needed
+        ).to_polars()
         out = out.with_columns(
             (
                 pl.col("filing_date").dt.strftime("%Y%m%d")
@@ -136,10 +138,16 @@ class OpenBBFilingsLoader:
                 + "_"
                 + pl.col("symbol")
                 + "_"
-                + pl.col("report_type").str.replace_all(" ", "_").str.replace_all("/", "_")
+                + pl.col("report_type")
+                .str.replace_all(" ", "_")
+                .str.replace_all("/", "_")
             ).alias("filename_stem")
         )
-        out = out.filter(pl.col("report_type").str.contains("|".join(self.config["sec_relevant_filings"])))
+        out = out.filter(
+            pl.col("report_type").str.contains(
+                "|".join(self.config["sec_relevant_filings"])
+            )
+        )
         print(f"OpenBBFilingsLoader: Successfully fetched data for {ticker}")
         return out
 
@@ -148,7 +156,9 @@ class OpenBBFilingsLoader:
         return self._fetch(ticker)
 
     def __del__(self) -> None:
-        print("OpenBBFilingsLoader: Cleaning up resources (placeholder for cache cleanup).")
+        print(
+            "OpenBBFilingsLoader: Cleaning up resources (placeholder for cache cleanup)."
+        )
         # Placeholder for future cache cleanup logic
 
 
@@ -156,8 +166,11 @@ class OpenBBFilingsLoader:
 # SEC source loader
 # ---------------------------------------------------------------------------
 
+
 class WebFileData:
-    def __init__(self, file_name_no_ext: str, report_url: str, pdf_content: bytes | None):
+    def __init__(
+        self, file_name_no_ext: str, report_url: str, pdf_content: bytes | None
+    ):
         self.file_name_no_ext = file_name_no_ext
         self.report_url = report_url
         self.pdf_content = pdf_content
@@ -174,7 +187,6 @@ class SecSourceLoader:
         self.selenium_loader = SeleniumWebLoader()
         self.obb_loader = OpenBBFilingsLoader()
 
-
     def _fetch(self, url: str) -> tuple[str | bytes, bytes | None]:
         try:
             self.selenium_loader.load(url)
@@ -188,12 +200,8 @@ class SecSourceLoader:
 
         return pdf
 
-
-    def get_new_files_to_fetch(self, ticker: str, existing_file_names: List[str]) -> Iterator[WebFileData]:
-        files_metadata = self.obb_loader.get(ticker)
-        files_to_fetch_df = files_metadata.filter(
-            ~pl.col("filename_stem").is_in(existing_file_names)
-        )
+    def get_new_files_to_fetch(self, ticker: str) -> Iterator[WebFileData]:
+        files_to_fetch_df = self.obb_loader.get(ticker)
         print(f"SecSourceLoader: Found {len(files_to_fetch_df)} new filings to fetch.")
 
         if files_to_fetch_df.is_empty():
@@ -202,28 +210,31 @@ class SecSourceLoader:
         for row in files_to_fetch_df.to_dicts():
             file_name_no_ext = row["filename_stem"]
             report_url = row["report_url"]
-            print(f"SecSourceLoader: Fetching content for {file_name_no_ext} from {report_url}")
+            print(
+                f"SecSourceLoader: Fetching content for {file_name_no_ext} from {report_url}"
+            )
             pdf = self._fetch(report_url)
 
             if pdf is not None:
-                 yield WebFileData(
-                     file_name_no_ext=file_name_no_ext,
-                     report_url=report_url,
-                     pdf_content=pdf,
-                 )
+                yield WebFileData(
+                    file_name_no_ext=file_name_no_ext,
+                    report_url=report_url,
+                    pdf_content=pdf,
+                )
             else:
-                 print(f"Warning: Could not fetch content for {file_name_no_ext} from {report_url}")
-
+                print(
+                    f"Warning: Could not fetch content for {file_name_no_ext} from {report_url}"
+                )
 
     def __del__(self) -> None:
         print("SecSourceLoader: Cleaning up resources.")
-        if hasattr(self, 'selenium_loader') and self.selenium_loader:
+        if hasattr(self, "selenium_loader") and self.selenium_loader:
             try:
                 del self.selenium_loader
             except Exception as e:
                 print(f"Error cleaning up Selenium loader: {e}")
 
-        if hasattr(self, 'obb_loader') and self.obb_loader:
+        if hasattr(self, "obb_loader") and self.obb_loader:
             try:
                 del self.obb_loader
             except Exception as e:
