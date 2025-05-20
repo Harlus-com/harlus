@@ -3,7 +3,6 @@ import path from "path";
 import crypto from "crypto";
 import { LocalFile, LocalFolder } from "./electron_types";
 import chokidar, { FSWatcher } from "chokidar";
-import { ipcMain } from "electron";
 
 export async function walkFiles(dir: string): Promise<string[]> {
   let results: string[] = [];

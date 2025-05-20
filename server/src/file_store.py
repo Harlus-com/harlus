@@ -7,7 +7,7 @@ from typing import Union, Iterator
 import uuid
 from pydantic import BaseModel, ConfigDict, Field
 from src.file_util import get_flat_folder_hierarchy
-from src.util import snake_to_camel, clean_name
+from src.util import get_content_hash, normalize_underscores, snake_to_camel, clean_name
 
 from src.sec_loader import SecSourceLoader, WebFileData
 
@@ -31,7 +31,6 @@ class File(BaseModel):
     name: str
     absolute_path: str = Field(alias="absolutePath")
     workspace_id: str = Field(alias="workspaceId")
-    app_dir: list[str] = Field(default=[], alias="appDir")
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -180,30 +179,21 @@ class FileStore:
         with open(self.app_data_path.joinpath("workspaces.json"), "w") as f:
             json.dump(new_workspaces, f, indent=2)
 
+    def _get_file_dir_name(self, path: str, app_dir: list[str]) -> str:
+        content_hash = get_content_hash(path)
+        file_name = normalize_underscores(clean_name(os.path.basename(path)))
+        path_prefix = normalize_underscores("_".join(app_dir))
+        if not path_prefix:
+            return f"{file_name}__{content_hash}"
+        else:
+            return f"{path_prefix}__{file_name}__{content_hash}"
+
     def copy_file_to_workspace(
         self, path: str, workspace_id: str, app_dir: list[str] = []
     ) -> File:
         print("Copying file to workspace", path, workspace_id, app_dir)
-        if len(app_dir) != 0 and not self._folder_exists(app_dir, workspace_id):
-            raise ValueError(f"Folder {app_dir} does not exist")
-
         workspace = self.get_workspaces()[workspace_id]
-        original_file_name = os.path.basename(path)
-        workspace_files = self.get_files(workspace_id).values()
-        existing_file_names = [f.name for f in workspace_files]
-        i = 1
-        file_name = original_file_name
-        while file_name in existing_file_names:
-            file_name = f"{original_file_name} ({i})"
-            i += 1
-            if i > 100:
-                raise ValueError(f"File name {file_name} already exists")
-        # TODO: This is technically a bug because we could end up with a file_dir_name that is not unique
-        file_dir_name = clean_name(file_name)
-        existing_file_dir_names = [clean_name(f.name) for f in workspace_files]
-        if file_dir_name in existing_file_dir_names:
-            raise ValueError(f"File directory name {file_dir_name} already exists")
-        id = str(uuid.uuid4())
+        file_dir_name = self._get_file_dir_name(path, app_dir)
         absolute_path = str(
             self.app_data_path.joinpath(
                 # TODO: DO NOT HARDCODE PDF!!!
@@ -213,17 +203,15 @@ class FileStore:
             )
         )
         file = File(
-            id=id,
-            name=file_name,
+            id=file_dir_name.split("__")[-1],
+            name=file_dir_name.split("__")[-2],
             absolute_path=absolute_path,
             workspace_id=workspace_id,
-            app_dir=app_dir,
         )
-        os.makedirs(os.path.dirname(absolute_path), exist_ok=True)  # CHANGE TO FALSE
+        os.makedirs(os.path.dirname(absolute_path), exist_ok=False)
         shutil.copy(path, absolute_path)
         self._add_file(file)
         return file
-
 
     def add_folder(self, app_dir: list[str], workspace_id: str):
         if len(app_dir) == 0:
@@ -269,7 +257,7 @@ class FileStore:
         shutil.rmtree(os.path.dirname(file.absolute_path))
         return file
 
-    def _find_file(self, file_id: str) -> File | None:
+    def find_file(self, file_id: str) -> File | None:
         files = []
         for workspace in self.get_workspaces().values():
             files.extend(self.get_files(workspace.id).values())
@@ -297,10 +285,6 @@ class FileStore:
         for folder in flat_folder_hierarchy.folders:
             app_dir = folder.split(os.sep)
             self.add_folder(app_dir, workspace_id)
-        for file, folder in flat_folder_hierarchy.file_to_folder.items():
-            file_path = flat_folder_hierarchy.file_to_absolute_path[file]
-            app_dir = folder.split(os.sep)
-            self._copy_file_to_workspace_internal(file_path, workspace_id, app_dir)
 
     def _folder_exists(self, app_dir: list[str], workspace_id: str) -> bool:
         matching_folder = [
@@ -348,8 +332,7 @@ class FileStore:
     def _get_all_file_children(
         self, workspace_id: str, app_dir: list[str]
     ) -> list[File]:
-        files = self.get_files(workspace_id).values()
-        return [file for file in files if _is_sub_path(file.app_dir, app_dir)]
+        return []
 
     def _get_all_folder_children(
         self, workspace_id: str, app_dir: list[str]
@@ -370,16 +353,7 @@ class FileStore:
     def _change_file_path_prefix(
         self, file: File, old_prefix: list[str], new_prefix: list[str]
     ) -> None:
-        sub_path = _get_sub_path(file.app_dir, old_prefix)
-        new_app_dir = [*new_prefix, *sub_path]
-        new_file = File(
-            id=file.id,
-            name=file.name,
-            absolute_path=file.absolute_path,
-            workspace_id=file.workspace_id,
-            app_dir=new_app_dir,
-        )
-        self._update_file(new_file)
+        pass
 
     def _update_file(self, file: File) -> None:
         files = self.get_files(file.workspace_id)
@@ -429,31 +403,34 @@ class FileStore:
         )
         self._update_file(new_file)
 
-
     # TODO: remove the SEC specific naming
     def download_sec_files(self, workspace_id: str) -> list[File]:
         if workspace_id not in self.get_workspaces():
             raise ValueError(f"Workspace with id {workspace_id} not found")
         workspace = self.get_workspaces()[workspace_id]
-        ticker = workspace.name # Assuming workspace name is the ticker symbol
+        ticker = workspace.name  # Assuming workspace name is the ticker symbol
         print(f"Fetching SEC files for ticker: {ticker} in workspace: {workspace.name}")
 
-        reports_dir = ["reports"]   # TODO: move to some config file
+        reports_dir = ["reports"]  # TODO: move to some config file
         self.add_folder(reports_dir, workspace_id)
-        
+
         existing_files = self._get_all_file_children(workspace_id, reports_dir)
         existing_file_names = [f.name for f in existing_files]
-        print(f"Found {len(existing_file_names)} existing SEC filing stems in workspace {workspace.name}.")
+        print(
+            f"Found {len(existing_file_names)} existing SEC filing stems in workspace {workspace.name}."
+        )
 
         sec_loader = SecSourceLoader()
         # TODO: be more robust: check against existing file metada not just file name
-        new_file_data_iterator: Iterator[WebFileData] = sec_loader.get_new_files_to_fetch(ticker, existing_file_names)
+        new_file_data_iterator: Iterator[WebFileData] = (
+            sec_loader.get_new_files_to_fetch(ticker, existing_file_names)
+        )
         print(f"Initiating content fetch for new filings using SecSourceLoader...")
 
         files_added: list[File] = []
         for file_data in new_file_data_iterator:
             print(f"Processing file data for: {file_data.file_name_no_ext}")
-            
+
             # TODO: make pretty file name for front end
             # TODO: remove hard-coded .pdf extension
             tmp_dir = tempfile.mkdtemp()

@@ -62,7 +62,6 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
   const [expandedFolders, setExpandedFolders] = React.useState<Set<string>>(
     new Set()
   );
-  const [editingFolder, setEditingFolder] = React.useState<string | null>(null);
   const [newFolderName, setNewFolderName] = React.useState("");
   const [draggedItem, setDraggedItem] = React.useState<{
     type: "file" | "folder";

@@ -9,19 +9,12 @@ class FileService {
     );
   }
 
-  async getFiles(workspace: Workspace): Promise<WorkspaceFile[]> {
+  async getLocalFiles(workspace: Workspace): Promise<LocalFile[]> {
     console.log("Getting files for workspace", workspace.id);
     if (!window.electron) {
       throw new Error("Electron is not available");
     }
-    const localFiles = await window.electron.getLocalFiles(workspace.localDir);
-    return localFiles.map((localFile) => ({
-      id: localFile.contentHash,
-      name: localFile.name,
-      absolutePath: localFile.absolutePath,
-      workspaceId: workspace.id,
-      appDir: localFile.pathRelativeToWorkspace,
-    }));
+    return window.electron.getLocalFiles(workspace.localDir);
   }
 
   deleteFile(file: WorkspaceFile): Promise<boolean> {
@@ -30,7 +23,7 @@ class FileService {
     );
   }
 
-  readFileFromLocalFileSystem(file: WorkspaceFile): Promise<ArrayBuffer> {
+  readFileFromLocalFileSystem(file: LocalFile): Promise<ArrayBuffer> {
     if (!window.electron) {
       throw new Error("Electron is not available");
     }
@@ -56,17 +49,12 @@ class FileService {
     return comments;
   }
 
-  async getFileFromId(fileId: string): Promise<WorkspaceFile> {
+  // TODO: We should really get rid of this function and make sure the server only ever returns contentHash
+  async getFileFromServer(args: {
+    serverFilePath: string;
+  }): Promise<WorkspaceFile> {
     const params = new URLSearchParams({
-      fileId: fileId,
-    });
-    const file = await client.get(`/file/get?${params.toString()}`);
-    return file;
-  }
-
-  async getFileFromPath(filePath: string): Promise<WorkspaceFile> {
-    const params = new URLSearchParams({
-      filePath: filePath,
+      filePath: args.serverFilePath,
     });
     const file = await client.get(`/file/get?${params.toString()}`);
     return file;
@@ -76,18 +64,12 @@ class FileService {
     return client.post(`/file/force_sync`, { fileId: file.id });
   }
 
-  async getFolders(workspace: Workspace): Promise<WorkspaceFolder[]> {
+  async getLocalFolders(workspace: Workspace): Promise<LocalFolder[]> {
     console.log("Getting folders for workspace", workspace.id);
     if (!window.electron) {
       throw new Error("Electron is not available");
     }
-    const localFolders = await window.electron.getLocalFolders(
-      workspace.localDir
-    );
-    return localFolders.map((localFolder) => ({
-      workspaceId: workspace.id,
-      appDir: localFolder.pathRelativeToWorkspace,
-    }));
+    return window.electron.getLocalFolders(workspace.localDir);
   }
 
   createFolder(

@@ -2,37 +2,18 @@ import fs from "fs";
 import path from "path";
 import axios from "axios";
 import FormData from "form-data";
-import { ElectronAppState } from "./electron_types";
-import { walkFiles } from "./local_file_system";
+import { ElectronAppState, LocalFile } from "./electron_types";
 
 export class Uploader {
   constructor(private readonly state: ElectronAppState) {}
-  async upload(filePath: string, workspaceId: string, authHeader: string) {
-    console.log("upload", filePath, workspaceId);
-    const results = [];
-    let st = await fs.promises.stat(filePath);
-    if (st.isDirectory()) {
-      console.log("uploading directory", filePath);
-      const baseDir = path.basename(filePath);
-      console.log("baseDir", baseDir);
-      const allFilePaths = await walkFiles(filePath);
-      for (const p of allFilePaths) {
-        const relativeDir = path.relative(filePath, p).split(path.sep);
-        const fileName = relativeDir.pop();
-        if (!fileName || fileName.startsWith(".")) {
-          continue;
-        }
-        const appDir = [baseDir, ...relativeDir];
-        console.log("appDir", appDir);
-        results.push(await this.uploadFile(p, appDir, workspaceId, authHeader));
-      }
-    } else {
-      console.log("uploading file", filePath);
-      results.push(
-        await this.uploadFile(filePath, [], workspaceId, authHeader)
-      );
-    }
-    return results;
+  async upload(localFile: LocalFile, workspaceId: string, authHeader: string) {
+    console.log("upload", localFile, workspaceId);
+    return this.uploadFile(
+      localFile.absolutePath,
+      localFile.pathRelativeToWorkspace,
+      workspaceId,
+      authHeader
+    );
   }
 
   private async uploadFile(

@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+import { LocalFile } from "./electron_types";
 console.log("PRELOAD");
 
 contextBridge.exposeInMainWorld("electron", {
@@ -15,8 +16,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("server-post", path, body, authHeader),
   delete: (path: string, authHeader: string) =>
     ipcRenderer.invoke("server-delete", path, authHeader),
-  upload: (filePath: string, workspaceId: string, authHeader: string) =>
-    ipcRenderer.invoke("server-upload", filePath, workspaceId, authHeader),
+  upload: (localFile: LocalFile, workspaceId: string, authHeader: string) =>
+    ipcRenderer.invoke("server-upload", localFile, workspaceId, authHeader),
   getBaseUrl: () => ipcRenderer.invoke("get-base-url"),
   attachEventForwarder: (callback: (event: any) => void) =>
     ipcRenderer.on("event-forwarder", (_, event) => callback(event)),

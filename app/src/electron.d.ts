@@ -10,10 +10,10 @@ interface FileStats {
 }
 
 interface LocalFile {
-  contentHash: string;
-  absolutePath: string;
-  pathRelativeToWorkspace: string[];
-  name: string;
+  contentHash: string; // Maps to id in WorkspaceFile
+  name: string; // Maps to name in WorkspaceFile
+  absolutePath: string; // Not represented in WorkspaceFile
+  pathRelativeToWorkspace: string[]; // Maps to appDir in WorkspaceFile
 }
 
 interface LocalFolder {
@@ -32,7 +32,7 @@ interface ElectronAPI {
   getBuffer: (path: string, authHeader: string) => Promise<ArrayBuffer>;
   delete: (path: string, authHeader: string) => Promise<any>;
   upload: (
-    filePath: string,
+    localFile: LocalFile,
     workspaceId: string,
     authHeader: string
   ) => Promise<void>;

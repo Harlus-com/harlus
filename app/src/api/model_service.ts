@@ -1,33 +1,38 @@
 import { client } from "./client";
 import { SyncStatus } from "./workspace_types";
-import { WorkspaceFile } from "./workspace_types";
+import { fileService } from "./fileService";
+import { toWorkspaceFile } from "@/files/file_util";
 
 class ModelService {
-  // Syncs all the files in a workspace
-  async syncWorkspace(workspaceId: string): Promise<boolean> {
-    const response = await client.post(`/workspace/sync`, { workspaceId });
-    return response;
-  }
-
   getFileSyncStatuses(
     workspaceId: string
   ): Promise<Record<string, SyncStatus>> {
     return client.get(`/workspace/files/status?workspaceId=${workspaceId}`);
   }
 
-  startSyncFile(file: WorkspaceFile): Promise<boolean> {
+  async startSyncFile(workspaceId: string, file: LocalFile): Promise<boolean> {
+    const isUploaded = await client.get(
+      `/file/is_uploaded?fileId=${file.contentHash}`
+    );
+    console.log("isUploaded", isUploaded);
+    if (!isUploaded) {
+      console.log("uploading file", file.absolutePath);
+      await client.upload(file, workspaceId);
+    }
     return client.post(`/file/sync`, {
-      fileId: file.id,
-      workspaceId: file.workspaceId,
-      force: false,
+      fileId: file.contentHash,
+      workspaceId: workspaceId,
+      force: false, // TODO: Remove
     });
   }
 
-  forceSyncFile(file: WorkspaceFile): Promise<boolean> {
+  forceSyncFile(workspaceId: string, file: LocalFile): Promise<boolean> {
+    fileService.deleteFile(toWorkspaceFile(workspaceId, file));
+    client.upload(file, workspaceId);
     return client.post(`/file/sync`, {
-      fileId: file.id,
-      workspaceId: file.workspaceId,
-      force: true,
+      fileId: file.contentHash,
+      workspaceId: workspaceId,
+      force: true, // TODO: Remove
     });
   }
 }

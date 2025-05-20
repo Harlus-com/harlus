@@ -43,9 +43,9 @@ export const MessagePairComponent: React.FC<MessagePairProps> = ({
 
     if (onSourceClicked) {
       try {
-        const file = await fileService.getFileFromPath(
-          chatSourceCommentGroup.filePath
-        );
+        const file = await fileService.getFileFromServer({
+          serverFilePath: chatSourceCommentGroup.filePath,
+        });
         if (!file) {
           console.error(
             "[MessagePair] No workspace file found:",

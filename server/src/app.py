@@ -115,29 +115,21 @@ def health_check():
     return JSONResponse(content={"status": "ok"})
 
 
-@api_router.get("/file/handle")
-def get_file(
-    file_id: str = Query(..., alias="fileId"),
-    workspace_id: str = Query(..., alias="workspaceId"),
-):
-    print("Getting file", file_id, "from workspace", workspace_id)
-    file = file_store.get_file(file_id, workspace_id)
-    return FileResponse(
-        path=file.absolute_path,
-        filename=file.name,
-        # TODO: Determine if we need media_type at all and/or if we can figure it out dynamically
-        media_type="application/pdf",
-    )
+@api_router.get("/file/is_uploaded")
+def is_uploaded(file_id: str = Query(..., alias="fileId")):
+    return file_store.find_file(file_id) is not None
 
 
-class ForceSyncFileRequest(BaseModel):
+class SyncFileRequest(BaseModel):
     file_id: str = Field(alias="fileId")
     workspace_id: str = Field(alias="workspaceId")
+    # TODO: Get rid of force option.
+    # This can be handled client side by first deleting the file, and then re-uploading it.
     force: bool = Field(alias="force")
 
 
 @api_router.post("/file/sync")
-async def force_file_sync(request: ForceSyncFileRequest):
+async def file_sync(request: SyncFileRequest):
     print("Syncing file", request)
     file = file_store.get_file(request.file_id, request.workspace_id)
     sync_type = SyncType.FORCE if request.force else SyncType.NORMAL
@@ -218,14 +210,6 @@ class SyncWorkspaceRequest(BaseModel):
     workspace_id: str = Field(alias="workspaceId")
 
 
-@api_router.post("/workspace/sync")
-async def sync_workspace(request: SyncWorkspaceRequest):
-    print("Syncing workspace", request.workspace_id)
-    for file in file_store.get_files(request.workspace_id).values():
-        await sync_queue.queue_model_sync(file)
-    return True
-
-
 class SetThreadRequest(BaseModel):
     workspace_id: str = Field(alias="workspaceId")
     thread_id: str = Field(alias="threadId")
@@ -293,16 +277,9 @@ async def get_contrast_analyze(
 
 @api_router.get("/file/get")
 def get_file(
-    file_id: str = Query(None, alias="fileId"),
-    file_path: str = Query(None, alias="filePath"),
+    file_path: str = Query(..., alias="filePath"),
 ):
-    print("Getting file from id", file_id, "or path", file_path)
-    if file_id:
-        return file_store.get_file(file_id)
-    elif file_path:
-        return file_store.get_file_by_path(file_path)
-    else:
-        raise HTTPException(status_code=400, detail="No file id or path provided")
+    return file_store.get_file_by_path(file_path)
 
 
 @api_router.post("/chat/history/save")
@@ -452,8 +429,14 @@ async def upload_file(
     upload: UploadFile = fastapi.File(..., alias="file"),
 ):
     app_dir: list[str] = json.loads(app_dir_json)
-    if len(app_dir) != 0:
-        file_store.add_folder(app_dir, workspace_id)
+    print(
+        "uploading file",
+        upload.filename,
+        "to workspace",
+        workspace_id,
+        "with app_dir",
+        app_dir,
+    )
     is_pdf = await is_pdf_stream(upload)
     print("is_pdf", is_pdf)
 
@@ -466,7 +449,7 @@ async def upload_file(
     #    tmp_path = await convert_to_pdf(Path(tmp_path))
 
     file = file_store.copy_file_to_workspace(str(tmp_path), workspace_id, app_dir)
-    await sync_queue.queue_model_sync(file)
+    # await sync_queue.queue_model_sync(file)
     return file
 
 

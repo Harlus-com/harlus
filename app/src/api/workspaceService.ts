@@ -12,10 +12,6 @@ class WorkspaceService {
     const workspace = await client.post("/workspace/create", {
       name,
     });
-    for (const file of files) {
-      await client.upload(file.path, workspace.id);
-    }
-
     return workspace;
   }
 

@@ -3,7 +3,7 @@ import { ipcMain, dialog } from "electron";
 import mime from "mime";
 import axios from "axios";
 import { EventSource } from "eventsource";
-import { ElectronAppState } from "./electron_types";
+import { ElectronAppState, LocalFile } from "./electron_types";
 import { Uploader } from "./upload";
 import {
   getLocalFiles,
@@ -111,9 +111,9 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
 
   ipcMain.handle(
     "server-upload",
-    (_, filePath: string, workspaceId: string, authHeader: string) => {
+    (_, localFile: LocalFile, workspaceId: string, authHeader: string) => {
       return new Uploader(electronAppState).upload(
-        filePath,
+        localFile,
         workspaceId,
         authHeader
       );

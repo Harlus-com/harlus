@@ -14,7 +14,6 @@ import { ChatThreadProvider } from "@/chat/ChatThreadContext";
 import { FileContextProvider } from "@/files/FileContext";
 import { FileDragAndDropOverlay } from "@/files/FileDragAndDropOverlay";
 import { FileViewContextProvider } from "@/files/FileViewContext";
-import { modelService } from "@/api/model_service";
 
 // The default sizes scale relative to each other.
 // They work best when the sum of all the default sizes is 100.
@@ -34,7 +33,6 @@ export default function Workspace() {
       return;
     }
 
-    await modelService.syncWorkspace(workspaceId);
     const workspace = await workspaceService.getWorkspace(workspaceId);
     if (!workspace) {
       navigate("/");

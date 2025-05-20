@@ -126,9 +126,9 @@ export class ChatService {
           // Get workspace files for each source comment
           const updatedChatSourceCommentGroups = await Promise.all(
             chatSourceCommentGroups.map(async (cscommentGroup) => {
-              const workspaceFile = await fileService.getFileFromPath(
-                cscommentGroup.filePath
-              );
+              const workspaceFile = await fileService.getFileFromServer({
+                serverFilePath: cscommentGroup.filePath,
+              });
               console.log("checkpoint 1:", workspaceFile);
               return {
                 ...cscommentGroup,

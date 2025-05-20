@@ -11,7 +11,7 @@ interface ServerClient {
   post: (path: string, body: any) => Promise<any>;
   getBuffer: (path: string) => Promise<ArrayBuffer>;
   delete: (path: string) => Promise<any>;
-  upload: (filePath: string, workspaceId: string) => Promise<void>;
+  upload: (localFile: LocalFile, workspaceId: string) => Promise<void>;
   createEventSource: (urlPath: string) => Promise<EventSourceClient>;
 }
 
@@ -49,7 +49,7 @@ abstract class BaseWebClient implements ServerClient {
     return response.data;
   }
 
-  async upload(filePath: string, workspaceId: string) {
+  async upload(localFile: LocalFile, workspaceId: string) {
     throw new Error("Not implemented");
   }
 
@@ -93,10 +93,10 @@ class ElectronClient extends BaseWebClient {
    *  Upload still needs to proxy to the electron app in all cases,
    *  because only the node process can access the file system.
    */
-  override async upload(filePath: string, workspaceId: string) {
+  override async upload(localFile: LocalFile, workspaceId: string) {
     const authHeader = await this.getAuthHeader();
-    const data = await this.electron.upload(filePath, workspaceId, authHeader);
-    console.log(`UPLOAD ${filePath} Response`, data);
+    const data = await this.electron.upload(localFile, workspaceId, authHeader);
+    console.log(`UPLOAD ${localFile} Response`, data);
     return data;
   }
 
@@ -161,10 +161,10 @@ class ElectronProxyClient implements ServerClient {
     return data;
   }
 
-  async upload(filePath: string, workspaceId: string) {
+  async upload(localFile: LocalFile, workspaceId: string) {
     const authHeader = await this.getAuthHeader();
-    const data = await this.electron.upload(filePath, workspaceId, authHeader);
-    console.log(`UPLOAD ${filePath} Response`, data);
+    const data = await this.electron.upload(localFile, workspaceId, authHeader);
+    console.log(`UPLOAD ${localFile} Response`, data);
     return data;
   }
 
