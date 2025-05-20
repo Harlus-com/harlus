@@ -552,7 +552,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
 
         <div className="p-3 border-t border-border">
           <div className="text-xs text-muted-foreground">
-            Drag PDF files here to analyze
+            {files.length} files, {folders.length} folders
           </div>
         </div>
       </div>
