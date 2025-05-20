@@ -430,14 +430,6 @@ async def upload_file(
     upload: UploadFile = fastapi.File(..., alias="file"),
 ):
     app_dir: list[str] = json.loads(app_dir_json)
-    print(
-        "uploading file",
-        upload.filename,
-        "to workspace",
-        workspace_id,
-        "with app_dir",
-        app_dir,
-    )
     is_pdf = await is_pdf_stream(upload)
     print("is_pdf", is_pdf)
 
@@ -450,7 +442,6 @@ async def upload_file(
     #    tmp_path = await convert_to_pdf(Path(tmp_path))
 
     file = file_store.copy_file_to_workspace(str(tmp_path), workspace_id, app_dir)
-    # await sync_queue.queue_model_sync(file)
     return file
 
 

@@ -152,7 +152,7 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
   /**
    * If a given local file has not been synced to the server, this function will return null.
    *
-   * It's also possible a file was synced to the server, but alter deleted, renamed, changed (so that its content hash changed)
+   * It's also possible a file was synced to the server, but later deleted, renamed, changed (so that its content hash changed)
    * and that could cause this function to return null.
    */
   const workspaceFileToLocalFile = (workspaceFile: WorkspaceFile) => {
