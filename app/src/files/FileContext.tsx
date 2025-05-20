@@ -53,24 +53,30 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
       return prev;
     });
   });
-  const loadFiles = async () => {
-    console.log("[FileContext] loadFiles", workspaceId);
-    const resolvedWorkspace =
-      workspace ?? (await workspaceService.getWorkspace(workspaceId));
-    if (!workspace) {
-      setWorkspace(resolvedWorkspace);
-    }
-    console.log("RESOLVED WORKSPACE", resolvedWorkspace);
-    const files = await fileService.getFiles(resolvedWorkspace);
-    const folders = await fileService.getFolders(resolvedWorkspace);
+  const loadFiles = async (workspace: Workspace) => {
+    const files = await fileService.getFiles(workspace);
+    const folders = await fileService.getFolders(workspace);
     setFiles(files);
     setFolders(folders);
-    setWorkspace(workspace);
   };
 
   useEffect(() => {
-    loadFiles();
+    workspaceService.getWorkspace(workspaceId).then(setWorkspace);
   }, [workspaceId]);
+
+  useEffect(() => {
+    if (workspace) {
+      loadFiles(workspace);
+      workspaceService.watchWorkspace(workspace, {
+        onStructureChange: () => loadFiles(workspace),
+      });
+    }
+    return () => {
+      if (workspace) {
+        workspaceService.unwatchWorkspace(workspace);
+      }
+    };
+  }, [workspace]);
 
   useEffect(() => {
     statusManager.start();
@@ -78,7 +84,10 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
   }, [files]);
 
   const notifyFileListChanged = () => {
-    loadFiles();
+    if (!workspace) {
+      return;
+    }
+    loadFiles(workspace);
   };
 
   const getFile = (id: string) => {
@@ -86,7 +95,6 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
   };
 
   const getFileSyncStatus = (id: string) => {
-    console.log("getFileSyncStatus", id, fileSyncStatuses[id]);
     return fileSyncStatuses[id];
   };
 

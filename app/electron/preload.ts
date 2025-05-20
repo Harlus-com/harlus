@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+console.log("PRELOAD");
 
 contextBridge.exposeInMainWorld("electron", {
   openFileDialog: () => ipcRenderer.invoke("open-file-dialog"),
@@ -29,4 +30,13 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("get-local-files", localDir),
   getLocalFolders: (localDir: string) =>
     ipcRenderer.invoke("get-local-folders", localDir),
+  watchWorkspace: (workspacePath: string) =>
+    ipcRenderer.invoke("watch-workspace", workspacePath),
+  unwatchWorkspace: (workspacePath: string) =>
+    ipcRenderer.invoke("unwatch-workspace", workspacePath),
+  onLocalFileSystemChange: (callback: (event: any) => void) =>
+    ipcRenderer.on("local-file-system-change", (_, event) => {
+      console.log("PRELOAD onLocalFileSystemChange", event);
+      callback(event);
+    }),
 });

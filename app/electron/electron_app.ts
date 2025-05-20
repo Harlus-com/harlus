@@ -45,6 +45,7 @@ export abstract class ElectronApp {
         httpsAgent,
         httpsDispatcher,
         eventSources: new Map(),
+        workspaceWatchers: new Map(),
       };
       setupIpcHandlers(state);
     });

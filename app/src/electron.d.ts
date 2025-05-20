@@ -42,6 +42,9 @@ interface ElectronAPI {
   addEventListener: (eventSourceId: string, eventName: string) => void;
   getLocalFiles: (localDir: string) => Promise<LocalFile[]>;
   getLocalFolders: (localDir: string) => Promise<LocalFolder[]>;
+  watchWorkspace: (workspacePath: string) => void;
+  unwatchWorkspace: (workspacePath: string) => void;
+  onLocalFileSystemChange: (callback: (event: any) => void) => void;
 }
 
 declare interface Window {

@@ -1,4 +1,4 @@
-import { Workspace } from "./workspace_types";
+import { Workspace, WorkspaceFile } from "./workspace_types";
 import { client } from "./client";
 
 class WorkspaceService {
@@ -28,6 +28,37 @@ class WorkspaceService {
 
   deleteWorkspace(id: string): Promise<void> {
     return client.delete(`/workspace/delete?workspaceId=${id}`);
+  }
+
+  watchWorkspace(
+    workspace: Workspace,
+    callbacks: {
+      onFileChange?: (file: WorkspaceFile) => void;
+      onStructureChange?: () => void;
+    }
+  ): void {
+    if (!window.electron) {
+      return;
+    }
+    window.electron.watchWorkspace(workspace.localDir);
+    window.electron.onLocalFileSystemChange((event) => {
+      console.log("WS-SERVICE onLocalFileSystemChange", event);
+      switch (event.type) {
+        case "workspace-file-change":
+          callbacks.onFileChange?.(event.file);
+          break;
+        case "workspace-structure-change":
+          callbacks.onStructureChange?.();
+          break;
+      }
+    });
+  }
+
+  unwatchWorkspace(workspace: Workspace): void {
+    if (!window.electron) {
+      return;
+    }
+    window.electron.unwatchWorkspace(workspace.localDir);
   }
 }
 

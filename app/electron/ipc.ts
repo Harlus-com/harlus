@@ -5,7 +5,11 @@ import axios from "axios";
 import { EventSource } from "eventsource";
 import { ElectronAppState } from "./electron_types";
 import { Uploader } from "./upload";
-import { getLocalFiles, getLocalFolders } from "./local_file_system";
+import {
+  getLocalFiles,
+  getLocalFolders,
+  WorkspaceWatcher,
+} from "./local_file_system";
 
 export function setupIpcHandlers(electronAppState: ElectronAppState) {
   const { mainWindow, baseUrl, httpsAgent, httpsDispatcher, eventSources } =
@@ -159,5 +163,23 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
 
   ipcMain.handle("get-local-folders", async (_, localDir: string) => {
     return getLocalFolders(localDir);
+  });
+
+  ipcMain.handle("watch-workspace", async (_, workspacePath: string) => {
+    const watcher = new WorkspaceWatcher(
+      (event: any) =>
+        mainWindow.webContents.send("local-file-system-change", event),
+      workspacePath
+    );
+    watcher.start();
+    electronAppState.workspaceWatchers.set(workspacePath, watcher);
+  });
+
+  ipcMain.handle("unwatch-workspace", async (_, workspacePath: string) => {
+    const watcher = electronAppState.workspaceWatchers.get(workspacePath);
+    if (watcher) {
+      watcher.stop();
+      electronAppState.workspaceWatchers.delete(workspacePath);
+    }
   });
 }

@@ -2,6 +2,7 @@ import { BrowserWindow } from "electron";
 import https from "https";
 import { EventSource } from "eventsource";
 import { Agent as UndiciAgent } from "undici";
+import { WorkspaceWatcher } from "./local_file_system";
 
 export interface FileStats {
   size: number;
@@ -31,4 +32,5 @@ export interface ElectronAppState {
   readonly httpsAgent: https.Agent;
   readonly httpsDispatcher: UndiciAgent;
   readonly eventSources: Map<string, EventSource>;
+  readonly workspaceWatchers: Map<string, WorkspaceWatcher>;
 }
