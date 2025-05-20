@@ -56,6 +56,9 @@ class Timestamp(BaseModel):
     month: int
     year: int
 
+    def __str__(self) -> str:
+        return f"{self.year}-{self.month}-{self.day} {self.hour}:{self.minute}:{self.second}"
+
 
 def timestamp_now() -> Timestamp:
     now = datetime.datetime.now()

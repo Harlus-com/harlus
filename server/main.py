@@ -2,6 +2,7 @@ import argparse
 import sys
 import uvicorn
 import asyncio
+import logging
 
 asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
 import nest_asyncio
@@ -17,6 +18,20 @@ dotenv.load_dotenv()
 
 # app must be imported after dotenv is loaded
 from src.app import app
+
+
+class ExcludeAccessLogFilter(logging.Filter):
+    def __init__(self, path: str):
+        super().__init__()
+        self.path = path
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return self.path not in record.getMessage()
+
+
+logging.getLogger("uvicorn.access").addFilter(
+    ExcludeAccessLogFilter("/workspace/files/status")
+)
 
 
 def main():

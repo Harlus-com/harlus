@@ -25,6 +25,7 @@ export default function Workspace() {
   const { workspaceId } = useParams();
   const navigate = useNavigate();
   const [workspace, setWorkspace] = useState<WorkspaceType | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const loadWorkspace = async () => {
     if (!workspaceId) {
@@ -60,64 +61,67 @@ export default function Workspace() {
 
   const reloadWorkspace = async () => {
     if (!workspaceId) return;
-    window.location.reload();
+    await loadWorkspace();
+    setReloadKey((prev) => prev + 1);
   };
 
   return (
-    <FileContextProvider workspaceId={workspaceId!}>
-      <FileViewContextProvider>
-        <ChatThreadProvider workspaceId={workspaceId!}>
-          <CommentsProvider workspaceId={workspaceId!}>
-            <div className="flex flex-col h-screen">
-              <WorkspaceHeader
-                workspace={workspace}
-                togglePanelVisibility={togglePanelVisibility}
-                setVisiblePanels={setVisiblePanels}
-                reloadWorkspace={reloadWorkspace}
-              />
-              <PanelGroup
-                id="workspace"
-                direction="horizontal"
-                className="flex-1"
-              >
-                {visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER) && (
-                  <Panel
-                    id={FILE_EXPLORER.id}
-                    order={1}
-                    defaultSize={FILE_EXPLORER.defaultSize}
-                    minSize={FILE_EXPLORER.minSize}
-                    className="bg-blue-50 h-full w-auto"
-                  >
-                    <FileExplorer workspaceId={workspaceId!} />
-                  </Panel>
-                )}
-                <PanelDivider />
-                <Panel
-                  id={FILE_VIEWER.id}
-                  order={2}
-                  defaultSize={FILE_VIEWER.defaultSize}
-                  minSize={FILE_VIEWER.minSize}
+    <div key={reloadKey}>
+      <FileContextProvider workspaceId={workspaceId!}>
+        <FileViewContextProvider>
+          <ChatThreadProvider workspaceId={workspaceId!}>
+            <CommentsProvider workspaceId={workspaceId!}>
+              <div className="flex flex-col h-screen">
+                <WorkspaceHeader
+                  workspace={workspace}
+                  togglePanelVisibility={togglePanelVisibility}
+                  setVisiblePanels={setVisiblePanels}
+                  reloadWorkspace={reloadWorkspace}
+                />
+                <PanelGroup
+                  id="workspace"
+                  direction="horizontal"
+                  className="flex-1"
                 >
-                  <FileView />
-                </Panel>
-                {visiblePanels.includes(TopLevelPanelId.CHAT) && (
+                  {visiblePanels.includes(TopLevelPanelId.FILE_EXPLORER) && (
+                    <Panel
+                      id={FILE_EXPLORER.id}
+                      order={1}
+                      defaultSize={FILE_EXPLORER.defaultSize}
+                      minSize={FILE_EXPLORER.minSize}
+                      className="bg-blue-50 h-full w-auto"
+                    >
+                      <FileExplorer workspaceId={workspaceId!} />
+                    </Panel>
+                  )}
                   <PanelDivider />
-                )}
-                {visiblePanels.includes(TopLevelPanelId.CHAT) && (
                   <Panel
-                    id={CHAT.id}
-                    order={4}
-                    defaultSize={CHAT.defaultSize}
-                    minSize={CHAT.minSize}
+                    id={FILE_VIEWER.id}
+                    order={2}
+                    defaultSize={FILE_VIEWER.defaultSize}
+                    minSize={FILE_VIEWER.minSize}
                   >
-                    <ChatPanel />
+                    <FileView />
                   </Panel>
-                )}
-              </PanelGroup>
-            </div>
-          </CommentsProvider>
-        </ChatThreadProvider>
-      </FileViewContextProvider>
-    </FileContextProvider>
+                  {visiblePanels.includes(TopLevelPanelId.CHAT) && (
+                    <PanelDivider />
+                  )}
+                  {visiblePanels.includes(TopLevelPanelId.CHAT) && (
+                    <Panel
+                      id={CHAT.id}
+                      order={4}
+                      defaultSize={CHAT.defaultSize}
+                      minSize={CHAT.minSize}
+                    >
+                      <ChatPanel />
+                    </Panel>
+                  )}
+                </PanelGroup>
+              </div>
+            </CommentsProvider>
+          </ChatThreadProvider>
+        </FileViewContextProvider>
+      </FileContextProvider>
+    </div>
   );
 }

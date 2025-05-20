@@ -98,13 +98,9 @@ if not APP_DATA_PATH_STRING:
 else:
     APP_DATA_PATH = Path(APP_DATA_PATH_STRING)
 
-print("APP_DATA_PATH", APP_DATA_PATH)
-
 file_store = FileStore(APP_DATA_PATH)
 
 tool_library = ToolLibrary(file_store)
-tool_library.load_tools()
-
 chat_store = ChatStore(file_store, tool_library)
 comment_store = CommentStore(file_store)
 sync_queue = SyncQueue(file_store, tool_library)
@@ -123,17 +119,13 @@ def is_uploaded(file_id: str = Query(..., alias="fileId")):
 class SyncFileRequest(BaseModel):
     file_id: str = Field(alias="fileId")
     workspace_id: str = Field(alias="workspaceId")
-    # TODO: Get rid of force option.
-    # This can be handled client side by first deleting the file, and then re-uploading it.
-    force: bool = Field(alias="force")
 
 
 @api_router.post("/file/sync")
 async def file_sync(request: SyncFileRequest):
     print("Syncing file", request)
     file = file_store.get_file(request.file_id, request.workspace_id)
-    sync_type = SyncType.FORCE if request.force else SyncType.NORMAL
-    await sync_queue.queue_model_sync(file, sync_type=sync_type)
+    await sync_queue.queue_model_sync(file, sync_type=SyncType.NORMAL)
     return True
 
 
@@ -143,10 +135,7 @@ def delete_file(
     workspace_id: str = Query(..., alias="workspaceId"),
 ) -> bool:
     print("Deleting file", file_id, "from workspace", workspace_id)
-    file = file_store.delete_file(file_id, workspace_id)
-    if file is None:
-        return False
-    tool_library.delete_file_tools(file)
+    file_store.delete_file(file_id, workspace_id)
     return True
 
 
@@ -166,7 +155,6 @@ async def create_workspace(request: CreateWorkspaceRequest):
 
 @api_router.get("/workspace/get")
 def get_workspace(workspace_id: str = Query(..., alias="workspaceId")):
-    print("Getting workspace", workspace_id)
     return file_store.get_workspaces()[workspace_id]
 
 
@@ -240,7 +228,6 @@ async def stream_chat(
 @api_router.get("/workspace/files/status")
 def get_workspace_files_status(workspace_id: str = Query(..., alias="workspaceId")):
     """Get the current sync status of all files in a workspace"""
-    print("Getting workspace file statuses", workspace_id)
     return {
         file_id: sync_queue.get_sync_status(file_id)
         for file_id in file_store.get_files(workspace_id).keys()
