@@ -44,10 +44,14 @@ function waitForDevServer() {
 // Start Electron app
 function startElectronApp() {
   console.log("Starting Electron application...");
-  const electronProcess = spawn("electron", ["scripts/electron.js", ...args], {
-    stdio: "inherit",
-    shell: true,
-  });
+  const electronProcess = spawn(
+    "electron",
+    ["dist-electron/main.cjs", ...args],
+    {
+      stdio: "inherit",
+      shell: true,
+    }
+  );
 
   electronProcess.on("close", () => {
     // Clean up when Electron app closes
