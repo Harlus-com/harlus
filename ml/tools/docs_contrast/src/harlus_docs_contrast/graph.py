@@ -15,28 +15,21 @@ import os
 import json 
 from harlus_doc_search.loader import DocSearchToolWrapper
 import uuid
-from .graph_utils import (
-    _convert_node_with_score_to_retrieved_nodes,
-    _get_highlight_area,
-    _get_bounding_boxes,
-    _convert_verdict,
-    _parse_tool_class,
-    BasicToolNode,
-    _process_contrast,
+from .tool_executor import (
+    ToolExecutorNode,
 )
 from .custom_types import (
     ContrastToolGraphState, 
-    HighlightArea, 
-    LinkComment,
-    ClaimComment,
 )
-from harlus_doc_search.loader import DocSearchToolWrapper
 import uuid
 from .utils import (
-    robust_load_json,
-    sanitize_tool_name,
+    _clean_and_parse_json,
+    _sanitize_tool_name,
+    _parse_tool_class,
 )
 import asyncio
+from .claim_comments import _get_claim_comments_from_driver_tree
+
 
 
 
@@ -58,19 +51,25 @@ class ContrastAgentGraph:
 
     
     def _add_tool(self, tool, metadata_dict, doc_type: str, tool_type: str):
+
+        # add tool to tools dict
         if doc_type not in self.tools:
             self.tools[doc_type] = {}
         if tool_type not in self.tools[doc_type]:
             self.tools[doc_type][tool_type] = []
         self.tools[doc_type][tool_type].append(tool)
+
+        # add tool to tool_name_to_metadata dict
         if doc_type not in self.tool_name_to_metadata:
             self.tool_name_to_metadata[doc_type] = {}
         if tool_type not in self.tool_name_to_metadata[doc_type]:
             self.tool_name_to_metadata[doc_type][tool_type] = {}
-        sanitized_name = sanitize_tool_name(tool.name)
+        sanitized_name = _sanitize_tool_name(tool.name)
         self.tool_name_to_metadata[doc_type][tool_type][sanitized_name] = metadata_dict
     
     def _add_tools(self, tools: list[any], doc_type: str):
+
+        # parse tool to right class for adding it to the graph
         for tool in tools:
             tool_class = _parse_tool_class(tool)
             if tool_class == "tavily_search":
@@ -105,7 +104,7 @@ class ContrastAgentGraph:
     def _sanitize_tool_names(self, doc_type: str):
         for tool_type in self.tools[doc_type]:
             for tool in self.tools[doc_type][tool_type]:
-                tool.name = sanitize_tool_name(tool.name)
+                tool.name = _sanitize_tool_name(tool.name)
 
     def _generate_tool_descriptions(self, doc_type: str, tool_type: str):
         nl = "\n\n\n"
@@ -129,10 +128,10 @@ class ContrastAgentGraph:
         self._generate_tool_descriptions("internal", "doc_search_retriever")
         self._generate_tool_descriptions("external", "doc_search_retriever")
 
-        get_tree_tool_node = BasicToolNode(tools=self.tools["internal"]["doc_search_summary"], tool_name_to_metadata=self.tool_name_to_metadata["internal"]["doc_search_summary"], message_state_key="internal_messages", retrieved_items_state_key="internal_retrieved_items")
-        refine_tree_tool_node = BasicToolNode(tools=self.tools["internal"]["doc_search_retriever"], tool_name_to_metadata=self.tool_name_to_metadata["internal"]["doc_search_retriever"], message_state_key="internal_messages", retrieved_items_state_key="internal_retrieved_items")
-        add_statement_source_texts_tool_node = BasicToolNode(tools=self.tools["internal"]["doc_search_retriever"], tool_name_to_metadata=self.tool_name_to_metadata["internal"]["doc_search_retriever"], message_state_key="internal_messages", retrieved_items_state_key="internal_retrieved_items")
-        verify_tree_tool_node = BasicToolNode(tools=self.tools["external"]["doc_search_retriever"], tool_name_to_metadata=self.tool_name_to_metadata["external"]["doc_search_retriever"], message_state_key="external_messages", retrieved_items_state_key="external_retrieved_items")
+        get_tree_tool_node = ToolExecutorNode(tools=self.tools["internal"]["doc_search_summary"], tool_name_to_metadata=self.tool_name_to_metadata["internal"]["doc_search_summary"], message_state_key="internal_messages", retrieved_items_state_key="internal_retrieved_items")
+        refine_tree_tool_node = ToolExecutorNode(tools=self.tools["internal"]["doc_search_retriever"], tool_name_to_metadata=self.tool_name_to_metadata["internal"]["doc_search_retriever"], message_state_key="internal_messages", retrieved_items_state_key="internal_retrieved_items")
+        add_statement_source_texts_tool_node = ToolExecutorNode(tools=self.tools["internal"]["doc_search_retriever"], tool_name_to_metadata=self.tool_name_to_metadata["internal"]["doc_search_retriever"], message_state_key="internal_messages", retrieved_items_state_key="internal_retrieved_items")
+        verify_tree_tool_node = ToolExecutorNode(tools=self.tools["external"]["doc_search_retriever"], tool_name_to_metadata=self.tool_name_to_metadata["external"]["doc_search_retriever"], message_state_key="external_messages", retrieved_items_state_key="external_retrieved_items")
         
         self.tool_nodes = {
             "get_tree": get_tree_tool_node,
@@ -268,28 +267,18 @@ class ContrastAgentGraph:
         yield {
             "driver_tree": message.content,
         }
-
-    
-    async def _extract_claim_comments_from_driver_tree(self, parsed_driver_tree):
-
-        claim_comments = []
-        contrast_tasks = [_process_contrast(
-                contrast, 
-                self.tools["internal"]["doc_search_retriever"], 
-                self.tools["external"]["doc_search_retriever"]
-            ) for contrast in parsed_driver_tree]
-        results = await asyncio.gather(*contrast_tasks)
-        for result in results:
-            claim_comments.extend(result)
-
-        return claim_comments
     
     async def _get_source_nodes(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
         print("[harlus_contrast_tool] getting claim comments")
         driver_tree = state["driver_tree"]
-        parsed_driver_tree = robust_load_json(driver_tree)
+        parsed_driver_tree = _clean_and_parse_json(driver_tree)
+        claim_comments = await _get_claim_comments_from_driver_tree(
+            parsed_driver_tree,
+            self.tools["internal"]["doc_search_retriever"],
+            self.tools["external"]["doc_search_retriever"]
+        )
         yield {
-            "claim_comments": await self._extract_claim_comments_from_driver_tree(parsed_driver_tree)
+            "claim_comments": claim_comments
         }
 
 
@@ -313,7 +302,6 @@ class ContrastAgentGraph:
     def build(self):
 
         graph_builder = StateGraph(ContrastToolGraphState)
-
         graph_builder.add_node("get_tree", self._get_tree, metadata={"name": "get_tree"})
         graph_builder.add_node("refine_tree", self._refine_tree, metadata={"name": "refine_tree"})
         graph_builder.add_node("verify_tree", self._verify_tree, metadata={"name": "verify_tree"})
@@ -324,6 +312,8 @@ class ContrastAgentGraph:
         graph_builder.add_node("tools_verify_tree", self.tool_nodes["verify_tree"], metadata={"name": "tools_verify_tree"})
         graph_builder.add_node("tools_refine_tree", self.tool_nodes["refine_tree"], metadata={"name": "tools_refine_tree"})
         graph_builder.add_node("tools_add_statement_source_texts", self.tool_nodes["add_statement_source_texts"], metadata={"name": "tools_add_statement_source_texts"})
+        
+        
         # Get tree loop
         graph_builder.add_edge(START, "get_tree")
         graph_builder.add_conditional_edges(
@@ -332,7 +322,6 @@ class ContrastAgentGraph:
             {"tools":"tools_get_tree", "no_tools":"add_statement_source_texts"}
         )
         graph_builder.add_edge("tools_get_tree", "get_tree")
-
 
         # Add statement source texts loop
         graph_builder.add_conditional_edges(
@@ -343,7 +332,7 @@ class ContrastAgentGraph:
         graph_builder.add_edge("tools_add_statement_source_texts", "add_statement_source_texts")
 
 
-        # refine tree loop
+        # Refine tree loop
         graph_builder.add_conditional_edges(
             "refine_tree",
             self._custom_tools_condition_internal,
@@ -358,10 +347,13 @@ class ContrastAgentGraph:
             {"tools":"tools_verify_tree", "no_tools": "format_output"}
         )
         graph_builder.add_edge("tools_verify_tree", "verify_tree") 
+
+        # Format output
         graph_builder.add_edge("format_output", "get_source_nodes") 
         graph_builder.add_edge("get_source_nodes", END)       
 
         self.graph_builder = graph_builder
+
         return self.graph_builder
     
 
@@ -415,7 +407,6 @@ class ContrastAgentGraph:
         }
 
         
-
         # Use the database path from persist_dir
         async with AsyncSqliteSaver.from_conn_string(self.db_path) as memory:
             graph = self.graph_builder.compile(checkpointer=memory)
