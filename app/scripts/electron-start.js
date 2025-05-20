@@ -46,7 +46,7 @@ function startElectronApp() {
   console.log("Starting Electron application...");
   const electronProcess = spawn(
     "electron",
-    ["dist-electron/main.cjs", ...args],
+    ["dist-electron/main.cjs", "--dev", ...args],
     {
       stdio: "inherit",
       shell: true,
