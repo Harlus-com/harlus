@@ -33,22 +33,28 @@ class SyncQueue:
     ):
         self.file_store = file_store
         self.tool_library = tool_library
-        self.sync_queue: StatusTrackingQueue = StatusTrackingQueue()
+        self.sync_queue: list[SyncRequest] = []
         self.file_to_active_tool_syncs: dict[str, set[asyncio.Task]] = defaultdict(set)
         self.lock = threading.Lock()
         self.worker_task = None
         self.callbacks: set[Callable[[File, SyncStatus], None]] = set()
 
+    def _is_pending(self, file_id: str) -> bool:
+        return any(req.file.id == file_id for req in self.sync_queue)
+
+    def _is_active(self, file_id: str) -> bool:
+        return len(self.file_to_active_tool_syncs[file_id]) > 0
+
     async def queue_model_sync(self, file: File, sync_type: SyncType = SyncType.NORMAL):
         """Add a file to the sync queue"""
         with self.lock:
-            if self.sync_queue.is_pending(file.id):
+            if self._is_pending(file.id):
                 print(f"Sync of file {file.id} is pending")
                 return False
-            if len(self.file_to_active_tool_syncs[file.id]) > 0:
+            if self._is_active(file.id):
                 print(f"Sync of file {file.id} is already in progress")
                 return False
-            await self.sync_queue.put(SyncRequest(file, sync_type))
+            self.sync_queue.append(SyncRequest(file, sync_type))
             if self.worker_task is None:
                 self.worker_task = asyncio.create_task(self._worker())
 
@@ -58,9 +64,9 @@ class SyncQueue:
             return self._get_sync_status(file_id)
 
     def _get_sync_status(self, file_id: str) -> SyncStatus:
-        if self.sync_queue.is_pending(file_id):
+        if self._is_pending(file_id):
             return SyncStatus.SYNC_PENDING
-        if self.file_to_active_tool_syncs[file_id]:
+        if self._is_active(file_id):
             return SyncStatus.SYNC_IN_PROGRESS
         tool_statuses = self.tool_library.get_last_sync_status(file_id).values()
         if all(status == ToolSyncStatus.SUCCESS for status in tool_statuses):
@@ -92,9 +98,9 @@ class SyncQueue:
     async def _worker(self):
         """Worker that processes the sync queue"""
         print("Worker is running")
-        while not self.sync_queue.is_empty():
+        while len(self.sync_queue) > 0:
             try:
-                sync_request = await self.sync_queue.get()
+                sync_request = self.sync_queue.pop(0)
                 tools_to_sync = self.tool_library.get_tools_to_sync(sync_request.file)
                 if len(tools_to_sync) == 0:
                     self.sync_queue.mark_no_op(sync_request)
@@ -149,25 +155,3 @@ class SyncQueue:
         self.sync_status[file.id] = status
         for callback in self.callbacks:
             asyncio.create_task(callback(file, status))
-
-
-class StatusTrackingQueue:
-    def __init__(self):
-        self.queue = asyncio.Queue()
-        self.pending_tasks: set[SyncRequest] = set()
-
-    async def put(self, req: SyncRequest):
-        # We are awaiting the internal limit of items of the asyncio queue
-        await self.queue.put(req)
-        self.pending_tasks.add(req)
-
-    async def get(self) -> SyncRequest:
-        req = await self.queue.get()
-        self.pending_tasks.remove(req)
-        return req
-
-    def is_pending(self, file_id: str) -> bool:
-        return file_id in [t.file.id for t in self.pending_tasks]
-
-    def is_empty(self) -> bool:
-        return self.queue.empty()

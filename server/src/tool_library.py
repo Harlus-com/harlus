@@ -55,8 +55,8 @@ class ToolLibrary:
         files = self.file_store.get_files(workspace_id)
         all_tools = []
         for file in files.values():
-            all_tools.extend(self._load_tools(file.absolute_path), filter=tool_name)
-        return [t for t in all_tools if t.get_tool_name() == tool_name]
+            all_tools.extend(self._load_tools(file.absolute_path, filter=tool_name))
+        return all_tools
 
     def get_tool(self, file_path: str, tool_name: str):
         matching_tools = self._load_tools(file_path, filter=tool_name)
