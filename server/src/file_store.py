@@ -2,11 +2,13 @@ import json
 import os
 from pathlib import Path
 import shutil
-from typing import Union
+from typing import Union, Iterator
 import uuid
 from pydantic import BaseModel, ConfigDict, Field
 from src.file_util import get_flat_folder_hierarchy
 from src.util import snake_to_camel, clean_name
+
+from src.sec_loader import SecSourceLoader, SECFileData
 
 
 class Workspace(BaseModel):
@@ -221,6 +223,74 @@ class FileStore:
         self._add_file(file)
         return file
 
+
+    def _save_file_content_to_workspace(
+        self, filename: str, content: str | bytes, workspace_id: str, app_dir: list[str] = []
+    ) -> File:
+        """Saves file content (string or bytes) directly to the workspace."""
+        # Ensure the target directory within the workspace exists
+        target_dir = self.app_data_path.joinpath(self.get_workspaces()[workspace_id].dir_name, *app_dir)
+        os.makedirs(target_dir, exist_ok=True)
+
+        if len(app_dir) != 0 and not self._folder_exists(app_dir, workspace_id):
+             # This case should ideally not happen if add_folder is called before saving files 
+             # into a new app_dir but adding a check for robustness.
+             self.add_folder(app_dir, workspace_id)
+        
+        # TODO: get_files_in_folder() would probably be useful
+        workspace_files = self.get_files(workspace_id).values()
+        # Check for files with the same name in the target app_dir
+        existing_file_names_in_app_dir = [f.name for f in workspace_files if _is_equal_path(f.app_dir, app_dir)]
+
+        # Ensure unique file name within the target app_dir
+        i = 1
+        max_attempts = 10
+        file_name = filename
+        while file_name in existing_file_names_in_app_dir:
+            name, ext = os.path.splitext(filename)
+            file_name = f"{name}_({i}){ext}"
+            i += 1
+            if i > max_attempts:
+                raise ValueError(f"File name {file_name} already exists in {app_dir} after {max_attempts} attempts")
+        file_dir_name = clean_name(file_name)
+        existing_file_dir_names = [clean_name(f.name) for f in workspace_files]
+        if file_dir_name in existing_file_dir_names:
+            raise ValueError(f"File directory name {file_dir_name} already exists")
+
+        _, ext = os.path.splitext(file_name)
+        absolute_path = str(target_dir.joinpath(file_dir_name, f"content{ext}" ))
+        file = File(
+            id=str(uuid.uuid4()),
+            name=file_name,
+            absolute_path=absolute_path,
+            workspace_id=workspace_id,
+            app_dir=app_dir,
+        )
+
+        os.makedirs(os.path.dirname(absolute_path), exist_ok=True)
+        # Save the content to the file
+        try:
+            if isinstance(content, bytes):
+                with open(absolute_path, "wb") as f:
+                    f.write(content)
+            elif isinstance(content, str):
+                 with open(absolute_path, "w", encoding='utf-8') as f: # Specify encoding for text
+                    f.write(content)
+            else:
+                 raise TypeError("Content must be string or bytes")
+
+        except Exception as e:
+             print(f"Error saving file content to {absolute_path}: {e}")
+             # Clean up the created file entry if saving fails
+             # This might require a separate method or careful error handling
+             # For now, just print the error.
+             raise # Re-raise the exception after printing
+
+        self._add_file(file)
+        print(f"Successfully saved and registered file: {file_name} at {absolute_path}")
+        return file
+    
+
     def add_folder(self, app_dir: list[str], workspace_id: str):
         if len(app_dir) == 0:
             raise ValueError("App dir cannot be empty")
@@ -424,6 +494,80 @@ class FileStore:
             app_dir=new_parent_dir,
         )
         self._update_file(new_file)
+
+
+    def _get_existing_sec_filing_stems(self, sec_app_dir: list[str], workspace_id: str) -> list[str]:
+        """
+        Gets a list of filename stems for existing SEC filings in the workspace.
+        """
+        existing_files = [
+            f for f in self.get_files(workspace_id).values()
+            if _is_sub_path(f.app_dir, sec_app_dir) # Check if the file is within the SEC directory or its subdirectories
+        ]
+        # Extract filename stems (assuming format stem.ext)
+        existing_stems = [Path(f.name).stem for f in existing_files]
+        # We might have both .htm and .pdf for the same stem, so get unique stems
+        return list(set(existing_stems))
+
+
+    # TODO: currently no state, discuss @EngSync whether FileStore should have SecSourceLoader in self
+    def get_sec_files(self, workspace_id: str):
+        """
+        Fetches SEC filings for the workspace's ticker using SecSourceLoader
+        and adds them to the workspace under the SEC filings directory.
+        """
+        # get the ticker symbol
+        workspaces = self.get_workspaces()
+        if workspace_id not in workspaces:
+            raise ValueError(f"Workspace with id {workspace_id} not found")
+        workspace = workspaces[workspace_id]
+        ticker = workspace.name # Assuming workspace name is the ticker symbol
+        print(f"Fetching SEC files for ticker: {ticker} in workspace: {workspace.name}")
+
+        # ensure the SEC filings folder exists and is tracked in the workspace
+        sec_app_dir = ["sec"]   # TODO: move to some config file
+        self.add_folder(sec_app_dir, workspace_id)
+        
+        # instantiate SecSourceLoader
+        existing_sec_stems = self._get_existing_sec_filing_stems(sec_app_dir, workspace_id)
+        print(f"Found {len(existing_sec_stems)} existing SEC filing stems in workspace {workspace.name}.")
+
+        sec_loader = SecSourceLoader()
+        sec_file_data_iterator: Iterator[SECFileData] = sec_loader.get_new_files_to_fetch(ticker, existing_sec_stems)
+        print(f"Initiating content fetch for new filings using SecSourceLoader...")
+
+        # iterate through the fetched file data and save directly to the workspace.
+        files_added_count = 0
+        for file_data in sec_file_data_iterator:
+            print(f"Processing file data for: {file_data.filename_stem}")
+
+            # Save the source content if available
+            if file_data.source_content is not None:
+                try:
+                    self._save_file_content_to_workspace(
+                        filename=f"{file_data.filename_stem}.htm",
+                        content=file_data.source_content,
+                        workspace_id=workspace_id,
+                        app_dir=sec_app_dir
+                    )
+                    files_added_count += 1
+                except Exception as e:
+                    print(f"Error saving source file for {file_data.filename_stem}: {e}")
+
+            # Save the PDF content if available
+            if file_data.pdf_content is not None:
+                try:
+                    self._save_file_content_to_workspace(
+                        filename=f"{file_data.filename_stem}.pdf",
+                        content=file_data.pdf_content,
+                        workspace_id=workspace_id,
+                        app_dir=sec_app_dir
+                    )
+                    files_added_count += 1
+                except Exception as e:
+                    print(f"Error saving PDF file for {file_data.filename_stem}: {e}")
+
+        print(f"Finished processing new SEC file data. Added {files_added_count} files to workspace.")
 
 
 def _get_sub_path(path: list[str], prefix: list[str]) -> list[str]:

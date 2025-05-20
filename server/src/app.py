@@ -470,6 +470,23 @@ async def upload_file(
     return file
 
 
+@api_router.post("/workspace/fetch_sec_data")
+def fetch_sec_data(workspace_id: str = Query(..., alias="workspaceId")):
+    """
+    Fetches new SEC filings for the specified workspace's ticker
+    and saves them to the workspace.
+    """
+    try:
+        file_store.get_sec_files(workspace_id)
+        return JSONResponse(content={"status": "SEC data fetch initiated successfully."})
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        # Catch any other exceptions during the process
+        print(f"Error fetching SEC data for workspace {workspace_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching SEC data: {e}")
+
+
 @api_router.get("/workspace/folders")
 def get_folders(workspace_id: str = Query(..., alias="workspaceId")):
     return file_store.get_folders(workspace_id)
