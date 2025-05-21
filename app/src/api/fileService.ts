@@ -74,6 +74,12 @@ class FileService {
     return comments;
   }
 
+  updateServerDirectories(workspaceId: string, files: LocalFile[]) {
+    return client.post(`/update_server_directories`, {
+      workspaceId,
+      files,
+    });
+  }
   // TODO: We should really get rid of this function and make sure the server only ever returns contentHash
   async getFileFromServer(args: {
     serverFilePath: string;

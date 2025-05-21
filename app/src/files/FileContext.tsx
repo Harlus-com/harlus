@@ -77,6 +77,7 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
         fileService.uploadFile(workspaceId, localFile);
       }
     }
+    fileService.updateServerDirectories(workspaceId, files);
     setFiles(files);
     setFolders(folders);
     setWorkspaceFiles(files.map((file) => toWorkspaceFile(workspaceId, file)));
