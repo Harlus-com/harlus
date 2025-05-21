@@ -225,8 +225,8 @@ class FileStore:
             )
         )
         file = File(
-            id=file_dir_name.split("__")[-1],
-            name=file_dir_name.split("__")[-2],
+            id=content_hash,
+            name=file_name,
             absolute_path=absolute_path,
             workspace_id=workspace_id,
         )
@@ -234,6 +234,7 @@ class FileStore:
         return file
 
     def _add_file(self, file: File):
+        print("Adding file", file)
         workspace = self.get_workspaces()[file.workspace_id]
         current_files = self.get_files(file.workspace_id).values()
         new_files = [file.model_dump() for file in current_files] + [file.model_dump()]
@@ -298,25 +299,6 @@ class FileStore:
         self, file: File, old_prefix: list[str], new_prefix: list[str]
     ) -> None:
         pass
-
-    def _update_file(self, file: File) -> None:
-        files = self.get_files(file.workspace_id)
-        files[file.id] = file
-        with self._open(file.workspace_id, "files.json", "w") as f:
-            json.dump([file.model_dump() for file in files.values()], f, indent=2)
-
-    def move_file(
-        self, workspace_id: str, file_id: str, new_parent_dir: list[str]
-    ) -> bool:
-        file = self.get_file(file_id, workspace_id)
-        new_file = File(
-            id=file.id,
-            name=file.name,
-            absolute_path=file.absolute_path,
-            workspace_id=workspace_id,
-            app_dir=new_parent_dir,
-        )
-        self._update_file(new_file)
 
     # TODO: remove the SEC specific naming
     def download_sec_files(self, workspace_id: str) -> list[File]:

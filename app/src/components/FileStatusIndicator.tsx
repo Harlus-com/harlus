@@ -13,44 +13,76 @@ const FileStatusIndicator: React.FC<FileStatusIndicatorProps> = ({
   className,
 }) => {
   const { getFileSyncStatus } = useFileContext();
-  const status = getFileSyncStatus(file.id) || "UNKNOWN";
+  const status = getFileSyncStatus(file.id) || "UNTRACKED";
+  const { color, label, moreInfo } = getStatusInfo(status);
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <div className={cn("w-2 h-2 rounded-full", getStatusColor(status))} />
-      <span className="text-xs text-muted-foreground">
-        {getStatusText(status)}
-      </span>
+    <div className={cn("flex items-center gap-2 group relative", className)}>
+      <div className={cn("w-2 h-2 rounded-full", color)} />
+      <div className="absolute left-0 top-full mt-1 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
+        <div>{label}</div>
+        {moreInfo && (
+          <div className="text-gray-400 text-[10px]">{moreInfo}</div>
+        )}
+      </div>
     </div>
   );
 };
 
-function getStatusText(status: SyncStatus) {
-  switch (status) {
-    case "SYNC_IN_PROGRESS":
-      return "Syncing...";
-    case "SYNC_COMPLETE":
-      return "Synced";
-    case "SYNC_PENDING":
-      return "Pending...";
-    case "SYNC_ERROR":
-      return "Error";
-    case "UNKNOWN":
-      return "Needs Sync";
-  }
+interface StatusInfo {
+  color: string;
+  label: string;
+  moreInfo?: string;
 }
-
-function getStatusColor(status: SyncStatus) {
+function getStatusInfo(status: SyncStatus): StatusInfo {
   switch (status) {
-    case "SYNC_IN_PROGRESS":
-      return "bg-blue-500";
     case "SYNC_COMPLETE":
-      return "bg-green-500";
+      return {
+        color: "bg-green-500",
+        label: "Synced",
+      };
     case "SYNC_PENDING":
-      return "bg-gray-500";
+      return {
+        color: "bg-blue-500",
+        label: "Sync Pending...",
+      };
+    case "SYNC_IN_PROGRESS":
+      return {
+        color: "bg-blue-500",
+        label: "Syncing...",
+      };
+    case "SYNC_INCOMPLETE":
+      return {
+        color: "bg-orange-500",
+        label: "Needs Sync",
+        moreInfo: "Sync was interrupted",
+      };
+    case "SYNC_PARTIAL_SUCCESS":
+      return {
+        color: "bg-orange-500",
+        label: "Needs Sync",
+        moreInfo: "Sync only partially succeeded",
+      };
     case "SYNC_ERROR":
-      return "bg-red-500";
-    case "UNKNOWN":
-      return "bg-yellow-500";
+      return {
+        color: "bg-red-500",
+        label: "Error",
+        moreInfo: "Sync failed",
+      };
+    case "SYNC_NOT_STARTED":
+      return {
+        color: "bg-yellow-500",
+        label: "Needs Sync",
+        moreInfo: "This file has never been synced",
+      };
+    case "UNTRACKED":
+      return {
+        color: "bg-gray-500",
+        label: "Untracked",
+        moreInfo: "This file is not tracked by the server",
+      };
+    default:
+      const exhaustiveCheck: never = status;
+      throw new Error("Unknown status: " + exhaustiveCheck);
   }
 }
 
