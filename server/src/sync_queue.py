@@ -67,6 +67,8 @@ class SyncQueue:
             return self._get_sync_status(file_id)
 
     def _get_sync_status(self, file_id: str) -> SyncStatus:
+        if not self.file_store.is_fully_uploaded(file_id):
+            return SyncStatus.UNTRACKED
         if self._is_pending(file_id):
             return SyncStatus.SYNC_PENDING
         if self._is_active(file_id):
@@ -75,7 +77,7 @@ class SyncQueue:
         if all(status == ToolSyncStatus.SUCCESS for status in tool_statuses):
             return SyncStatus.SYNC_COMPLETE
         if all(status == ToolSyncStatus.NONE for status in tool_statuses):
-            return SyncStatus.UNKNOWN
+            return SyncStatus.SYNC_NOT_STARTED
         if all(status == ToolSyncStatus.ERROR for status in tool_statuses):
             return SyncStatus.SYNC_ERROR
         if any(status == ToolSyncStatus.NONE for status in tool_statuses):

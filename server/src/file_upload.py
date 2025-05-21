@@ -37,16 +37,16 @@ class FileUploader:
             else:
                 self.active_uploads.add(content_hash)
 
-        if content_hash not in self.file_store.get_files(workspace_id):
-            file = self.file_store.create_file(
-                workspace_id, path_relative_to_workspace, content_hash, upload.filename
-            )
-        else:
-            if self.file_store.is_fully_uploaded(content_hash):
-                print(f"File {content_hash} is already fully uploaded, skipping")
-                with self.lock:
-                    self.active_uploads.remove(content_hash)
-                return self.file_store.get_files(workspace_id)[content_hash]
+        current_files = self.file_store.get_files(workspace_id)
+        if content_hash in current_files.keys():
+            print(f"File {content_hash} is already fully uploaded, skipping")
+            with self.lock:
+                self.active_uploads.remove(content_hash)
+            return current_files[content_hash]
+
+        file = self.file_store.create_file(
+            workspace_id, path_relative_to_workspace, content_hash, upload.filename
+        )
 
         is_pdf = await _is_pdf_stream(upload)
         print("is_pdf", is_pdf)

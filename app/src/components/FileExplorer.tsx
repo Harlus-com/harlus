@@ -11,6 +11,8 @@ import {
   FolderPlus,
   Folder,
   Pencil,
+  Upload,
+  X,
 } from "lucide-react";
 import { WorkspaceFile } from "@/api/workspace_types";
 import { cn } from "@/lib/utils";
@@ -22,6 +24,7 @@ import {
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -53,6 +56,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     getFiles,
     getFolders,
     notifyFileListChanged,
+    notifyFileSyncStatusChanged,
     forceSyncFile,
     startSyncFile,
     workspaceFileToLocalFile,
@@ -61,7 +65,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
   const { getOpenFiles, openFiles } = useFileViewContext();
   const files = getFiles();
   const folders = getFolders();
-  const [expandedFolders, setExpandedFolders] = React.useState<Set<string>>(
+  const [closedFolders, setClosedFolders] = React.useState<Set<string>>(
     new Set()
   );
   const [newFolderName, setNewFolderName] = React.useState("");
@@ -150,7 +154,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
   };
 
   const toggleFolder = (path: string) => {
-    setExpandedFolders((prev) => {
+    setClosedFolders((prev) => {
       const next = new Set(prev);
       if (next.has(path)) {
         next.delete(path);
@@ -183,7 +187,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     const pathKey = folder.path.join("/");
     const hasChildren = folder.children.size > 0 || folder.files.length > 0;
     const isRoot = folder.path.length === 0;
-    const isExpanded = isRoot || expandedFolders.has(pathKey);
+    const isExpanded = !closedFolders.has(pathKey);
     const isNewFolderOpen = openNewFolderPath === pathKey;
     const isRenameOpen = openRenamePath === pathKey;
 
@@ -465,12 +469,8 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
                   className="flex items-center flex-1 min-w-0 cursor-pointer"
                   onClick={() => handleOpenInGroup(file, FileGroupCount.ONE)}
                 >
-                  <File
-                    size={14}
-                    className="mr-2 flex-shrink-0 text-blue-500"
-                  />
+                  <FileStatusIndicator file={file} className="mr-2" />
                   <span className="truncate text-sm flex-1">{file.name}</span>
-                  <FileStatusIndicator file={file} className="ml-2" />
                 </div>
                 <div className="opacity-0 group-hover:opacity-100">
                   <DropdownMenu>
@@ -519,6 +519,35 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
                         <RefreshCw size={12} className="mr-2" />
                         Force Reload
                       </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const localFile = workspaceFileToLocalFile(file);
+                          if (localFile) {
+                            fileService
+                              .uploadFile(workspaceId, localFile)
+                              .then(() => {
+                                notifyFileSyncStatusChanged();
+                              });
+                          }
+                        }}
+                      >
+                        <Upload size={12} className="mr-2" />
+                        Track
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fileService.deleteFile(file).then(() => {
+                            notifyFileSyncStatusChanged();
+                          });
+                        }}
+                      >
+                        <X size={12} className="mr-2" />
+                        Untrack
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem
                         className="text-red-500 focus:text-red-500"
                         onClick={(e) => handleDeleteFile(file, e)}
@@ -537,8 +566,6 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     );
   };
 
-  const folderTree = buildFolderTree(files, folders);
-
   return (
     <>
       <div className="h-full bg-sidebar border-r border-border flex flex-col">
@@ -550,7 +577,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
                   No files yet.
                 </div>
               ) : (
-                renderFolder(folderTree)
+                renderFolder(buildFolderTree(files, folders))
               )}
             </div>
           </div>

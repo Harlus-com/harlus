@@ -5,10 +5,13 @@ export interface Workspace {
 }
 export type SyncStatus =
   | "SYNC_COMPLETE"
+  | "SYNC_INCOMPLETE"
   | "SYNC_IN_PROGRESS"
   | "SYNC_PENDING"
   | "SYNC_ERROR"
-  | "UNKNOWN";
+  | "SYNC_PARTIAL_SUCCESS"
+  | "SYNC_NOT_STARTED"
+  | "UNTRACKED";
 
 export interface WorkspaceFile {
   id: string; // This should be renamed contentHash (maybe?)
