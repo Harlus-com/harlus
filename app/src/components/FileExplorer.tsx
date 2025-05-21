@@ -90,6 +90,9 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
   const [fileInfoOpen, setFileInfoOpen] = React.useState<LocalFile | null>(
     null
   );
+  const [draggingOverPath, setDraggingOverPath] = React.useState<string | null>(
+    null
+  );
 
   const selectedFileIds: string[] = [];
   for (const fileGroup of Object.values(getOpenFiles())) {
@@ -188,16 +191,22 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     notifyFileListChanged();
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    console.log("handleDragOver");
+  const handleDragOver = (e: React.DragEvent, path: string) => {
     e.preventDefault();
     e.stopPropagation();
+    setDraggingOverPath(path);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDraggingOverPath(null);
   };
 
   const handleDropInRoot = (e: React.DragEvent) => {
-    console.log("handleDropInRoot");
     e.preventDefault();
     e.stopPropagation();
+    setDraggingOverPath(null);
     if (draggedItem) {
       handleMoveItem([]); // Empty array represents root folder
     }
@@ -223,10 +232,12 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
       <div
         key={pathKey}
         className="select-none"
-        onDragOver={handleDragOver}
+        onDragOver={(e) => handleDragOver(e, pathKey)}
+        onDragLeave={handleDragLeave}
         onDrop={(e) => {
           e.preventDefault();
           e.stopPropagation();
+          setDraggingOverPath(null);
           if (draggedItem) {
             handleMoveItem(folder.path);
           }
@@ -236,7 +247,9 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
           <div
             className={cn(
               "flex items-center p-2 rounded-md cursor-pointer group",
-              "hover:bg-muted"
+              "hover:bg-muted",
+              draggingOverPath === pathKey &&
+                "border-2 border-dashed border-primary"
             )}
             style={getIndentStyle(level)}
             onClick={() => toggleFolder(pathKey)}
@@ -446,8 +459,9 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
           <>
             {isRoot && (
               <div
-                className="pl-2"
-                onDragOver={handleDragOver}
+                className={cn("pl-2")}
+                onDragOver={(e) => handleDragOver(e, "")}
+                onDragLeave={handleDragLeave}
                 onDrop={handleDropInRoot}
               >
                 <Button
@@ -599,8 +613,13 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
         <div className="flex-1 overflow-auto p-2 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300">
           <div className="h-full mb-2">
             <div
-              className="pl-1 mt-1 space-y-1 h-full min-h-full"
-              onDragOver={handleDragOver}
+              className={cn(
+                "pl-1 mt-1 space-y-1 h-full min-h-full rounded-md transition-colors",
+                draggingOverPath === "" &&
+                  "border-2 border-dashed border-primary"
+              )}
+              onDragOver={(e) => handleDragOver(e, "")}
+              onDragLeave={handleDragLeave}
               onDrop={handleDropInRoot}
             >
               {files.length === 0 ? (
