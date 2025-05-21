@@ -76,7 +76,11 @@ class FileService {
     return window.electron.getLocalFolders(workspace.localDir);
   }
 
-  async refreshOnlineData(workspace: Workspace, relativeDestinationPath: string | ""): Promise<void> {
+  async refreshOnlineData(
+    workspace: Workspace, 
+    relativeDestinationPath: string | "", 
+    startDate: string
+  ): Promise<void> {
     console.log(
       `[FileService] Refreshing online data for workspace: ${workspace.name} into ${relativeDestinationPath === "" ? 'workspace root' : relativeDestinationPath}`
     );
@@ -84,9 +88,10 @@ class FileService {
       throw new Error("Electron is not available");
     }
   
-    const filesToDownload = await client.get(`/workspace/get_online_data?workspaceTicker=${workspace.name}`);
+    const filesToDownload = await client.get(
+      `/workspace/get_online_data?workspaceTicker=${workspace.name}&startDate=${startDate}`
+    );
     
-    console.log("[FileService] Raw filesToDownload from server:", JSON.stringify(filesToDownload, null, 2));
     const creationPromises = filesToDownload.map(async (fileToDownload) => {
       await window.electron.createFile(
         workspace.localDir,

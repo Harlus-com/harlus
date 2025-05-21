@@ -275,13 +275,3 @@ class FileStore:
         )
         self._update_file(new_file)
 
-    # def download_online_files(self, workspace_ticker: str) -> list[File]:
-    #     print(f"Fetching SEC files for ticker: {workspace_ticker}")
-        
-        # TODO: how not to compute the full docsearch twice?
-        # TODO: handle case where the ticker is not found
-        # TODO: remove the SEC specific naming
-        # sec_loader = SecSourceLoader()
-        # new_files_data: list[WebFile] = sec_loader.download_files(workspace_ticker)
-
-        # return new_files_data

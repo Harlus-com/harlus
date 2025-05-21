@@ -1,16 +1,11 @@
 from __future__ import annotations
 
 import base64
-import logging
 import os
-from pathlib import Path
 from time import sleep
-from datetime import date, datetime
-from typing import Iterator, Dict, Any, List
+from datetime import date, timedelta
 
-import pandas as pd
 import polars as pl
-import requests
 from openbb import obb
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -120,13 +115,16 @@ class OpenBBFilingsLoader:
         except Exception as e:
             print(f"Warning: OpenBB login failed: {e}.")
 
-    # TODO: could add start and end dates
-    def _fetch(self, ticker: str) -> pl.DataFrame:
+    def _fetch(self, ticker: str, start_date: date | None = None) -> pl.DataFrame:
         print(f"OpenBBFilingsLoader: Fetching fresh data for {ticker}")
+        if start_date is None:
+            # can't define time-dependent default value in function definition
+            start_date = date.today() - timedelta(days=365)
         out = obb.equity.fundamental.filings(
             ticker,
-            provider="fmp",
-            limit=100,
+            provider="sec", # start_date only works with "sec" provider
+            # limit=1000, # remove limit so all files after start_date are fetched
+            start_date=start_date,
         ).to_polars()
         out = out.with_columns(
             (
@@ -147,15 +145,8 @@ class OpenBBFilingsLoader:
         print(f"OpenBBFilingsLoader: Successfully fetched data for {ticker}")
         return out
 
-    # TODO: revert caching to reduce calls to OpenBB
-    def get(self, ticker: str) -> pl.DataFrame:
-        return self._fetch(ticker)
-
-    def __del__(self) -> None:
-        print(
-            "OpenBBFilingsLoader: Cleaning up resources (placeholder for cache cleanup)."
-        )
-        # Placeholder for future cache cleanup logic
+    def get(self, ticker: str, start_date: date | None = None) -> pl.DataFrame:
+        return self._fetch(ticker, start_date)
 
 
 # ---------------------------------------------------------------------------
@@ -193,9 +184,14 @@ class SecSourceLoader:
 
         return pdf
 
-    def download_files(self, ticker: str) -> list[WebFile]:
-        files_to_fetch_df = self.obb_loader.get(ticker)
+    def download_files(self, ticker: str, start_date: date | None = None) -> list[WebFile]:
+        files_to_fetch_df = self.obb_loader.get(ticker, start_date)
         print(f"SecSourceLoader: Found {len(files_to_fetch_df)} files to fetch.")
+
+        # TODO: how not to compute the full docsearch twice?
+        # TODO: handle case where the ticker is not found
+        # TODO: remove the SEC specific naming
+        # TODO: understand whysome files seem to dissapear between files_to_fetch_df and files
 
         if files_to_fetch_df.is_empty():
             return []
@@ -226,12 +222,6 @@ class SecSourceLoader:
                 del self.selenium_loader
             except Exception as e:
                 print(f"Error cleaning up Selenium loader: {e}")
-
-        if hasattr(self, "obb_loader") and self.obb_loader:
-            try:
-                del self.obb_loader
-            except Exception as e:
-                print(f"Error cleaning up OpenBB loader: {e}")
 
 
 __all__ = ["OpenBBFilingsLoader", "SecSourceLoader", "WebFile"]

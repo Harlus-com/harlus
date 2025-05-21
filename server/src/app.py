@@ -421,8 +421,12 @@ async def upload_file(
 @api_router.get("/workspace/get_online_data")
 async def get_online_data(
     workspace_ticker: str = Query(..., alias="workspaceTicker"),
+    start_date: str = Query(..., alias="startDate"),
 ):
-    web_files: list[WebFile] = SecSourceLoader().download_files(workspace_ticker)
+    web_files: list[WebFile] = SecSourceLoader().download_files(
+        workspace_ticker, 
+        start_date=datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
+    )
     files_to_download_json = []
     for web_file in web_files:
         files_to_download_json.append({
