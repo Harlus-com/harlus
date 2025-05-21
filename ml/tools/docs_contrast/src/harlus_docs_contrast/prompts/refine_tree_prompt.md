@@ -3,15 +3,17 @@ You are given a DRIVER TREE that explains why a fund invested in a company.
 
 Your task has **two parts**:
 
-1. **Deepen the tree** by generating new driver nodes using “why” reasoning. For each original statement, ask: “Why does the fund believe this?” and add new, deeper drivers that expand on the logic. You MUST ask these questions to the tools you have.
+1. **Deepen the tree** by generating new driver nodes using “why” reasoning. 
 
-2. **Make the tree more specific** by asking "how", "how much", "which segment", "which geograph". You MUST ask these questions to the tools you have.
+2. **Specify the tree** by ensuring the statements are specific.
 
-You must use the **RETRIEVER tool** on INTERNAL DOCUMENTS to find both evidence for existing statements and to generate new ones.
+You must use the **TOOLS** to obtain the information on which you can base your answer.
 
 ==== Tool Usage ====
-Only use the RETRIEVER tool.
-Only use INTERNAL DOCUMENTS.
+The tools you have at your disposal semantic and keyword retrievers. They will send you better
+information when your input is:
+  - rich: it is a full question, and contains enough context
+  - specific: it is focused on one topic
 
 GOOD TOOL INPUTS:
 - "Why does the fund believe operating margins will expand?"
@@ -19,11 +21,40 @@ GOOD TOOL INPUTS:
 - "What evidence underpins margin expansion expectations?"
 
 BAD TOOL INPUTS:
-- "Summarize the documents"
-- "What's going on?"
-- "Tell me more"
+- "cash flow"
+- "inrease?"
+- "tell me more"
 
-Each RETRIEVER query must be specific and focused on one investment belief at a time.
+==== Deepen tree approach ==== 
+You can use the following approach to deepen the tree:
+
+  1. For each original statement, reason with questions like: 
+      - “Why does the fund believe statement A?”
+      - "Which information in the document does support statement A?"
+      - "Which statements could support statement A? Are they indeed mentioned in the tool(s)?"
+  2. Use your TOOLS to get the information with which you can answer the questions you reasoned about. 
+  3. Recursively use this approach to add new and deper drivers.
+
+A good driver tree will have 10-15 drivers on 2-4 levels.
+
+==== Specify tree approach ==== 
+
+  1. For each original statement, reason with questions like:
+    - "Is this stament specific enough?"
+    - "If I am sceptical, what would I want to know more to believe this statement"?
+    - "How?", "How much?", "Wich segement?", "Which period?", "Which geography?"
+  2. Use your TOOLS to get the information with which you can answer the questions you reasoned about. 
+  3. Update the drivers to make them more specific.
+
+
+A statement is more specific if it is:
+  - measurable, meaning it has a
+      - number with unit: e.g. $500B
+      - scope: e.g. sales in EU
+        note: scope can be geographical, over product, over business units
+      - (potentially) date or period: e.g. for Q1 2025
+  - uses more concrete language (using comparissons, examples, better vocabulary)
+
 
 ==== Output Format (Flat JSON) ====
 Return the driver tree as a **flat JSON list**. Each item must include:
@@ -34,7 +65,7 @@ Return the driver tree as a **flat JSON list**. Each item must include:
 
 Each deeper-level driver should follow the hierarchy in the label (e.g., a reason that explains "#D-1" should be labeled "#D-1-1").
 
-==== Example ====
+Example output format:
 ```json
 [
   {
@@ -62,8 +93,6 @@ Each deeper-level driver should follow the hierarchy in the label (e.g., a reaso
 ```
 
 ==== Summary ====
-	- Step 1: Add new, deeper drivers using “why” reasoning. Use enough variation in your questions to ensure a good response from the tool.
-  - Step 2: Make the drivers more specific by using the RETRIEVER tools.
+	- Step 1: Add new, deeper drivers using “why” reasoning. 
+  - Step 2: Make the drivers more specific.
 	- Return the full updated driver tree as a flat JSON list.
-	- Use only INTERNAL DOCUMENTS.
-	- Do not include tool calls or metadata — just the completed driver items.

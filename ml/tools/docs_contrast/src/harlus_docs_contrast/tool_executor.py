@@ -33,7 +33,14 @@ class ToolExecutorNode:
         self.tool_name_to_metadata = tool_name_to_metadata
         self.message_state_key = message_state_key
         self.retrieved_items_state_key = retrieved_items_state_key
-        self.doc_search_tool_types = ["doc_search_semantic", "doc_search_summary", "doc_search_retriever"]
+        # TODO: add these as a property of the DocSearchToolWrapper
+        self.doc_search_tool_types = [
+            "doc_search_semantic_query_engine", 
+            "doc_search_summary_query_engine", 
+            "doc_search_semantic_retriever", 
+            "doc_search_summary_retriever",
+            "doc_search_sub_question_semantic_query_engine"
+        ]
 
     async def _process_doc_search_tool_call(self, tool_call) -> tuple[list[DocSearchRetrievedNode], ToolMessage]:
         retrieved_nodes = []
