@@ -4,10 +4,6 @@
 *.pdf
 *.egg-info
 dev
-<<<<<<< HEAD
 __pycache__
-=======
 *.pkl
-*.db
-*.json
->>>>>>> c190d82 (added comments)
+
