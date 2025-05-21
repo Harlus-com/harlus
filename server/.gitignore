@@ -9,3 +9,4 @@ workspace
 .log
 *.ipynb
 data
+.ruff_cache/
