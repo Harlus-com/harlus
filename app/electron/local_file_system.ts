@@ -233,3 +233,10 @@ function maybeAddNameToRelativePath(item: LocalFile | LocalFolder) {
 function isSubPath(pathParts: string[], relativePath: string[]) {
   return pathParts.join(path.sep).endsWith(relativePath.join(path.sep));
 }
+
+export async function createFolder(
+  parentFolder: LocalFolder,
+  newFolderName: string
+) {
+  await fs.mkdir(path.join(parentFolder.absolutePath, newFolderName));
+}

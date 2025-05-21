@@ -92,9 +92,14 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     notifyFileListChanged();
   };
 
-  const handleCreateFolder = async (parentPath: string[] = []) => {
-    if (!newFolderName.trim()) return;
-    await fileService.createFolder(workspaceId, [...parentPath, newFolderName]);
+  const handleCreateFolder = async (parentFolder: LocalFolder) => {
+    if (!newFolderName.trim()) {
+      throw new Error("Failed to create folder: Folder name is empty");
+    }
+    if (!parentFolder) {
+      throw new Error("Failed to create folder: Parent folder not found");
+    }
+    await fileService.createFolder(parentFolder, newFolderName);
     setNewFolderName("");
     setOpenNewFolderPath(null);
     notifyFileListChanged();
@@ -308,7 +313,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
                 onChange={(e) => setNewFolderName(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    handleCreateFolder(folder.path);
+                    handleCreateFolder(getLocalFolder(folder.path)!);
                   }
                 }}
                 placeholder="Enter folder name"
@@ -330,7 +335,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleCreateFolder(folder.path);
+                    handleCreateFolder(getLocalFolder(folder.path)!);
                   }}
                 >
                   Create
