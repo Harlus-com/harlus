@@ -2,6 +2,8 @@ import { Workspace, WorkspaceFile, WorkspaceFolder } from "./workspace_types";
 import { client } from "./client";
 import { ClaimComment } from "./comment_types";
 
+const filesBeingUploaded = new Set<string>();
+
 class FileService {
   addFiles(filePaths: string[], workspaceId: string): Promise<WorkspaceFile[]> {
     return Promise.all(
@@ -15,6 +17,22 @@ class FileService {
       throw new Error("Electron is not available");
     }
     return window.electron.getLocalFiles(workspace.localDir);
+  }
+
+  async getServerFiles(workspaceId: string): Promise<WorkspaceFile[]> {
+    return client.get(`/file/all?workspaceId=${workspaceId}`);
+  }
+
+  uploadFile(workspaceId: string, localFile: LocalFile): Promise<void> {
+    if (filesBeingUploaded.has(localFile.contentHash)) {
+      return;
+    }
+    filesBeingUploaded.add(localFile.contentHash);
+    try {
+      return client.upload(localFile, workspaceId);
+    } finally {
+      filesBeingUploaded.delete(localFile.contentHash);
+    }
   }
 
   deleteLocalFile(file: LocalFile): Promise<boolean> {

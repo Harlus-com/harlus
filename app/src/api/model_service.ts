@@ -11,14 +11,8 @@ class ModelService {
   }
 
   async startSyncFile(workspaceId: string, file: LocalFile): Promise<boolean> {
-    const isUploaded = await client.get(
-      `/file/is_uploaded?fileId=${file.contentHash}`
-    );
-    console.log("isUploaded", isUploaded);
-    if (!isUploaded) {
-      console.log("uploading file", file.absolutePath);
-      await client.upload(file, workspaceId);
-    }
+    // Will be a no-op if the file is already uploaded
+    await fileService.uploadFile(workspaceId, file);
     return client.post(`/file/sync`, {
       fileId: file.contentHash,
       workspaceId: workspaceId,

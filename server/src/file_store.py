@@ -156,21 +156,27 @@ class FileStore:
         with open(self.app_data_path.joinpath("workspaces.json"), "w") as f:
             json.dump(new_workspaces, f, indent=2)
 
-    def _get_file_dir_name(self, path: str, app_dir: list[str]) -> str:
-        content_hash = get_content_hash(path)
-        file_name = normalize_underscores(clean_name(os.path.basename(path)))
+    def _get_file_dir_name(
+        self, content_hash: str, app_dir: list[str], file_name: str
+    ) -> str:
         path_prefix = normalize_underscores("_".join(app_dir))
         if not path_prefix:
             return f"{file_name}__{content_hash}"
         else:
             return f"{path_prefix}__{file_name}__{content_hash}"
 
+    def _get_file_dir_name_from_path(self, path: str, app_dir: list[str]) -> str:
+        content_hash = get_content_hash(path)
+        file_name = normalize_underscores(clean_name(os.path.basename(path)))
+        return self._get_file_dir_name(content_hash, app_dir, file_name)
+
+    # TODO: Delete this method
     def copy_file_to_workspace(
         self, path: str, workspace_id: str, app_dir: list[str] = []
     ) -> File:
         print("Copying file to workspace", path, workspace_id, app_dir)
         workspace = self.get_workspaces()[workspace_id]
-        file_dir_name = self._get_file_dir_name(path, app_dir)
+        file_dir_name = self._get_file_dir_name_from_path(path, app_dir)
         absolute_path = str(
             self.app_data_path.joinpath(
                 workspace.dir_name,
@@ -187,6 +193,44 @@ class FileStore:
         )
         os.makedirs(os.path.dirname(absolute_path), exist_ok=False)
         shutil.copy(path, absolute_path)
+        self._add_file(file)
+        return file
+
+    def is_fully_uploaded(self, file_id: str) -> bool:
+        file = self.find_file(file_id)
+        if file is None:
+            return False
+        return os.path.exists(file.absolute_path)
+
+    def copy_file_content(self, file: File, path: str):
+        os.makedirs(os.path.dirname(file.absolute_path), exist_ok=False)
+        shutil.copy(path, file.absolute_path)
+
+    def create_file(
+        self,
+        workspace_id: str,
+        path_relative_to_workspace: list[str],
+        content_hash: str,
+        file_name: str,
+    ) -> File:
+        workspace = self.get_workspaces()[workspace_id]
+        file_dir_name = self._get_file_dir_name(
+            content_hash, path_relative_to_workspace, file_name
+        )
+        absolute_path = str(
+            self.app_data_path.joinpath(
+                workspace.dir_name,
+                file_dir_name,
+                # TODO: DO NOT HARDCODE PDF!!!
+                "content.pdf",
+            )
+        )
+        file = File(
+            id=file_dir_name.split("__")[-1],
+            name=file_dir_name.split("__")[-2],
+            absolute_path=absolute_path,
+            workspace_id=workspace_id,
+        )
         self._add_file(file)
         return file
 

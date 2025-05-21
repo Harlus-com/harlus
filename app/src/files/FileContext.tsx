@@ -68,6 +68,15 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
   const loadFiles = async (workspace: Workspace) => {
     const files = await fileService.getLocalFiles(workspace);
     const folders = await fileService.getLocalFolders(workspace);
+    const serverFiles = await fileService.getServerFiles(workspaceId);
+    for (const localFile of files) {
+      const serverFile = serverFiles.find(
+        (f) => f.id === localFile.contentHash
+      );
+      if (!serverFile) {
+        fileService.uploadFile(workspaceId, localFile);
+      }
+    }
     setFiles(files);
     setFolders(folders);
     setWorkspaceFiles(files.map((file) => toWorkspaceFile(workspaceId, file)));
