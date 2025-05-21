@@ -5,3 +5,5 @@
 *.egg-info
 dev
 __pycache__
+*.pkl
+
