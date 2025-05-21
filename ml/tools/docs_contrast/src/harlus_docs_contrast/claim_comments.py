@@ -1,5 +1,5 @@
 import asyncio
-from custom_types import LinkComment, ClaimComment, HighlightArea
+from .custom_types import LinkComment, ClaimComment, HighlightArea
 from harlus_source_highlight import HighlightPipeline
 from .utils import _strip_none, _convert_verdict
 from langchain_core.tools import Tool

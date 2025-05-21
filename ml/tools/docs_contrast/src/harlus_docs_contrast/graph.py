@@ -38,18 +38,13 @@ from .claim_comments import _get_claim_comments_from_driver_tree
 
 class ContrastAgentGraph:
 
-    def __init__(self,  persist_dir: str = None):
+    def __init__(self,  persist_dir: str):
         
         self.LLM = LLM
         self.config = {"configurable": {"thread_id": "n.a.", "user_id": "n.a."}}
-
-        # only use memory when persist_dir is provided
         self.persist_dir = persist_dir
-        if self.persist_dir:
-            os.makedirs(self.persist_dir, exist_ok=True)
-            self.db_path = os.path.join(self.persist_dir, "langgraph.db")
-        else:
-            self.db_path = None
+        os.makedirs(self.persist_dir, exist_ok=True)
+        self.db_path = os.path.join(self.persist_dir, "langgraph.db")
         self.memory = None
         self.graph = None
         self.tools_descriptions = {}
@@ -321,10 +316,7 @@ class ContrastAgentGraph:
         graph_builder.add_node("tools_refine_tree", self.tool_nodes["refine_tree"], metadata={"name": "tools_refine_tree"})
         graph_builder.add_node("tools_add_statement_source_texts", self.tool_nodes["add_statement_source_texts"], metadata={"name": "tools_add_statement_source_texts"})
         
-<<<<<<< HEAD:ml/tools/contrast_tool/src/harlus_contrast_tool/graph.py
-=======
         
->>>>>>> 5faf85b (partial integration of source_highlight_module):ml/tools/docs_contrast/src/harlus_docs_contrast/graph.py
         # Get tree loop
         graph_builder.add_edge(START, "get_tree")
         graph_builder.add_conditional_edges(
@@ -375,28 +367,16 @@ class ContrastAgentGraph:
     async def _get_driver_tree(self, graph):
         state = await graph.aget_state(self.config)
         return state.values.get("driver_tree", "")
-
     
     async def _get_state(self):
-        # toggle memory usage based on persist_dir
-        if self.db_path is not None:
-            graph = await self._get_graph()
+        async with AsyncSqliteSaver.from_conn_string(self.db_path) as memory:
+            graph = self.graph_builder.compile(checkpointer=memory)
             state = await graph.aget_state(self.config)
             return state
-        else:
-            graph = self.graph_builder.compile()
-            state = await graph.aget_state(self.config)
-            return state
-
 
     async def _get_graph_picture(self):
-        # toggle memory usage based on persist_dir
-        if self.db_path is not None:
-            async with AsyncSqliteSaver.from_conn_string(self.db_path) as memory:
-                graph = self.graph_builder.compile(checkpointer=memory)
-                return graph.get_graph().draw_ascii()
-        else:
-            graph = self.graph_builder.compile()
+        async with AsyncSqliteSaver.from_conn_string(self.db_path) as memory:
+            graph = self.graph_builder.compile(checkpointer=memory)
             return graph.get_graph().draw_ascii()
         
     async def run(self, user_message: str):
@@ -407,18 +387,17 @@ class ContrastAgentGraph:
             "internal_retrieved_items": [],
             "external_retrieved_items": [],
         }
-        if self.db_path is not None:
-            async with AsyncSqliteSaver.from_conn_string(self.db_path) as memory:
-                graph = self.graph_builder.compile(checkpointer=memory)
-                async for message_chunk in graph.astream(
-                    input_state,
-                    stream_mode="custom",
-                    config = self.config
-                ):
-                    pass 
-                claim_comments = await self._get_claim_comments(graph)
-                driver_tree = await self._get_driver_tree(graph)
-                return claim_comments, driver_tree
+        async with AsyncSqliteSaver.from_conn_string(self.db_path) as memory:
+            graph = self.graph_builder.compile(checkpointer=memory)
+            async for message_chunk in graph.astream(
+                input_state,
+                stream_mode="custom",
+                config = self.config
+            ):
+                pass 
+            claim_comments = await self._get_claim_comments(graph)
+            driver_tree = await self._get_driver_tree(graph)
+            return claim_comments, driver_tree
 
         
     async def stream(self, user_message: str):
@@ -432,12 +411,8 @@ class ContrastAgentGraph:
         }
 
         
-<<<<<<< HEAD:ml/tools/contrast_tool/src/harlus_contrast_tool/graph.py
 
         # TODO: strip checkpointer 
-=======
-        # Use the database path from persist_dir
->>>>>>> 5faf85b (partial integration of source_highlight_module):ml/tools/docs_contrast/src/harlus_docs_contrast/graph.py
         async with AsyncSqliteSaver.from_conn_string(self.db_path) as memory:
             graph = self.graph_builder.compile(checkpointer=memory)
         
