@@ -65,7 +65,7 @@ async def analyze(
         response_comments.append(
             {
                 "id": f"{time_now}_claim_comment_{i}",
-                "filePath": comment.file_path,
+                "fileId": comment.file_id,
                 "commentGroupId": f"{time_now}_{old_file.name}_{new_file.name}",
                 "text": comment.text,
                 "highlightArea": {
@@ -83,7 +83,7 @@ async def analyze(
                 "links": [
                     {
                         "id": f"{time_now}_link_comment_{i}_{j}",
-                        "filePath": link.file_path,
+                        "fileId": link.file_id,
                         "commentGroupId": f"{time_now}_{old_file.name}_{new_file.name}",
                         "text": "",
                         "highlightArea": {
