@@ -2,13 +2,10 @@ import json
 import os
 from pathlib import Path
 import shutil
-import tempfile
-from typing import Tuple, Union, Iterator
+from typing import Union
 import uuid
 from pydantic import BaseModel, ConfigDict, Field
-from src.util import get_content_hash, normalize_underscores, snake_to_camel, clean_name
-
-# from src.sec_loader import SecSourceLoader, WebFile
+from src.util import normalize_underscores, snake_to_camel, clean_name
 
 
 class Workspace(BaseModel):
@@ -167,34 +164,6 @@ class FileStore:
         with open(self.app_data_path.joinpath("workspaces.json"), "w") as f:
             json.dump(new_workspaces, f, indent=2)
 
-    # TODO: Delete this method
-    def copy_file_to_workspace(
-        self, path: str, workspace_id: str, app_dir: list[str] = []
-    ) -> File:
-        print("Copying file to workspace", path, workspace_id, app_dir)
-        workspace = self.get_workspaces()[workspace_id]
-        content_hash = get_content_hash(path)
-        file_name = normalize_underscores(clean_name(os.path.basename(path)))
-        file_dir_name = _get_file_dir_name(content_hash, app_dir, file_name)
-        absolute_path = str(
-            self.app_data_path.joinpath(
-                workspace.dir_name,
-                file_dir_name,
-                # TODO: DO NOT HARDCODE PDF!!!
-                "content.pdf",
-            )
-        )
-        file = File(
-            id=content_hash,
-            name=file_name,
-            absolute_path=absolute_path,
-            workspace_id=workspace_id,
-        )
-        os.makedirs(os.path.dirname(absolute_path), exist_ok=False)
-        shutil.copy(path, absolute_path)
-        self._add_file(file)
-        return file
-
     def is_fully_uploaded(self, file_id: str) -> bool:
         file = self.find_file(file_id)
         if file is None:
@@ -281,24 +250,6 @@ class FileStore:
             else workspace_or_workspace_id
         )
         return open(self.app_data_path.joinpath(workspace.dir_name, file_path), mode)
-
-    def get_file_path_to_id(self, workspace_id: str) -> dict[str, str]:
-        workspace = self.get_workspaces()[workspace_id]
-        with open(
-            self.app_data_path.joinpath(workspace.dir_name, "files.json"), "r"
-        ) as f:
-            files = [File.model_validate(file) for file in json.load(f)]
-        return {file.absolute_path: file.id for file in files}
-
-    def _get_all_file_children(
-        self, workspace_id: str, app_dir: list[str]
-    ) -> list[File]:
-        return []
-
-    def _change_file_path_prefix(
-        self, file: File, old_prefix: list[str], new_prefix: list[str]
-    ) -> None:
-        pass
 
     def update_server_directories(self, workspace_id: str, files: list[LocalFile]):
         workspace = self.get_workspaces()[workspace_id]
