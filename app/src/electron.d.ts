@@ -11,8 +11,8 @@ interface FileStats {
 
 interface LocalFile {
   contentHash: string; // Maps to id in WorkspaceFile
-  name: string; // Maps to name in WorkspaceFile
-  absolutePath: string; // Not represented in WorkspaceFile
+  name: string; // Maps to name in WorkspaceFile (last segment of absolutePath)
+  absolutePath: string; // Not represented in WorkspaceFile (This is the path on the local machine)
   pathRelativeToWorkspace: string[]; // Maps to appDir in WorkspaceFile
 }
 

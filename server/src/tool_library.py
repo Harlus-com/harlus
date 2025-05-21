@@ -36,7 +36,7 @@ class ToolLibrary:
 
     async def load(self, tool_name: str, file: File) -> ToolWrapper:
         loader = loaders_by_name[tool_name]
-        tool_wrapper = await loader.load(file.absolute_path, file.name)
+        tool_wrapper = await loader.load(file.id, {file.id: file.absolute_path})
         self._add_tool(file.absolute_path, tool_wrapper, overwrite=True)
 
     def has_all_tools(self, file: File):

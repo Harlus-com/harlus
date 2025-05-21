@@ -108,7 +108,7 @@ class BasicToolNode:
                     metadata = DocSearchNodeMetadata(
                         raw_metadata=retrieved_node.metadata,
                         page_nb=page_nb,
-                        file_path=retrieved_node.metadata.get("file_path", None),
+                        file_id=retrieved_node.metadata.get("file_id", None),
                         bounding_boxes=bounding_boxes,
                     )
                     sources_list.append(
@@ -165,8 +165,9 @@ def sanitize_tool_name(name):
 # https://langchain-ai.github.io/langgraph/concepts/memory/#writing-memories-in-the-background
 class ChatAgentGraph:
 
-    def __init__(self, persist_dir: str):
+    def __init__(self, file_id_to_path: dict[str, str], persist_dir: str):
 
+        self.file_id_to_path = file_id_to_path
         self.LLM = LLM
 
         self.config = {
@@ -396,9 +397,9 @@ class ChatAgentGraph:
         last_unique_id = ""
         for retrieved_node in retrieved_nodes:
 
-            file_path = retrieved_node.metadata.file_path
+            file_id = retrieved_node.metadata.file_id
             page_nb = retrieved_node.metadata.page_nb
-            doc = fitz.open(file_path)
+            doc = fitz.open(self.file_id_to_path[file_id])
             page = doc[page_nb]
             page_width = page.rect.width
             page_height = page.rect.height
@@ -427,7 +428,7 @@ class ChatAgentGraph:
             chat_source_comment = ChatSourceComment(
                 highlight_area=highlight_area,
                 id=unique_id,
-                file_path=file_path,
+                file_id=file_id,
                 thread_id=self.config["configurable"].get("thread_id"),
                 message_id=str(nb_messages),
                 text="Response source",

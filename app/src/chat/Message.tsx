@@ -14,6 +14,7 @@ import { CommentGroup } from "@/api/comment_types";
 import { useComments } from "@/comments/useComments";
 import { WorkspaceFile } from "@/api/workspace_types";
 import { useChatThread } from "./ChatThreadContext";
+import { useFileContext } from "@/files/FileContext";
 
 interface MessagePairProps {
   pair: MessagePair;
@@ -29,6 +30,8 @@ export const MessagePairComponent: React.FC<MessagePairProps> = ({
 }) => {
   const { addChatSourceComments, addCommentGroup, setActiveCommentGroups } =
     useComments();
+  const { getFile } = useFileContext();
+
   const { currentThreadId, getThread } = useChatThread();
   // Handle source clicks
   const handleSourceClick = async (
@@ -43,9 +46,7 @@ export const MessagePairComponent: React.FC<MessagePairProps> = ({
 
     if (onSourceClicked) {
       try {
-        const file = await fileService.getFileFromServer({
-          serverFilePath: chatSourceCommentGroup.filePath,
-        });
+        const file = getFile(chatSourceCommentGroup.fileId);
         if (!file) {
           console.error(
             "[MessagePair] No workspace file found:",

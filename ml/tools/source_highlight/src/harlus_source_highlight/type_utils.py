@@ -6,7 +6,7 @@ from llama_index.core.schema import NodeWithScore
 # TODO: Write these cleaner according to the following schema:
 # class Dummy(BaseModel):
 #     pass
-# 
+#
 #     @classmethod
 #     def from_node(cls, node: NodeWithScore) -> Self:
 #         pass
@@ -14,25 +14,24 @@ from llama_index.core.schema import NodeWithScore
 
 def _get_page_from_node(
     node: NodeWithScore,
-    ):
+):
     doc_items = node.metadata.get("doc_items", [])
     doc_item = doc_items[0]
     positions = doc_item.get("prov", [])
     position = positions[0]
     page_nb = position.get("page_no", 0)
-    return page_nb-1
+    return page_nb - 1
 
 
-def _get_file_path_from_node(
+def get_file_id_from_node(
     node: NodeWithScore,
-    ) -> str:
-    return node.metadata.get("file_path", "")
+) -> str:
+    return node.metadata.get("file_id", "")
 
 
-def _get_bounding_box_from_rect(rect: fitz.Rect, 
-                                file_path: str, 
-                                page_nb: int
-                                ) -> BoundingBox:
+def get_bounding_box_from_rect(
+    rect: fitz.Rect, file_path: str, page_nb: int
+) -> BoundingBox:
     doc = fitz.open(file_path)
     page_width = doc[page_nb].rect.width
     page_height = doc[page_nb].rect.height
@@ -45,11 +44,10 @@ def _get_bounding_box_from_rect(rect: fitz.Rect,
     )
     return bbox
 
-def _get_bounding_boxes_from_node(
-        node: NodeWithScore, 
-        page_nb: int, 
-        file_path: str
-        ) -> list[BoundingBox]:
+
+def get_bounding_boxes_from_node(
+    node: NodeWithScore, page_nb: int, file_path: str
+) -> list[BoundingBox]:
     doc = fitz.open(file_path)
     page_width = doc[page_nb].rect.width
     page_height = doc[page_nb].rect.height
@@ -66,7 +64,7 @@ def _get_bounding_boxes_from_node(
                     top=(page_height - bbox_in["t"]) / page_height * 100,
                     width=(bbox_in["r"] - bbox_in["l"]) / page_width * 100,
                     height=(bbox_in["t"] - bbox_in["b"]) / page_height * 100,
-                    page=page_nb-1,
+                    page=page_nb - 1,
                 )
                 bounding_boxes.append(bbox_out)
     return bounding_boxes
