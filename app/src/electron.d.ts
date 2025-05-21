@@ -54,6 +54,12 @@ interface ElectronAPI {
     parentFolder: LocalFolder,
     newFolderName: string
   ) => Promise<boolean>;
+  createFile: (
+    workspacePath: string,
+    relativeFileDir: string,
+    fileName: string,
+    data: Buffer
+  ) => Promise<boolean>;
   deleteItem: (item: LocalFile | LocalFolder) => Promise<boolean>;
 }
 

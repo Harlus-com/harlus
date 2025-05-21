@@ -19,7 +19,6 @@ const path = require("path");
       loader: {
         ".node": "file",
       },
-
     });
     console.log("Electron main bundled successfully");
   } catch (err) {

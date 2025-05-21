@@ -28,11 +28,14 @@ from src.tool_library import ToolLibrary
 from src.file_store import FileStore, LocalFile, Workspace, File
 from src.sync_queue import SyncQueue, SyncType
 from src.contrast_analysis import analyze
+from src.sec_loader import SecSourceLoader, WebFile
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt
 import httpx
+
+import base64
 
 TENANT_ID = "27dfce8d-8b21-4c81-8579-2baedebea216"
 API_AUDIENCE_URI = "api://6acbb67d-3153-4ed6-8041-f2c52a5a68e4"
@@ -417,12 +420,22 @@ async def upload_file(
     return await file_uploader.upload_file(workspace_id, app_dir, content_hash, upload)
 
 
-@api_router.post("/workspace/download_sec_data")
-async def download_sec_data(workspace_id: str = Query(..., alias="workspaceId")):
-    files = file_store.download_sec_files(workspace_id)
-    for file in files:
-        await sync_queue.queue_model_sync(file)
-    return files
+@api_router.get("/workspace/get_online_data")
+async def get_online_data(
+    workspace_ticker: str = Query(..., alias="workspaceTicker"),
+    start_date: str = Query(..., alias="startDate"),
+):
+    web_files: list[WebFile] = SecSourceLoader().download_files(
+        workspace_ticker, 
+        start_date=datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
+    )
+    files_to_download_json = []
+    for web_file in web_files:
+        files_to_download_json.append({
+            "fileName": web_file.file_name,
+            "contentBase64": base64.b64encode(web_file.pdf_content).decode('utf-8')
+        })
+    return files_to_download_json
 
 
 class MoveFileRequest(BaseModel):

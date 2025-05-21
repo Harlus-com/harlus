@@ -6,6 +6,7 @@ import {
   MessageSquareQuote,
   Files,
   LayoutDashboard,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,10 +20,9 @@ import { TopLevelPanelId } from "./panels";
 import { Workspace, WorkspaceFile } from "@/api/workspace_types";
 import { useNavigate } from "react-router-dom";
 import ContrastAnalysisDialog from "./ContrastAnalysisDialog";
-import { OpenFilesOptions } from "@/files/file_types";
-import { FilesToOpen } from "@/files/file_types";
 import { useFileContext } from "@/files/FileContext";
 import { useFileViewContext } from "@/files/FileViewContext";
+import RefreshDataDialog from "./RefreshDataDialog";
 
 export type WorkSpaceHeaderProps = {
   workspace: Workspace;
@@ -56,6 +56,7 @@ export default function WorkspaceHeader({
           </div>
         </Button>
         <h1 className="text-xl font-semibold">{workspace?.name || ""}</h1>
+        <RefreshDataDialog workspace={workspace} reloadWorkspace={reloadWorkspace} />
       </div>
       <div className="flex-1" />
       <div className="flex items-center space-x-2">
@@ -117,7 +118,7 @@ export default function WorkspaceHeader({
             onClick={() => togglePanelVisibility(TopLevelPanelId.CHAT)}
             variant="outline"
             size="sm"
-            className="group relative"
+            className="grou p relative"
           >
             <MessagesSquare size={16} />
             <div className="absolute top-full right-0 mt-1 px-2 py-1 text-xs bg-popover text-popover-foreground rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">

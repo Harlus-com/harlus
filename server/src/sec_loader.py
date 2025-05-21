@@ -1,16 +1,11 @@
 from __future__ import annotations
 
 import base64
-import logging
 import os
-from pathlib import Path
 from time import sleep
-from datetime import date, datetime
-from typing import Iterator, Dict, Any, List
+from datetime import date, timedelta
 
-import pandas as pd
 import polars as pl
-import requests
 from openbb import obb
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -120,23 +115,20 @@ class OpenBBFilingsLoader:
         except Exception as e:
             print(f"Warning: OpenBB login failed: {e}.")
 
-    # TODO: could add start and end dates
-    def _fetch(self, ticker: str) -> pl.DataFrame:
-        print(f"OpenBBFilingsLoader: Fetching fresh data for {ticker}")
+    def _fetch(self, ticker: str, start_date: date | None = None) -> pl.DataFrame:
+        if start_date is None:
+            # can't define time-dependent default value in function definition
+            start_date = date.today() - timedelta(days=365)
         out = obb.equity.fundamental.filings(
             ticker,
-            provider="fmp",
-            limit=10,  # Limit to 10 as in original code, adjust if needed
+            provider="sec", # start_date only works with "sec" provider
+            start_date=start_date,
         ).to_polars()
         out = out.with_columns(
             (
-                pl.col("filing_date").dt.strftime("%Y%m%d")
+                (pl.col("filing_date").dt.year() % 100).cast(pl.String)
                 + "_Q"
                 + ((pl.col("filing_date").dt.month() - 1) // 3 + 1).cast(pl.String)
-                + "_"
-                + pl.col("filing_date").dt.year().cast(pl.String)
-                + "_"
-                + pl.col("symbol")
                 + "_"
                 + pl.col("report_type")
                 .str.replace_all(" ", "_")
@@ -148,18 +140,10 @@ class OpenBBFilingsLoader:
                 "|".join(self.config["sec_relevant_filings"])
             )
         )
-        print(f"OpenBBFilingsLoader: Successfully fetched data for {ticker}")
         return out
 
-    # TODO: revert caching to reduce calls to OpenBB
-    def get(self, ticker: str) -> pl.DataFrame:
-        return self._fetch(ticker)
-
-    def __del__(self) -> None:
-        print(
-            "OpenBBFilingsLoader: Cleaning up resources (placeholder for cache cleanup)."
-        )
-        # Placeholder for future cache cleanup logic
+    def get(self, ticker: str, start_date: date | None = None) -> pl.DataFrame:
+        return self._fetch(ticker, start_date)
 
 
 # ---------------------------------------------------------------------------
@@ -167,16 +151,16 @@ class OpenBBFilingsLoader:
 # ---------------------------------------------------------------------------
 
 
-class WebFileData:
+class WebFile:
     def __init__(
-        self, file_name_no_ext: str, report_url: str, pdf_content: bytes | None
+        self, file_name: str, report_url: str, pdf_content: bytes | None
     ):
-        self.file_name_no_ext = file_name_no_ext
+        self.file_name = file_name
         self.report_url = report_url
         self.pdf_content = pdf_content
 
     def __repr__(self):
-        return f"SECFileData(filename_stem='{self.filename_stem}', report_url='{self.report_url}', has_pdf={self.pdf_content is not None})"
+        return f"SECFileData(filename_stem='{self.file_name}', report_url='{self.report_url}', has_pdf={self.pdf_content is not None})"
 
 
 class SecSourceLoader:
@@ -187,44 +171,44 @@ class SecSourceLoader:
         self.selenium_loader = SeleniumWebLoader()
         self.obb_loader = OpenBBFilingsLoader()
 
-    def _fetch(self, url: str) -> tuple[str | bytes, bytes | None]:
+    def _fetch_pdf(self, url: str) -> tuple[str | bytes, bytes | None]:
         try:
             self.selenium_loader.load(url)
-            # source = self.selenium_loader.get_source()
             pdf = self.selenium_loader.get_pdf()
         except Exception as e:
             print(f"Error fetching with Selenium from {url}: {e}")
-            # TODO: Fallback or raise? For now, return None for content
-            # source = None
             pdf = None
 
         return pdf
 
-    def get_new_files_to_fetch(self, ticker: str) -> Iterator[WebFileData]:
-        files_to_fetch_df = self.obb_loader.get(ticker)
-        print(f"SecSourceLoader: Found {len(files_to_fetch_df)} new filings to fetch.")
+    def download_files(self, ticker: str, start_date: date | None = None) -> list[WebFile]:
+        files_to_fetch_df = self.obb_loader.get(ticker, start_date)
+        print(f"SecSourceLoader: Found {len(files_to_fetch_df)} files to fetch.")
+
+        # TODO: how not to compute the full docsearch twice?
+        # TODO: handle case where the ticker is not found
+        # TODO: remove the SEC specific naming
+        # TODO: understand whysome files seem to dissapear between files_to_fetch_df and files
 
         if files_to_fetch_df.is_empty():
-            return
+            return []
 
+        files: list[WebFile] = []
         for row in files_to_fetch_df.to_dicts():
             file_name_no_ext = row["filename_stem"]
             report_url = row["report_url"]
-            print(
-                f"SecSourceLoader: Fetching content for {file_name_no_ext} from {report_url}"
-            )
-            pdf = self._fetch(report_url)
+            pdf = self._fetch_pdf(report_url)
 
             if pdf is not None:
-                yield WebFileData(
-                    file_name_no_ext=file_name_no_ext,
+                files.append(WebFile(
+                    file_name=f"{file_name_no_ext}.pdf",
                     report_url=report_url,
                     pdf_content=pdf,
-                )
+                ))
             else:
-                print(
-                    f"Warning: Could not fetch content for {file_name_no_ext} from {report_url}"
-                )
+                print(f"Warning: Could not fetch content for {file_name_no_ext} from {report_url}")
+
+        return files
 
     def __del__(self) -> None:
         print("SecSourceLoader: Cleaning up resources.")
@@ -234,11 +218,5 @@ class SecSourceLoader:
             except Exception as e:
                 print(f"Error cleaning up Selenium loader: {e}")
 
-        if hasattr(self, "obb_loader") and self.obb_loader:
-            try:
-                del self.obb_loader
-            except Exception as e:
-                print(f"Error cleaning up OpenBB loader: {e}")
 
-
-__all__ = ["OpenBBFilingsLoader", "SecSourceLoader", "WebFileData"]
+__all__ = ["OpenBBFilingsLoader", "SecSourceLoader", "WebFile"]

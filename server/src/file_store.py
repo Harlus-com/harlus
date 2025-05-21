@@ -8,7 +8,7 @@ import uuid
 from pydantic import BaseModel, ConfigDict, Field
 from src.util import get_content_hash, normalize_underscores, snake_to_camel, clean_name
 
-from src.sec_loader import SecSourceLoader, WebFileData
+# from src.sec_loader import SecSourceLoader, WebFile
 
 
 class Workspace(BaseModel):
@@ -300,40 +300,7 @@ class FileStore:
     ) -> None:
         pass
 
-    # TODO: remove the SEC specific naming
-    def download_sec_files(self, workspace_id: str) -> list[File]:
-        if workspace_id not in self.get_workspaces():
-            raise ValueError(f"Workspace with id {workspace_id} not found")
-        workspace = self.get_workspaces()[workspace_id]
-        ticker = workspace.name  # Assuming workspace name is the ticker symbol
-        print(f"Fetching SEC files for ticker: {ticker} in workspace: {workspace.name}")
-
-        reports_dir = ["reports"]  # TODO: move to some config file
-
-        sec_loader = SecSourceLoader()
-        # TODO: be more robust: check against existing downloaded files
-        new_file_data_iterator: Iterator[WebFileData] = (
-            sec_loader.get_new_files_to_fetch(ticker, [])
-        )
-        print(f"Initiating content fetch for new filings using SecSourceLoader...")
-
-        files_added: list[File] = []
-        for file_data in new_file_data_iterator:
-            print(f"Processing file data for: {file_data.file_name_no_ext}")
-
-            # TODO: make pretty file name for front end
-            # TODO: remove hard-coded .pdf extension
-            tmp_dir = tempfile.mkdtemp()
-            tmp_path = os.path.join(tmp_dir, f"{file_data.file_name_no_ext}.pdf")
-            with open(tmp_path, "wb") as out:
-                out.write(file_data.pdf_content)
-
-            file = self.copy_file_to_workspace(str(tmp_path), workspace_id, reports_dir)
-            files_added.append(file)
-
-        return files_added
-
-    def update_server_directories(self, workspace_id: str, files: list[LocalFile]):
+def update_server_directories(self, workspace_id: str, files: list[LocalFile]):
         workspace = self.get_workspaces()[workspace_id]
         files_by_id = self.get_files(workspace_id)
         file_path_updates: dict[str, str] = {}

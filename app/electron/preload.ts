@@ -44,6 +44,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("move-item", item, newRelativePath),
   createFolder: (parentFolder: LocalFolder, newFolderName: string) =>
     ipcRenderer.invoke("create-folder", parentFolder, newFolderName),
+  createFile: (workspaceLocalDir: string, relativeDestPath: string, fileName: string, data: Buffer) =>
+    ipcRenderer.invoke("create-file", workspaceLocalDir, relativeDestPath, fileName, data),
   deleteItem: (item: LocalFile | LocalFolder) =>
     ipcRenderer.invoke("delete-item", item),
 });

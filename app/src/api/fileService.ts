@@ -1,6 +1,7 @@
 import { Workspace, WorkspaceFile, WorkspaceFolder } from "./workspace_types";
 import { client } from "./client";
 import { ClaimComment } from "./comment_types";
+import { Buffer } from 'buffer';
 
 const filesBeingUploaded = new Set<string>();
 
@@ -97,6 +98,34 @@ class FileService {
       throw new Error("Electron is not available");
     }
     return window.electron.getLocalFolders(workspace.localDir);
+  }
+
+  async refreshOnlineData(
+    workspace: Workspace, 
+    relativeDestinationPath: string | "", 
+    startDate: string
+  ): Promise<void> {
+    console.log(
+      `[FileService] Refreshing online data for workspace: ${workspace.name} into ${relativeDestinationPath === "" ? 'workspace root' : relativeDestinationPath}`
+    );
+    if (!window.electron) {
+      throw new Error("Electron is not available");
+    }
+  
+    const filesToDownload = await client.get(
+      `/workspace/get_online_data?workspaceTicker=${workspace.name}&startDate=${startDate}`
+    );
+    
+    const creationPromises = filesToDownload.map(async (fileToDownload) => {
+      await window.electron.createFile(
+        workspace.localDir,
+        relativeDestinationPath,
+        fileToDownload.fileName,
+        Buffer.from(fileToDownload.contentBase64, "base64")
+      );
+    });
+  
+    await Promise.all(creationPromises);
   }
 
   createFolder(
