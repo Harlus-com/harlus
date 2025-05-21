@@ -78,29 +78,48 @@ class ContrastAgentGraph:
                     "friendly_name": "the web"
                 }
                 self._add_tool(tool, metadata_dict, doc_type, tool_class)
+            # TODO: add all the metadata we extract here:
+            # - available tools
+            # - their different namings
+            # to the DocSearchToolWrapper, so we can just iterate over a list of available tools
             elif tool_class == "doc_search":
-                semantic_tool = tool.semantic_tool.to_langchain_tool()
-                tool_type = "doc_search_semantic"
+                semantic_query_engine_tool = tool.semantic_query_engine_tool.to_langchain_tool()
+                tool_type = "doc_search_semantic_query_engine"
                 metadata_dict = {
                     "type": tool_type,
                     "friendly_name": tool.metadata.friendly_name
                 }
-                self._add_tool(semantic_tool, metadata_dict, doc_type, tool_type)
-                summary_tool = tool.summary_tool.to_langchain_tool()
-                tool_type = "doc_search_summary"
+                self._add_tool(semantic_query_engine_tool, metadata_dict, doc_type, tool_type)
+                summary_query_engine_tool = tool.summary_query_engine_tool.to_langchain_tool()
+                tool_type = "doc_search_summary_query_engine"
                 metadata_dict = {
                     "type": tool_type,
                     "friendly_name": tool.metadata.friendly_name
                 }
-                self._add_tool(summary_tool, metadata_dict, doc_type, tool_type)
-                retriever_tool = tool.retriever_tool.to_langchain_tool()
-                tool_type = "doc_search_retriever"
+                self._add_tool(summary_query_engine_tool, metadata_dict, doc_type, tool_type)
+                semantic_retriever_tool = tool.semantic_retriever_tool.to_langchain_tool()
+                tool_type = "doc_search_semantic_retriever"
                 metadata_dict = {
                     "type": tool_type,
                     "friendly_name": tool.metadata.friendly_name
                 }
-                self._add_tool(retriever_tool, metadata_dict, doc_type, tool_type)
-    
+                self._add_tool(semantic_retriever_tool, metadata_dict, doc_type, tool_type)
+                summary_retriever_tool = tool.summary_retriever_tool.to_langchain_tool()
+                tool_type = "doc_search_summary_retriever"
+                metadata_dict = {
+                    "type": tool_type,
+                    "friendly_name": tool.metadata.friendly_name
+                }
+                self._add_tool(summary_retriever_tool, metadata_dict, doc_type, tool_type)
+                sub_question_semantic_query_engine_tool = tool.sub_question_semantic_query_engine_tool.to_langchain_tool()
+                tool_type = "doc_search_sub_question_semantic_query_engine"
+                metadata_dict = {
+                    "type": tool_type,
+                    "friendly_name": tool.metadata.friendly_name
+                }
+                self._add_tool(sub_question_semantic_query_engine_tool, metadata_dict, doc_type, tool_type)
+
+
     def _sanitize_tool_names(self, doc_type: str):
         for tool_type in self.tools[doc_type]:
             for tool in self.tools[doc_type][tool_type]:
@@ -115,8 +134,7 @@ class ContrastAgentGraph:
             self.tools_descriptions[doc_type][tool_type] = ""
         self.tools_descriptions[doc_type][tool_type] = nl + nl.join([f"{sp} {t.name} {sp} \n\n {t.description}" for t in self.tools[doc_type][tool_type]]) + nl
         
-    # TODO: have one single BasicToolNode 
-    # TODO: rename to ToolExecutor
+    # TODO: have one single ToolExecutorNode 
     def update_tools(self, internal_tools: list[DocSearchToolWrapper], external_tools: list[DocSearchToolWrapper]):
 
         self.tools = {}
@@ -126,14 +144,14 @@ class ContrastAgentGraph:
         self._add_tools(external_tools, "external")
         self._sanitize_tool_names("internal")
         self._sanitize_tool_names("external")
-        self._generate_tool_descriptions("internal", "doc_search_summary")
-        self._generate_tool_descriptions("internal", "doc_search_retriever")
-        self._generate_tool_descriptions("external", "doc_search_retriever")
+        self._generate_tool_descriptions("internal", "doc_search_summary_retriever")
+        self._generate_tool_descriptions("internal", "doc_search_semantic_retriever")
+        self._generate_tool_descriptions("external", "doc_search_semantic_retriever")
 
-        get_tree_tool_node = ToolExecutorNode(tools=self.tools["internal"]["doc_search_summary"], tool_name_to_metadata=self.tool_name_to_metadata["internal"]["doc_search_summary"], message_state_key="internal_messages", retrieved_items_state_key="internal_retrieved_items")
-        refine_tree_tool_node = ToolExecutorNode(tools=self.tools["internal"]["doc_search_retriever"], tool_name_to_metadata=self.tool_name_to_metadata["internal"]["doc_search_retriever"], message_state_key="internal_messages", retrieved_items_state_key="internal_retrieved_items")
-        add_statement_source_texts_tool_node = ToolExecutorNode(tools=self.tools["internal"]["doc_search_retriever"], tool_name_to_metadata=self.tool_name_to_metadata["internal"]["doc_search_retriever"], message_state_key="internal_messages", retrieved_items_state_key="internal_retrieved_items")
-        verify_tree_tool_node = ToolExecutorNode(tools=self.tools["external"]["doc_search_retriever"], tool_name_to_metadata=self.tool_name_to_metadata["external"]["doc_search_retriever"], message_state_key="external_messages", retrieved_items_state_key="external_retrieved_items")
+        get_tree_tool_node = ToolExecutorNode(tools=self.tools["internal"]["doc_search_summary_retriever"], tool_name_to_metadata=self.tool_name_to_metadata["internal"]["doc_search_summary_retriever"], message_state_key="internal_messages", retrieved_items_state_key="internal_retrieved_items")
+        refine_tree_tool_node = ToolExecutorNode(tools=self.tools["internal"]["doc_search_semantic_retriever"], tool_name_to_metadata=self.tool_name_to_metadata["internal"]["doc_search_semantic_retriever"], message_state_key="internal_messages", retrieved_items_state_key="internal_retrieved_items")
+        add_statement_source_texts_tool_node = ToolExecutorNode(tools=self.tools["internal"]["doc_search_semantic_retriever"], tool_name_to_metadata=self.tool_name_to_metadata["internal"]["doc_search_semantic_retriever"], message_state_key="internal_messages", retrieved_items_state_key="internal_retrieved_items")
+        verify_tree_tool_node = ToolExecutorNode(tools=self.tools["external"]["doc_search_semantic_retriever"], tool_name_to_metadata=self.tool_name_to_metadata["external"]["doc_search_semantic_retriever"], message_state_key="external_messages", retrieved_items_state_key="external_retrieved_items")
         
         self.tool_nodes = {
             "get_tree": get_tree_tool_node,
@@ -142,9 +160,9 @@ class ContrastAgentGraph:
             "verify_tree": verify_tree_tool_node,
         }
 
-        self.get_tree_llm = self.LLM.bind_tools(self.tools["internal"]["doc_search_summary"])
-        self.refine_tree_llm = self.LLM.bind_tools(self.tools["internal"]["doc_search_retriever"])
-        self.verify_tree_llm = self.LLM.bind_tools(self.tools["external"]["doc_search_retriever"])
+        self.get_tree_llm = self.LLM.bind_tools(self.tools["internal"]["doc_search_summary_retriever"])
+        self.refine_tree_llm = self.LLM.bind_tools(self.tools["internal"]["doc_search_semantic_retriever"])
+        self.verify_tree_llm = self.LLM.bind_tools(self.tools["external"]["doc_search_semantic_retriever"])
 
         self.build()
 
@@ -171,7 +189,7 @@ class ContrastAgentGraph:
         with open(os.path.join(os.path.dirname(__file__), "prompts/get_tree_prompt.md"), "r") as f:
             system_prompt = f.read()
         
-        system_prompt = system_prompt + self.tools_descriptions["internal"]["doc_search_summary"]
+        system_prompt = system_prompt + self.tools_descriptions["internal"]["doc_search_summary_retriever"]
         prompt = [
             SystemMessage(content=system_prompt),
             *state["internal_messages"],
@@ -188,29 +206,29 @@ class ContrastAgentGraph:
             "driver_tree": driver_tree,
         }
        
-    async def _add_statement_source_texts(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
+    # async def _add_statement_source_texts(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
         
-        print("[harlus_contrast_tool] adding statement source texts")
+    #     print("[harlus_contrast_tool] adding statement source texts")
 
-        with open(os.path.join(os.path.dirname(__file__), "prompts/add_statement_source_texts_prompt.md"), "r") as f:
-            system_prompt = f.read()
+    #     with open(os.path.join(os.path.dirname(__file__), "prompts/add_statement_source_texts_prompt.md"), "r") as f:
+    #         system_prompt = f.read()
         
-        system_prompt = system_prompt + self.tools_descriptions["internal"]["doc_search_retriever"]
-        prompt = [
-            SystemMessage(content=system_prompt),
-            *state["internal_messages"],
-            state["driver_tree"],
-        ]
-        message = await self.refine_tree_llm.ainvoke(prompt)
+    #     system_prompt = system_prompt + self.tools_descriptions["internal"]["doc_search_semantic_retriever"]
+    #     prompt = [
+    #         SystemMessage(content=system_prompt),
+    #         *state["internal_messages"],
+    #         state["driver_tree"],
+    #     ]
+    #     message = await self.refine_tree_llm.ainvoke(prompt)
             
-        if hasattr(message, "tool_calls") and message.tool_calls:
-            driver_tree = state["driver_tree"]
-        else:
-            driver_tree = message.content
-        yield {
-            "internal_messages": [message],
-            "driver_tree": driver_tree,
-        }
+    #     if hasattr(message, "tool_calls") and message.tool_calls:
+    #         driver_tree = state["driver_tree"]
+    #     else:
+    #         driver_tree = message.content
+    #     yield {
+    #         "internal_messages": [message],
+    #         "driver_tree": driver_tree,
+    #     }
 
     async def _refine_tree(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
         
@@ -219,7 +237,7 @@ class ContrastAgentGraph:
         with open(os.path.join(os.path.dirname(__file__), "prompts/refine_tree_prompt.md"), "r") as f:
             system_prompt = f.read()
         
-        system_prompt = system_prompt + self.tools_descriptions["internal"]["doc_search_retriever"]
+        system_prompt = system_prompt + self.tools_descriptions["internal"]["doc_search_semantic_retriever"]
         prompt = [
             SystemMessage(content=system_prompt),
             *state["internal_messages"],
@@ -241,7 +259,7 @@ class ContrastAgentGraph:
         print("[harlus_contrast_tool] verifying tree")
         with open(os.path.join(os.path.dirname(__file__), "prompts/verify_tree_prompt.md"), "r") as f:
             system_prompt = f.read()
-        system_prompt = system_prompt + self.tools_descriptions["external"]["doc_search_retriever"]
+        system_prompt = system_prompt + self.tools_descriptions["external"]["doc_search_semantic_retriever"]
         prompt = [
             SystemMessage(content=system_prompt),
             *state["external_messages"],
@@ -257,19 +275,19 @@ class ContrastAgentGraph:
             "driver_tree": driver_tree,
         }
 
-    async def _format_output(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
-        print("[harlus_contrast_tool] formatting output")
-        with open(os.path.join(os.path.dirname(__file__), "prompts/format_output_prompt.md"), "r") as f:
-            system_prompt = f.read()
-        system_prompt = system_prompt
-        prompt = [
-            SystemMessage(content=system_prompt),
-            state["driver_tree"],
-        ]
-        message = await self.LLM.ainvoke(prompt)
-        yield {
-            "driver_tree": message.content,
-        }
+    # async def _format_output(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
+    #     print("[harlus_contrast_tool] formatting output")
+    #     with open(os.path.join(os.path.dirname(__file__), "prompts/format_output_prompt.md"), "r") as f:
+    #         system_prompt = f.read()
+    #     system_prompt = system_prompt
+    #     prompt = [
+    #         SystemMessage(content=system_prompt),
+    #         state["driver_tree"],
+    #     ]
+    #     message = await self.LLM.ainvoke(prompt)
+    #     yield {
+    #         "driver_tree": message.content,
+    #     }
     
     async def _get_source_nodes(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
         print("[harlus_contrast_tool] getting claim comments")
@@ -277,8 +295,8 @@ class ContrastAgentGraph:
         parsed_driver_tree = _clean_and_parse_json(driver_tree)
         claim_comments = await _get_claim_comments_from_driver_tree(
             parsed_driver_tree,
-            self.tools["internal"]["doc_search_retriever"],
-            self.tools["external"]["doc_search_retriever"]
+            self.tools["internal"]["doc_search_semantic_retriever"],
+            self.tools["external"]["doc_search_semantic_retriever"]
         )
         yield {
             "claim_comments": claim_comments
@@ -308,13 +326,13 @@ class ContrastAgentGraph:
         graph_builder.add_node("get_tree", self._get_tree, metadata={"name": "get_tree"})
         graph_builder.add_node("refine_tree", self._refine_tree, metadata={"name": "refine_tree"})
         graph_builder.add_node("verify_tree", self._verify_tree, metadata={"name": "verify_tree"})
-        graph_builder.add_node("format_output", self._format_output, metadata={"name": "format_output"})
-        graph_builder.add_node("add_statement_source_texts", self._add_statement_source_texts, metadata={"name": "add_statement_source_texts"})
+        #graph_builder.add_node("format_output", self._format_output, metadata={"name": "format_output"})
+        #graph_builder.add_node("add_statement_source_texts", self._add_statement_source_texts, metadata={"name": "add_statement_source_texts"})
         graph_builder.add_node("get_source_nodes", self._get_source_nodes, metadata={"name": "get_source_nodes"})
         graph_builder.add_node("tools_get_tree", self.tool_nodes["get_tree"], metadata={"name": "tools_get_tree"})
         graph_builder.add_node("tools_verify_tree", self.tool_nodes["verify_tree"], metadata={"name": "tools_verify_tree"})
         graph_builder.add_node("tools_refine_tree", self.tool_nodes["refine_tree"], metadata={"name": "tools_refine_tree"})
-        graph_builder.add_node("tools_add_statement_source_texts", self.tool_nodes["add_statement_source_texts"], metadata={"name": "tools_add_statement_source_texts"})
+        #graph_builder.add_node("tools_add_statement_source_texts", self.tool_nodes["add_statement_source_texts"], metadata={"name": "tools_add_statement_source_texts"})
         
         
         # Get tree loop
@@ -322,17 +340,17 @@ class ContrastAgentGraph:
         graph_builder.add_conditional_edges(
             "get_tree",
             self._custom_tools_condition_internal,
-            {"tools":"tools_get_tree", "no_tools":"add_statement_source_texts"}
+            {"tools":"tools_get_tree", "no_tools":"refine_tree"}
         )
         graph_builder.add_edge("tools_get_tree", "get_tree")
 
         # Add statement source texts loop
-        graph_builder.add_conditional_edges(
-            "add_statement_source_texts",
-            self._custom_tools_condition_internal,
-            {"tools":"tools_add_statement_source_texts", "no_tools":"refine_tree"}
-        )
-        graph_builder.add_edge("tools_add_statement_source_texts", "add_statement_source_texts")
+        #graph_builder.add_conditional_edges(
+        #    "add_statement_source_texts",
+        #    self._custom_tools_condition_internal,
+        #    {"tools":"tools_add_statement_source_texts", "no_tools":"refine_tree"}
+        #)
+        #graph_builder.add_edge("tools_add_statement_source_texts", "add_statement_source_texts")
 
 
         # Refine tree loop
@@ -347,12 +365,12 @@ class ContrastAgentGraph:
         graph_builder.add_conditional_edges(
             "verify_tree",
             self._custom_tools_condition_external,
-            {"tools":"tools_verify_tree", "no_tools": "format_output"}
+            {"tools":"tools_verify_tree", "no_tools": "get_source_nodes"}
         )
         graph_builder.add_edge("tools_verify_tree", "verify_tree") 
 
         # Format output
-        graph_builder.add_edge("format_output", "get_source_nodes") 
+        #graph_builder.add_edge("format_output", "get_source_nodes") 
         graph_builder.add_edge("get_source_nodes", END)       
 
         self.graph_builder = graph_builder

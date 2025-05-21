@@ -93,6 +93,7 @@ async def _get_claim_comments_from_contrast(
             for source_text in source_texts]
         claim_comments = await asyncio.gather(*statement_tasks)
         claim_comments = _strip_none(claim_comments)
+        # TODO: merge claim comments 
         if len(claim_comments) == 0:
             return None
         return claim_comments
