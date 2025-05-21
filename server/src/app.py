@@ -107,8 +107,8 @@ workspace_store.initialize()
 file_store = FileStore(workspace_store)
 file_store.initialize()
 tool_library = ToolLibrary(file_store)
-chat_store = ChatStore(file_store, tool_library)
-comment_store = CommentStore(file_store)
+chat_store = ChatStore(workspace_store, file_store, tool_library)
+comment_store = CommentStore(workspace_store, file_store)
 sync_queue = SyncQueue(file_store, tool_library)
 
 
@@ -161,12 +161,12 @@ async def create_workspace(request: CreateWorkspaceRequest):
 
 @api_router.get("/workspace/get")
 def get_workspace(workspace_id: str = Query(..., alias="workspaceId")):
-    return file_store.get_workspaces()[workspace_id]
+    return workspace_store.get_workspaces()[workspace_id]
 
 
 @api_router.get("/workspace/all")
 def get_workspaces() -> list[Workspace]:
-    workspaces = list(file_store.get_workspaces().values())
+    workspaces = list(workspace_store.get_workspaces().values())
     return workspaces
 
 
@@ -259,9 +259,8 @@ async def get_contrast_analyze(
     workspace_id: str = Query(..., alias="workspaceId"),
 ):
     """Analyze the contrast between two files"""
-    return await analyze(
-        old_file_id, new_file_id, file_store, tool_library, workspace_id
-    )
+    workspace = workspace_store.get_workspaces()[workspace_id]
+    return await analyze(old_file_id, new_file_id, file_store, tool_library, workspace)
 
 
 @api_router.get("/file/get")

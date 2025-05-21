@@ -3,6 +3,7 @@ from datetime import datetime
 
 from harlus_docs_contrast.graph import ContrastAgentGraph
 import uuid
+from src.workspace_store import Workspace
 from src.file_store import FileStore
 from src.tool_library import ToolLibrary
 import pickle
@@ -16,9 +17,8 @@ async def analyze(
     new_file_id: str,
     file_store: FileStore,
     tool_library: ToolLibrary,
-    workspace_id: str,
+    workspace: Workspace,
 ):
-    workspace = file_store.get_workspaces()[workspace_id]
     old_file = file_store.get_file(old_file_id)
     new_file = file_store.get_file(new_file_id)
 
