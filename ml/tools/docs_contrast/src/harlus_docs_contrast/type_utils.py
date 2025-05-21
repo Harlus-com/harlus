@@ -5,6 +5,15 @@ from .custom_types import (
     TavilyToolRetrievedWebsite
 )
 
+
+# TODO: Write these cleaner according to the following schema:
+# class Dummy(BaseModel):
+#     pass
+# 
+#     @classmethod
+#     def from_node(cls, node: NodeWithScore) -> Self:
+#         pass
+
 def _get_doc_search_retrieved_node_from_node_with_score(retrieved_node: NodeWithScore) -> DocSearchRetrievedNode:
 
     assert isinstance(retrieved_node, NodeWithScore), "[Harlus_chat] Retreived node is not a NodeWithScore"

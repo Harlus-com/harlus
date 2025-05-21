@@ -6,6 +6,8 @@ from rapidfuzz import fuzz
 
 # Note: the algorithms are leaning heavily on AI generated code.
 # while they are simple, this avoided some development and test work.
+#
+# TODO: Use difflib SequenceMatcher for fuzzy matching as done in Kotaemon
 
 def _normalize_word(w: str) -> str:
     return re.sub(r"[^\w]", "", w.casefold())
