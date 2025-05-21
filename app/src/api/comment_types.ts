@@ -25,7 +25,7 @@ export interface HighlightArea {
 
 export interface ClaimComment {
   readonly id: string;
-  readonly filePath: string;
+  readonly fileId: string;
   readonly commentGroupId: string;
   readonly text: string;
   readonly highlightArea: HighlightArea;
@@ -36,7 +36,7 @@ export interface ClaimComment {
 
 export interface ChatSourceComment {
   readonly id: string;
-  readonly filePath: string;
+  readonly fileId: string;
   readonly threadId: string;
   readonly messageId: string; // Could be used to scroll back in the thread to the original message with the source
   readonly commentGroupId: string;
@@ -50,7 +50,7 @@ export interface ChatSourceComment {
  */
 export interface LinkComment {
   readonly id: string;
-  readonly filePath: string;
+  readonly fileId: string;
   readonly commentGroupId: string;
   // We might consider deleting this. Right now we generate the text for a link comment statically in comment_converters.ts
   readonly text: string; // e.g. Why the text is relevant to the claim in the parent comment

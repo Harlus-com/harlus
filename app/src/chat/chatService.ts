@@ -103,19 +103,19 @@ export class ChatService {
 
           // Group source comments by file
           const chatSourceCommentGroups: ChatSourceCommentGroup[] = [];
-          const filePathToGroupMap: { [key: string]: ChatSourceCommentGroup } =
+          const fileIdToGroupMap: { [key: string]: ChatSourceCommentGroup } =
             {};
 
           chatSourceComments.forEach((cscomment) => {
-            const filePath = cscomment.filePath;
-            if (!filePathToGroupMap[filePath]) {
-              filePathToGroupMap[filePath] = {
-                filePath: filePath,
+            const fileId = cscomment.fileId;
+            if (!fileIdToGroupMap[fileId]) {
+              fileIdToGroupMap[fileId] = {
+                fileId: fileId,
                 chatSourceComments: [],
               };
-              chatSourceCommentGroups.push(filePathToGroupMap[filePath]);
+              chatSourceCommentGroups.push(fileIdToGroupMap[fileId]);
             }
-            filePathToGroupMap[filePath].chatSourceComments.push(cscomment);
+            fileIdToGroupMap[fileId].chatSourceComments.push(cscomment);
           });
 
           console.log(
@@ -126,13 +126,8 @@ export class ChatService {
           // Get workspace files for each source comment
           const updatedChatSourceCommentGroups = await Promise.all(
             chatSourceCommentGroups.map(async (cscommentGroup) => {
-              const workspaceFile = await fileService.getFileFromServer({
-                serverFilePath: cscommentGroup.filePath,
-              });
-              console.log("checkpoint 1:", workspaceFile);
               return {
                 ...cscommentGroup,
-                workspace_file: workspaceFile,
               };
             })
           );
@@ -275,7 +270,7 @@ export class ChatService {
 function createChatSourceComment(item: any): ChatSourceComment {
   return {
     id: item.id,
-    filePath: item.filePath,
+    fileId: item.fileId,
     threadId: item.threadId,
     messageId: item.messageId,
     text: item.text,

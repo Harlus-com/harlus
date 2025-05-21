@@ -1,21 +1,22 @@
 import os
 from datetime import datetime
 
-from harlus_contrast_tool.graph import ContrastAgentGraph
+from harlus_docs_contrast.graph import ContrastAgentGraph
 import uuid
-from src.file_store import FileStore, Workspace
+from src.file_store import FileStore
 from src.tool_library import ToolLibrary
 import pickle
 import json
+
 cache_file_path_base = "contrast_analysis"
 
 
 async def analyze(
-    old_file_id: str, 
-    new_file_id: str, 
-    file_store: FileStore, 
+    old_file_id: str,
+    new_file_id: str,
+    file_store: FileStore,
     tool_library: ToolLibrary,
-    workspace_id: str
+    workspace_id: str,
 ):
     workspace = file_store.get_workspaces()[workspace_id]
     old_file = file_store.get_file(old_file_id)
@@ -30,24 +31,31 @@ async def analyze(
 
     thread_id = f"{old_file_id}_{new_file_id}_{uuid.uuid4()}"
     contrast_dir = os.path.join(workspace.absolute_path, cache_file_path_base)
-    contrast_agent = ContrastAgentGraph(persist_dir=contrast_dir)
-    contrast_agent.update_tools([old_file_doc_search_tool_wrapper.get()], [new_file_doc_search_tool_wrapper.get()])
+    contrast_agent = ContrastAgentGraph(
+        {old_file_id: old_file.absolute_path, new_file_id: new_file.absolute_path},
+        persist_dir=contrast_dir,
+    )
+    contrast_agent.update_tools(
+        [old_file_doc_search_tool_wrapper.get()],
+        [new_file_doc_search_tool_wrapper.get()],
+    )
     contrast_agent.set_thread(thread_id)
 
-   
     cache_file_path = os.path.join(f"{old_file_id}_{new_file_id}")
-    
+
     if os.path.exists(cache_file_path):
-        claim_comments = pickle.load(open(os.path.join(cache_file_path, "claim_comments.pkl"), "rb"))
-        driver_tree = json.load(open(os.path.join(cache_file_path, "driver_tree.json"), "r"))
+        claim_comments = pickle.load(
+            open(os.path.join(cache_file_path, "claim_comments.pkl"), "rb")
+        )
+        driver_tree = json.load(
+            open(os.path.join(cache_file_path, "driver_tree.json"), "r")
+        )
     else:
         claim_comments, driver_tree = await contrast_agent.run(
             f"What impact does {new_file.absolute_path} have on {old_file.absolute_path}?"
         )
         pickle.dump(claim_comments, open(f"{cache_file_path}_claim_comments.pkl", "wb"))
         json.dump(driver_tree, open(f"{cache_file_path}_driver_tree.json", "w"))
-
-
 
     response_comments = []
     time_now = datetime.now().isoformat()
@@ -57,7 +65,7 @@ async def analyze(
         response_comments.append(
             {
                 "id": f"{time_now}_claim_comment_{i}",
-                "filePath": comment.file_path,
+                "fileId": comment.file_id,
                 "commentGroupId": f"{time_now}_{old_file.name}_{new_file.name}",
                 "text": comment.text,
                 "highlightArea": {
@@ -67,7 +75,7 @@ async def analyze(
                             "top": box.top,
                             "width": box.width,
                             "height": box.height,
-                            "page": box.page, 
+                            "page": box.page,
                         }
                         for box in comment.highlight_area.bounding_boxes
                     ],
@@ -75,7 +83,7 @@ async def analyze(
                 "links": [
                     {
                         "id": f"{time_now}_link_comment_{i}_{j}",
-                        "filePath": link.file_path,
+                        "fileId": link.file_id,
                         "commentGroupId": f"{time_now}_{old_file.name}_{new_file.name}",
                         "text": "",
                         "highlightArea": {
@@ -85,7 +93,7 @@ async def analyze(
                                     "top": box.top,
                                     "width": box.width,
                                     "height": box.height,
-                                    "page": box.page,  
+                                    "page": box.page,
                                 }
                                 for box in link.highlight_area.bounding_boxes
                             ],
@@ -98,5 +106,4 @@ async def analyze(
                 "verdict": comment.verdict,
             }
         )
-    print(f"[server-contrast-analysis] sending response comments: {response_comments}")
     return response_comments

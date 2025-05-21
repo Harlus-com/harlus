@@ -4,7 +4,7 @@ import asyncio
 from datetime import datetime
 from typing import Dict, Optional, Any
 
-from harlus_chat.build_graph import ChatAgentGraph
+from harlus_workspace_chat.build_graph import ChatAgentGraph
 from pydantic import BaseModel, ConfigDict, Field
 from src.tool_library import ToolLibrary
 from src.util import Timestamp, snake_to_camel, timestamp_now
@@ -50,7 +50,15 @@ class ChatStore:
         if workspace_id not in self.chat_models:
             workspace = self.file_store.get_workspaces()[workspace_id]
             chat_dir = os.path.join(workspace.absolute_path, "chat")
-            self.chat_models[workspace_id] = ChatAgentGraph(persist_dir=chat_dir)
+            file_id_to_path = {
+                file.id: file.absolute_path
+                for file in self.file_store.get_files(workspace_id).values()
+            }
+            self.chat_models[workspace_id] = ChatAgentGraph(
+                file_id_to_path, persist_dir=chat_dir
+            )
+
+        # TODO: Get rid of caching
         chat_model = self.chat_models[workspace_id]
         if not self.thread_exists(workspace_id, thread_id):
             raise ValueError(f"Thread {thread_id} not found")

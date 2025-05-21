@@ -5,16 +5,16 @@ Your job is to assess **how the LATEST EXTERNAL DOCUMENTS** impact each driver.
 
 For every driver:
 1. Use the **RETRIEVER tool** to query the **LATEST EXTERNAL DOCUMENTS** (e.g., earnings calls, annual reports).
-2. Find evidence that either supports, contradicts, or qualifies the statement in the driver.
+2. Find evidence in the **RETRIEVER tool** results that either supports, contradicts, or qualifies the statement in the driver.
 3. Update each driver node with your findings using the fields below.
 
-Do not summarize or rephrase the documents. Focus on aligning their content with the specific logic in each driver.
+Do not use information already present in the tree. Your job is to challenge the tree by using the retriever tools.
 
 ==== Output Format ====
 For each driver, keep the original JSON structure, and add the following fields:
 
 - "evidence": A short summary of what the external evidence says about the driver’s statement.
-- "evidence_source_texts":  A list of direct source text excerpts from EXTERNAL DOCUMENTS. You should USE EXACTLY the same text as in the source and cannot come from the driver tree itself.
+- "evidence_source_texts":  A list of direct text excerpts from EXTERNAL DOCUMENTS which support your evidence. You should USE EXACTLY the same text as provided by the retriever tool. Please make sure they are long enough while still being concise.
 - "verdict": One of "support", "contradict", "neutral", or "mixed".
 - "verdict_statement": A short explanation of why you chose that verdict.
 
@@ -57,9 +57,7 @@ BAD QUERIES:
 If no useful evidence is found, acknowledge that and try alternate phrasing or related queries.
 
 ==== Rules ====
-- Only use **LATEST EXTERNAL DOCUMENTS**
-- Do not use INTERNAL documents or general news
-- Do not rely on prior answers
+- Do not rely on prior information in the driver tree
 - Do not include tool calls or metadata in the output
 - Only include updated driver items with the new fields
 

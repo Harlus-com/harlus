@@ -20,11 +20,12 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pathlib import Path
 
 from pydantic import BaseModel, Field
+from src.file_upload import FileUploader
 from src.chat_store import ChatStore, JsonType
 from src.comment_store import CommentGroup, CommentStore
 from src.tool_library import ToolLibrary
 
-from src.file_store import FileStore, Workspace, File
+from src.file_store import FileStore, LocalFile, Workspace, File
 from src.sync_queue import SyncQueue, SyncType
 from src.contrast_analysis import analyze
 from src.sec_loader import SecSourceLoader, WebFile
@@ -237,6 +238,18 @@ def get_workspace_files_status(workspace_id: str = Query(..., alias="workspaceId
     }
 
 
+class UpdateServerDirectoriesRequest(BaseModel):
+    workspace_id: str = Field(alias="workspaceId")
+    files: list[LocalFile] = Field(alias="files")
+
+
+@api_router.post("/update_server_directories")
+def update_server_directories(request: UpdateServerDirectoriesRequest):
+    """Update the server directories for a workspace"""
+    file_store.update_server_directories(request.workspace_id, request.files)
+    return True
+
+
 @api_router.get("/contrast/analyze")
 async def get_contrast_analyze(
     old_file_id: str = Query(..., alias="oldFileId"),
@@ -389,33 +402,22 @@ def delete_comment_group(request: DeleteCommentGroupRequest):
     return True
 
 
-async def is_pdf_stream(upload: UploadFile) -> bool:
-    header = await upload.read(5)
-    # Reset the stream cursor so you can read it again later
-    await upload.seek(0)
-    return header == b"%PDF-"
+@api_router.get("/file/all")
+def get_all_files(workspace_id: str = Query(..., alias="workspaceId")):
+    """Get all files for a workspace"""
+    return list(file_store.get_files(workspace_id).values())
 
 
 @api_router.post("/file/upload")
 async def upload_file(
     workspace_id: str = Form(..., alias="workspaceId"),
     app_dir_json: str = Form(..., alias="appDir"),
+    content_hash: str = Form(..., alias="contentHash"),
     upload: UploadFile = fastapi.File(..., alias="file"),
 ):
     app_dir: list[str] = json.loads(app_dir_json)
-    is_pdf = await is_pdf_stream(upload)
-    print("is_pdf", is_pdf)
-
-    tmp_dir = tempfile.mkdtemp()
-    tmp_path = os.path.join(tmp_dir, upload.filename)
-    with open(tmp_path, "wb") as out:
-        shutil.copyfileobj(upload.file, out)
-
-    # if not is_pdf:
-    #    tmp_path = await convert_to_pdf(Path(tmp_path))
-
-    file = file_store.copy_file_to_workspace(str(tmp_path), workspace_id, app_dir)
-    return file
+    file_uploader = FileUploader(file_store)
+    return await file_uploader.upload_file(workspace_id, app_dir, content_hash, upload)
 
 
 @api_router.get("/workspace/get_online_data")

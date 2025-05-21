@@ -11,13 +11,14 @@ import {
   CommentColor,
 } from "./comment_ui_types";
 import {
+  CommentConverter,
   convertChatSourceCommentToComments,
-  convertClaimCommentToComments,
 } from "./comment_converters";
 import { getCommentColor, updateUiState, copyToReadonly } from "./comment_util";
 import { CommentContextAddOptions, CommentsContext } from "./CommentsContext";
 import { flushSync } from "react-dom";
 import { commentService } from "./comment_service";
+import { useFileContext } from "@/files/FileContext";
 
 interface CommentsProviderProps {
   children: React.ReactNode;
@@ -36,7 +37,8 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
   );
   const [activeCommentGroups, setActiveCommentGroups] = useState<string[]>([]);
   const [commentGroups, setCommentGroups] = useState<CommentGroup[]>([]);
-
+  const getFile = useFileContext().getFile;
+  const commentConverter = new CommentConverter(getFile);
   useEffect(() => {
     const loadComments = async () => {
       const comments = await commentService.getAllSavedComments(workspaceId);
@@ -98,7 +100,9 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
   ) => {
     const newComments: Comment[] = (
       await Promise.all(
-        claims.map((claim) => convertClaimCommentToComments(claim, group))
+        claims.map((claim) =>
+          commentConverter.convertClaimCommentToComments(claim, group)
+        )
       )
     ).flat();
     const claimsById: { [key: string]: ClaimComment } = {};

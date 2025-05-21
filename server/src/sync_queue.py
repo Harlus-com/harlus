@@ -47,6 +47,9 @@ class SyncQueue:
 
     async def queue_model_sync(self, file: File, sync_type: SyncType = SyncType.NORMAL):
         """Add a file to the sync queue"""
+        if not self.file_store.is_fully_uploaded(file.id):
+            print(f"File {file.id} is not fully uploaded, skipping")
+            return False
         with self.lock:
             if self._is_pending(file.id):
                 print(f"Sync of file {file.id} is pending")
@@ -64,6 +67,8 @@ class SyncQueue:
             return self._get_sync_status(file_id)
 
     def _get_sync_status(self, file_id: str) -> SyncStatus:
+        if not self.file_store.is_fully_uploaded(file_id):
+            return SyncStatus.UNTRACKED
         if self._is_pending(file_id):
             return SyncStatus.SYNC_PENDING
         if self._is_active(file_id):
@@ -72,7 +77,7 @@ class SyncQueue:
         if all(status == ToolSyncStatus.SUCCESS for status in tool_statuses):
             return SyncStatus.SYNC_COMPLETE
         if all(status == ToolSyncStatus.NONE for status in tool_statuses):
-            return SyncStatus.UNKNOWN
+            return SyncStatus.SYNC_NOT_STARTED
         if all(status == ToolSyncStatus.ERROR for status in tool_statuses):
             return SyncStatus.SYNC_ERROR
         if any(status == ToolSyncStatus.NONE for status in tool_statuses):
@@ -103,7 +108,6 @@ class SyncQueue:
                 sync_request = self.sync_queue.pop(0)
                 tools_to_sync = self.tool_library.get_tools_to_sync(sync_request.file)
                 if len(tools_to_sync) == 0:
-                    self.sync_queue.mark_no_op(sync_request)
                     for tool_name in self.tool_library.all_tool_names():
                         self.tool_library.write_sync_status(
                             sync_request.file,

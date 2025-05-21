@@ -24,9 +24,7 @@ from .mixed_retriever import MixKeywordVectorRetriever
 
 from pydantic import BaseModel
 
-import asyncio
 from tqdm import tqdm
-
 
 
 class DocSearchToolMetadata(BaseModel):
@@ -37,8 +35,7 @@ class DocSearchToolMetadata(BaseModel):
     friendly_name: str
     company_name: str
     summary: str
-    file_path: str
-
+    file_id: str
 
 
 class DocSearchToolWrapper(BaseModel):
@@ -53,22 +50,21 @@ class DocSearchToolWrapper(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
-# TODO: nb. retrieved nodes is important parameter. Should pull this into an application config file.    
+
+# TODO: nb. retrieved nodes is important parameter. Should pull this into an application config file.
 class DocumentPipeline:
 
     def __init__(
         self,
         nodes: List[Node],
-        file_path: str,
-        file_name: str,
+        file_id_to_path: dict[str, str],
         tool_cache_file_name: str = "doc_tool.pkl",
         metadata_cache_file_name: str = "doc_metadata.json",
     ):
         self.tool_cache_file_name = tool_cache_file_name
         self.metadata_cache_file_name = metadata_cache_file_name
         self.nodes = nodes
-        self.file_path = file_path
-        self.file_name = file_name
+        self.file_id_to_path = file_id_to_path
         self.query_engine = None
         self.metadata = {}
         self.metadata_queries = {
@@ -81,7 +77,7 @@ class DocumentPipeline:
         }
         self.metadata_summary_query = "Extract a 3-5 line summary of the document."
 
-    async def execute(self) -> QueryEngineTool:
+    async def execute(self, file_id: str) -> QueryEngineTool:
 
         print("getting single doc query engine from nodes")
 
@@ -95,8 +91,7 @@ class DocumentPipeline:
         storage_context = StorageContext.from_defaults()
         storage_context.docstore.add_documents(self.nodes)
         keyword_index = SimpleKeywordTableIndex(
-            self.nodes, storage_context=storage_context,
-            llm=FASTLLM
+            self.nodes, storage_context=storage_context, llm=FASTLLM
         )
 
         print(" - building summary index ...")
@@ -120,7 +115,6 @@ class DocumentPipeline:
             verbose=False,
         )
 
-        
         node_postprocessors = [
             LLMRerank(choice_batch_size=15, top_n=8, llm=FASTLLM),
         ]
@@ -129,27 +123,30 @@ class DocumentPipeline:
         mix_query_engine = RetrieverQueryEngine(
             retriever=recursive_retriever,
             response_synthesizer=get_response_synthesizer(
-                response_mode="tree_summarize",
-                llm=LLM,
-                verbose=False
+                response_mode="tree_summarize", llm=LLM, verbose=False
             ),
             node_postprocessors=node_postprocessors,
         )
 
         print(" - building summary index query engine...")
-        summary_query_engine = summary_index.as_query_engine(llm=LLM, )
+        summary_query_engine = summary_index.as_query_engine(
+            llm=LLM,
+        )
 
         print(" - extracting metadata from query engines...")
         query_to_metadata = {
             self.metadata_summary_query: "summary",
-            **{query: name for name, query in self.metadata_queries.items()}
+            **{query: name for name, query in self.metadata_queries.items()},
         }
 
         tasks = {
             query: query_engine.aquery(query)
             for query, query_engine in [
                 (self.metadata_summary_query, summary_query_engine),
-                *[(query, mix_query_engine) for query in self.metadata_queries.values()]
+                *[
+                    (query, mix_query_engine)
+                    for query in self.metadata_queries.values()
+                ],
             ]
         }
 
@@ -164,12 +161,11 @@ class DocumentPipeline:
             [f"{key}: {value}" for key, value in self.metadata.items()]
         )
 
-
         print("this is metadata", self.metadata)
         mix_query_engine_tool = QueryEngineTool(
             query_engine=mix_query_engine,
             metadata=ToolMetadata(
-                name=f"doc_search_{self.file_name}_semantic",
+                name=_get_tool_name(file_id, "semantic"),
                 description=f""" 
 # Tool type:
 
@@ -191,14 +187,14 @@ Use this tool when you need to find specific information in the document describ
 
         doc_tool_metadata = DocSearchToolMetadata(
             **self.metadata,
-            file_path=self.file_path,
+            file_id=file_id,
         )
 
         print(" - building summary query engine tool...")
         summary_query_engine_tool = QueryEngineTool(
             query_engine=summary_query_engine,
             metadata=ToolMetadata(
-                name=f"doc_search_{self.file_name}_summary",
+                name=_get_tool_name(file_id, "summary"),
                 description=f""" 
 # Tool type:
 
@@ -232,13 +228,13 @@ Summary tool. Let's you read the full document.
             question_gen=question_gen,
             use_async=True,
             llm=LLM,
-            verbose=False
+            verbose=False,
         )
 
         sq_query_engine_tool = QueryEngineTool(
             query_engine=sq_query_engine,
             metadata=ToolMetadata(
-                name=f"doc_search_{self.file_name}_summary",
+                name=_get_tool_name(file_id, "summary"),
                 description=f""" 
 # Tool type:
 
@@ -261,7 +257,7 @@ Use this tool only when you need to read the full document described above.
         retriever_tool = RetrieverTool(
             retriever=recursive_retriever,
             metadata=ToolMetadata(
-                name=f"doc_search_{self.file_name}_retriever",
+                name=_get_tool_name(file_id, "retriever"),
                 description=f"""
 # Tool type:
 
@@ -276,69 +272,23 @@ Retriever tool. Returns you passages of the document which are relevant to your 
 
 # When you should use this tool:
 
-Use this tool when you need to find sources in the document."""
+Use this tool when you need to find sources in the document.""",
             ),
             node_postprocessors=node_postprocessors,
         )
 
         doc_search_tool_wrapper = DocSearchToolWrapper(
-            semantic_tool=mix_query_engine_tool, 
+            semantic_tool=mix_query_engine_tool,
             summary_tool=sq_query_engine_tool,
-            retriever_tool = retriever_tool,
+            retriever_tool=retriever_tool,
             metadata=doc_tool_metadata,
             name=mix_query_engine_tool.metadata.name,
             tool_class="DocSearchToolWrapper",
-            description=mix_query_engine_tool.metadata.description
+            description=mix_query_engine_tool.metadata.description,
         )
 
-        return doc_search_tool_wrapper 
-    
+        return doc_search_tool_wrapper
 
-        # TODO: Evaluate whether we use subquestion query engine. It helps decrease false negatives in retrieved nodes, but slows down the query engine too much. 
-        # should try to use async (i.e. launch barebone query engine, then subquestion query engine)
 
-        # TODO: We should add a summery query engine tool. Without SubQuestionQueryEngine in between, we should give summary tools to top-level LLM.
-
-        
-
-        # print(" - building question generator ...")
-        # question_gen = LLMQuestionGenerator.from_defaults(
-        #     llm=FASTLLM,
-        #     prompt_template_str="""
-        #         Follow the example, but instead of giving a question, always prefix the question 
-        #         with: 'By first identifying the most relevant sources, '. Always postfix the question with:
-        #         'Include numbers with units in your response, structure your response.' 
-        #         """
-        #     + DEFAULT_SUB_QUESTION_PROMPT_TMPL,
-        # )
-
-        # print(" - building sub question query engine ...")
-        # sq_query_engine = SubQuestionQueryEngine.from_defaults(
-        #     query_engine_tools=[
-        #         #summary_query_engine_tool,
-        #         mix_query_engine_tool,
-        #     ],
-        #     question_gen=question_gen,
-        #     use_async=True,
-        #     llm=LLM,
-        #     verbose=False
-        # )
-
-        # print(" - building sub question query engine tool ...")
-
-        # doctool = QueryEngineTool(
-        #     query_engine=sq_query_engine,
-        #     metadata=ToolMetadata(
-        #         name=f"{self.file_name}",
-        #         description=f"""Use this tool to anser questions about the document with metadata:
-
-        #         {metadata_description}
-
-        #         And the following summary:
-        #         {self.metadata['summary']}
-        #         """,
-        #     ),
-        # )
-        # self.doctool = doctool
-
-        
+def _get_tool_name(file_id: str, suffix: str) -> str:
+    return f"doc_search_{file_id[0:5]}_{suffix}"

@@ -20,6 +20,7 @@ interface FileContextType {
   startSyncFile: (localFile: LocalFile) => void;
   forceSyncFile: (localFile: LocalFile) => void;
   notifyFileListChanged: () => void;
+  notifyFileSyncStatusChanged: () => void;
   workspaceFileToLocalFile: (workspaceFile: WorkspaceFile) => LocalFile | null;
 }
 
@@ -56,7 +57,7 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
     setFileSyncStatuses((prev) => {
       const newStatus: Record<string, SyncStatus> = {};
       for (const file of files) {
-        newStatus[file.contentHash] = statuses[file.contentHash] || "UNKNOWN";
+        newStatus[file.contentHash] = statuses[file.contentHash] || "UNTRACKED";
       }
       if (hasFileSyncStatusesChanged(prev, newStatus)) {
         return newStatus;
@@ -68,6 +69,7 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
   const loadFiles = async (workspace: Workspace) => {
     const files = await fileService.getLocalFiles(workspace);
     const folders = await fileService.getLocalFolders(workspace);
+    fileService.updateServerDirectories(workspaceId, files);
     setFiles(files);
     setFolders(folders);
     setWorkspaceFiles(files.map((file) => toWorkspaceFile(workspaceId, file)));
@@ -159,6 +161,9 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
       (folder) => folder.pathRelativeToWorkspace.join("/") === path.join("/")
     );
   };
+  const notifyFileSyncStatusChanged = () => {
+    statusManager.start();
+  };
 
   /**
    * If a given local file has not been synced to the server, this function will return null.
@@ -187,6 +192,7 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
         startSyncFile,
         forceSyncFile,
         notifyFileListChanged,
+        notifyFileSyncStatusChanged,
         workspaceFileToLocalFile,
       }}
     >
