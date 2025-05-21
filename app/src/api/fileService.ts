@@ -17,6 +17,13 @@ class FileService {
     return window.electron.getLocalFiles(workspace.localDir);
   }
 
+  deleteLocalFile(file: LocalFile): Promise<boolean> {
+    if (!window.electron) {
+      throw new Error("Electron is not available");
+    }
+    return window.electron.deleteItem(file);
+  }
+
   deleteFile(file: WorkspaceFile): Promise<boolean> {
     return client.delete(
       `/file/delete?fileId=${file.id}&workspaceId=${file.workspaceId}`
@@ -69,20 +76,20 @@ class FileService {
   }
 
   createFolder(
-    workspaceId: string,
-    appDir: string[]
-  ): Promise<WorkspaceFolder> {
-    return client.post(`/workspace/create_folder`, {
-      workspaceId,
-      appDir,
-    });
+    parentFolder: LocalFolder,
+    newFolderName: string
+  ): Promise<boolean> {
+    if (!window.electron) {
+      throw new Error("Electron is not available");
+    }
+    return window.electron.createFolder(parentFolder, newFolderName);
   }
 
-  deleteFolder(workspaceId: string, appDir: string[]): Promise<boolean> {
-    return client.post(`/workspace/delete_folder`, {
-      workspaceId,
-      appDir,
-    });
+  deleteFolder(folder: LocalFolder): Promise<boolean> {
+    if (!window.electron) {
+      throw new Error("Electron is not available");
+    }
+    return window.electron.deleteItem(folder);
   }
 
   renameFolder(

@@ -50,6 +50,11 @@ interface ElectronAPI {
     item: LocalFile | LocalFolder,
     newRelativePath: string[]
   ) => Promise<boolean>;
+  createFolder: (
+    parentFolder: LocalFolder,
+    newFolderName: string
+  ) => Promise<boolean>;
+  deleteItem: (item: LocalFile | LocalFolder) => Promise<boolean>;
 }
 
 declare interface Window {

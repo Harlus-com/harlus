@@ -10,6 +10,8 @@ import {
   getLocalFolders,
   moveItem,
   WorkspaceWatcher,
+  createFolder,
+  deleteItem,
 } from "./local_file_system";
 
 export function setupIpcHandlers(electronAppState: ElectronAppState) {
@@ -188,4 +190,15 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
       return moveItem(item, newRelativePath);
     }
   );
+
+  ipcMain.handle(
+    "create-folder",
+    async (_, parentFolder: LocalFolder, newFolderName: string) => {
+      return createFolder(parentFolder, newFolderName);
+    }
+  );
+
+  ipcMain.handle("delete-item", async (_, item: LocalFile | LocalFolder) => {
+    return deleteItem(item);
+  });
 }

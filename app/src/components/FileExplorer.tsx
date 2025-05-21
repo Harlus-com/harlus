@@ -78,6 +78,9 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     path: string[];
     name: string;
   } | null>(null);
+  const [fileToDelete, setFileToDelete] = React.useState<WorkspaceFile | null>(
+    null
+  );
 
   const selectedFileIds: string[] = [];
   for (const fileGroup of Object.values(getOpenFiles())) {
@@ -88,13 +91,17 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
 
   const handleDeleteFile = async (file: WorkspaceFile, e: React.MouseEvent) => {
     e.stopPropagation();
-    await fileService.deleteFile(file);
-    notifyFileListChanged();
+    setFileToDelete(file);
   };
 
-  const handleCreateFolder = async (parentPath: string[] = []) => {
-    if (!newFolderName.trim()) return;
-    await fileService.createFolder(workspaceId, [...parentPath, newFolderName]);
+  const handleCreateFolder = async (parentFolder: LocalFolder) => {
+    if (!newFolderName.trim()) {
+      throw new Error("Failed to create folder: Folder name is empty");
+    }
+    if (!parentFolder) {
+      throw new Error("Failed to create folder: Parent folder not found");
+    }
+    await fileService.createFolder(parentFolder, newFolderName);
     setNewFolderName("");
     setOpenNewFolderPath(null);
     notifyFileListChanged();
@@ -160,8 +167,15 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
 
   const confirmDeleteFolder = async () => {
     if (!folderToDelete) return;
-    await fileService.deleteFolder(workspaceId, folderToDelete.path);
+    await fileService.deleteFolder(getLocalFolder(folderToDelete.path)!);
     setFolderToDelete(null);
+    notifyFileListChanged();
+  };
+
+  const confirmDeleteFile = async () => {
+    if (!fileToDelete) return;
+    await fileService.deleteLocalFile(workspaceFileToLocalFile(fileToDelete));
+    setFileToDelete(null);
     notifyFileListChanged();
   };
 
@@ -308,7 +322,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
                 onChange={(e) => setNewFolderName(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    handleCreateFolder(folder.path);
+                    handleCreateFolder(getLocalFolder(folder.path)!);
                   }
                 }}
                 placeholder="Enter folder name"
@@ -330,7 +344,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleCreateFolder(folder.path);
+                    handleCreateFolder(getLocalFolder(folder.path)!);
                   }}
                 >
                   Create
@@ -558,13 +572,38 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
             <AlertDialogTitle>Delete Folder</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete {folderToDelete?.path.join("/")}?
-              This will delete all subfolders and files.
+              This will delete all subfolders and files within it on your local
+              file system. You will not be able to undo this action.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteFolder}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        open={!!fileToDelete}
+        onOpenChange={(open) => !open && setFileToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete File</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {fileToDelete?.name}? This will
+              delete the file on your local filesystem. You will not be able to
+              undo this action.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteFile}
               className="bg-red-500 hover:bg-red-600"
             >
               Delete

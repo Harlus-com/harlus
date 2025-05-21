@@ -149,6 +149,12 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
   };
 
   const getLocalFolder = (path: string[]) => {
+    if (path.length === 0 && workspace) {
+      return {
+        absolutePath: workspace.localDir,
+        pathRelativeToWorkspace: [],
+      };
+    }
     return folders.find(
       (folder) => folder.pathRelativeToWorkspace.join("/") === path.join("/")
     );

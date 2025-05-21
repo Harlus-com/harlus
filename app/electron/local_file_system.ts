@@ -233,3 +233,18 @@ function maybeAddNameToRelativePath(item: LocalFile | LocalFolder) {
 function isSubPath(pathParts: string[], relativePath: string[]) {
   return pathParts.join(path.sep).endsWith(relativePath.join(path.sep));
 }
+
+export async function createFolder(
+  parentFolder: LocalFolder,
+  newFolderName: string
+) {
+  await fs.mkdir(path.join(parentFolder.absolutePath, newFolderName));
+}
+
+export async function deleteItem(item: LocalFile | LocalFolder) {
+  if (!(item as LocalFile).name) {
+    await fs.rm(item.absolutePath, { recursive: true, force: true });
+  } else {
+    await fs.rm(item.absolutePath);
+  }
+}
