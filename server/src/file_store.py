@@ -276,34 +276,36 @@ class FileStore:
         self._update_file(new_file)
 
     # TODO: remove the SEC specific naming
-    def download_sec_files(self, workspace_id: str) -> list[File]:
+    def download_online_files(self, workspace_id: str, destination_dir: str) -> list[File]:
         if workspace_id not in self.get_workspaces():
             raise ValueError(f"Workspace with id {workspace_id} not found")
         workspace = self.get_workspaces()[workspace_id]
         ticker = workspace.name  # Assuming workspace name is the ticker symbol
         print(f"Fetching SEC files for ticker: {ticker} in workspace: {workspace.name}")
-
-        reports_dir = ["reports"]  # TODO: move to some config file
+        
+        # TODO: how not to download the same file twice? / recompute the full docsearch?
 
         sec_loader = SecSourceLoader()
-        # TODO: be more robust: check against existing downloaded files
-        new_file_data_iterator: Iterator[WebFileData] = (
-            sec_loader.get_new_files_to_fetch(ticker, [])
-        )
-        print(f"Initiating content fetch for new filings using SecSourceLoader...")
+        new_files_data: list[WebFileData] = sec_loader.download_files(ticker)
+
+        if not new_files_data:
+            print(f"No new SEC files found for ticker: {ticker}.")
+            return []
+        
+        # TODO: this hard code / will probably fail in windows bc file paths are different
+        path_components = os.path.normpath(destination_dir).strip('/').split('/')
+        local_reports_dir = os.path.join(workspace.local_dir, *path_components)
+        os.makedirs(local_reports_dir, exist_ok=True)
 
         files_added: list[File] = []
-        for file_data in new_file_data_iterator:
+        for file_data in new_files_data:
             print(f"Processing file data for: {file_data.file_name_no_ext}")
 
-            # TODO: make pretty file name for front end
-            # TODO: remove hard-coded .pdf extension
-            tmp_dir = tempfile.mkdtemp()
-            tmp_path = os.path.join(tmp_dir, f"{file_data.file_name_no_ext}.pdf")
-            with open(tmp_path, "wb") as out:
+            local_file_path = os.path.join(local_reports_dir, f"{file_data.file_name_no_ext}.pdf")
+            with open(local_file_path, "wb") as out:
                 out.write(file_data.pdf_content)
 
-            file = self.copy_file_to_workspace(str(tmp_path), workspace_id, reports_dir)
+            file = self.copy_file_to_workspace(str(local_file_path), workspace_id, path_components)
             files_added.append(file)
 
         return files_added

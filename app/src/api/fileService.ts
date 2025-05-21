@@ -75,10 +75,10 @@ class FileService {
     return window.electron.getLocalFolders(workspace.localDir);
   }
 
-  async refreshOnlineData(workspaceId: string): Promise<WorkspaceFile[]> {
+  async refreshOnlineData(workspaceId: string, destinationPath: string): Promise<WorkspaceFile[]> {
     console.log("[FileService] Refreshing online data for workspace:", workspaceId);
     const response = await client.post(
-      `/workspace/download_sec_data?workspaceId=${workspaceId}`,
+      `/workspace/download_online_data?workspaceId=${workspaceId}&destinationPath=${destinationPath}`,
       {}
     );
     return response as WorkspaceFile[];

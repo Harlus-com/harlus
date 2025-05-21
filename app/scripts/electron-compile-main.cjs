@@ -16,6 +16,9 @@ const path = require("path");
       outfile: path.resolve(__dirname, "../dist-electron/main.cjs"),
       format: "cjs",
       sourcemap: false,
+      loader: {
+        ".node": "file",
+      },
     });
     console.log("Electron main bundled successfully");
   } catch (err) {

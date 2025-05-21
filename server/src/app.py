@@ -415,9 +415,12 @@ async def upload_file(
     return file
 
 
-@api_router.post("/workspace/download_sec_data")
-async def download_sec_data(workspace_id: str = Query(..., alias="workspaceId")):
-    files = file_store.download_sec_files(workspace_id)
+@api_router.post("/workspace/download_online_data")
+async def download_online_data(
+    workspace_id: str = Query(..., alias="workspaceId"),
+    destination_path: str = Query(..., alias="destinationPath"),
+    ):
+    files = file_store.download_online_files(workspace_id, destination_path)
     for file in files:
         await sync_queue.queue_model_sync(file)
     return files

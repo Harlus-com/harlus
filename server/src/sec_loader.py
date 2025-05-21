@@ -126,17 +126,13 @@ class OpenBBFilingsLoader:
         out = obb.equity.fundamental.filings(
             ticker,
             provider="fmp",
-            limit=10,  # Limit to 10 as in original code, adjust if needed
+            limit=100,
         ).to_polars()
         out = out.with_columns(
             (
-                pl.col("filing_date").dt.strftime("%Y%m%d")
+                (pl.col("filing_date").dt.year() % 100).cast(pl.String)
                 + "_Q"
                 + ((pl.col("filing_date").dt.month() - 1) // 3 + 1).cast(pl.String)
-                + "_"
-                + pl.col("filing_date").dt.year().cast(pl.String)
-                + "_"
-                + pl.col("symbol")
                 + "_"
                 + pl.col("report_type")
                 .str.replace_all(" ", "_")
@@ -200,31 +196,31 @@ class SecSourceLoader:
 
         return pdf
 
-    def get_new_files_to_fetch(self, ticker: str) -> Iterator[WebFileData]:
+    def download_files(self, ticker: str) -> list[WebFileData]:
         files_to_fetch_df = self.obb_loader.get(ticker)
-        print(f"SecSourceLoader: Found {len(files_to_fetch_df)} new filings to fetch.")
+        print(f"SecSourceLoader: Found {len(files_to_fetch_df)} files to fetch.")
 
         if files_to_fetch_df.is_empty():
-            return
+            return []
 
+        files: list[WebFileData] = []
         for row in files_to_fetch_df.to_dicts():
             file_name_no_ext = row["filename_stem"]
             report_url = row["report_url"]
-            print(
-                f"SecSourceLoader: Fetching content for {file_name_no_ext} from {report_url}"
-            )
             pdf = self._fetch(report_url)
 
             if pdf is not None:
-                yield WebFileData(
+                files.append(WebFileData(
                     file_name_no_ext=file_name_no_ext,
                     report_url=report_url,
                     pdf_content=pdf,
-                )
+                ))
             else:
                 print(
                     f"Warning: Could not fetch content for {file_name_no_ext} from {report_url}"
                 )
+
+        return files
 
     def __del__(self) -> None:
         print("SecSourceLoader: Cleaning up resources.")
