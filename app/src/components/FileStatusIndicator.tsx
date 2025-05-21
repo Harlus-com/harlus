@@ -2,6 +2,12 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import { WorkspaceFile, SyncStatus } from "@/api/workspace_types";
 import { useFileContext } from "@/files/FileContext";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface FileStatusIndicatorProps {
   file: WorkspaceFile;
@@ -16,14 +22,22 @@ const FileStatusIndicator: React.FC<FileStatusIndicatorProps> = ({
   const status = getFileSyncStatus(file.id) || "UNTRACKED";
   const { color, label, moreInfo } = getStatusInfo(status);
   return (
-    <div className={cn("flex items-center gap-2 group relative", className)}>
-      <div className={cn("w-2 h-2 rounded-full", color)} />
-      <div className="absolute left-0 top-full mt-1 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
-        <div>{label}</div>
-        {moreInfo && (
-          <div className="text-gray-400 text-[10px]">{moreInfo}</div>
-        )}
-      </div>
+    <div className={cn("flex items-center", className)}>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="p-1 -m-1 cursor-default">
+              <div className={cn("w-2 h-2 rounded-full", color)} />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="right" align="start" alignOffset={30}>
+            <div className="text-xs font-semibold">{label}</div>
+            {moreInfo && (
+              <div className="text-gray-400 text-[10px]">{moreInfo}</div>
+            )}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 };
@@ -39,6 +53,7 @@ function getStatusInfo(status: SyncStatus): StatusInfo {
       return {
         color: "bg-green-500",
         label: "Synced",
+        moreInfo: "Ready for AI",
       };
     case "SYNC_PENDING":
       return {
@@ -72,13 +87,13 @@ function getStatusInfo(status: SyncStatus): StatusInfo {
       return {
         color: "bg-yellow-500",
         label: "Needs Sync",
-        moreInfo: "This file has never been synced",
+        moreInfo: "Never been synced",
       };
     case "UNTRACKED":
       return {
         color: "bg-gray-500",
         label: "Untracked",
-        moreInfo: "This file is not tracked by the server",
+        moreInfo: "Not tracked by the server",
       };
     default:
       const exhaustiveCheck: never = status;
