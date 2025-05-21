@@ -189,3 +189,47 @@ async function createLocalFile(
     name: path.basename(filePath),
   };
 }
+
+export async function moveItem(
+  item: LocalFile | LocalFolder,
+  newRelativePath: string[]
+) {
+  const newPathParts: string[] = getWorkspaceAbsolutePath(item);
+  for (const part of newRelativePath) {
+    newPathParts.push(part);
+  }
+  if ((item as LocalFile).name) {
+    newPathParts.push((item as LocalFile).name);
+  } else {
+    const folderRelativepath = [...item.pathRelativeToWorkspace];
+    newPathParts.push(folderRelativepath.pop()!);
+  }
+  const newPath = newPathParts.join(path.sep);
+  console.log("moveItem", item.absolutePath, newPath);
+  await fs.rename(item.absolutePath, newPath);
+}
+
+function getWorkspaceAbsolutePath(item: LocalFile | LocalFolder) {
+  const currentPathParts = item.absolutePath.split(path.sep);
+  const relativePath = maybeAddNameToRelativePath(item);
+  if (!isSubPath(currentPathParts, relativePath)) {
+    throw new Error(
+      `Invalid path: ${relativePath} is not a subpath of ${item.absolutePath}`
+    );
+  }
+  return currentPathParts.slice(0, -1 * relativePath.length);
+}
+
+function maybeAddNameToRelativePath(item: LocalFile | LocalFolder) {
+  if ((item as LocalFile).name) {
+    return [
+      ...(item as LocalFile).pathRelativeToWorkspace,
+      (item as LocalFile).name,
+    ];
+  }
+  return (item as LocalFolder).pathRelativeToWorkspace;
+}
+
+function isSubPath(pathParts: string[], relativePath: string[]) {
+  return pathParts.join(path.sep).endsWith(relativePath.join(path.sep));
+}

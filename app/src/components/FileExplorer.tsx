@@ -56,6 +56,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     forceSyncFile,
     startSyncFile,
     workspaceFileToLocalFile,
+    getLocalFolder,
   } = useFileContext();
   const { getOpenFiles, openFiles } = useFileViewContext();
   const files = getFiles();
@@ -64,11 +65,9 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     new Set()
   );
   const [newFolderName, setNewFolderName] = React.useState("");
-  const [draggedItem, setDraggedItem] = React.useState<{
-    type: "file" | "folder";
-    id: string;
-    path: string[];
-  } | null>(null);
+  const [draggedItem, setDraggedItem] = React.useState<
+    LocalFile | LocalFolder | null
+  >(null);
   const [openNewFolderPath, setOpenNewFolderPath] = React.useState<
     string | null
   >(null);
@@ -119,13 +118,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
 
   const handleMoveItem = async (targetPath: string[]) => {
     if (!draggedItem) return;
-
-    if (draggedItem.type === "file") {
-      await fileService.moveFile(workspaceId, draggedItem.id, targetPath);
-    } else {
-      await fileService.moveFolder(workspaceId, draggedItem.path, targetPath);
-    }
-
+    await fileService.moveItem(draggedItem, targetPath);
     setDraggedItem(null);
     notifyFileListChanged();
   };
@@ -182,12 +175,10 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
 
     const handleDragStart = (
       e: React.DragEvent,
-      type: "file" | "folder",
-      id: string,
-      path: string[]
+      item: LocalFile | LocalFolder
     ) => {
       e.stopPropagation();
-      setDraggedItem({ type, id, path });
+      setDraggedItem(item);
     };
 
     const handleDragOver = (e: React.DragEvent) => {
@@ -220,7 +211,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
             onClick={() => toggleFolder(pathKey)}
             draggable
             onDragStart={(e) =>
-              handleDragStart(e, "folder", pathKey, folder.path)
+              handleDragStart(e, getLocalFolder(folder.path)!)
             }
           >
             {hasChildren ? (
@@ -452,7 +443,7 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
                 style={getIndentStyle(level + 1)}
                 draggable
                 onDragStart={(e) =>
-                  handleDragStart(e, "file", file.id, folder.path)
+                  handleDragStart(e, workspaceFileToLocalFile(file))
                 }
               >
                 <div className="w-[22px] flex-shrink-0" />
