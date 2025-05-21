@@ -38,7 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { fileService } from "@/api/fileService";
-import FileStatusIndicator from "./FileStatusIndicator";
+import FileStatusIndicator from "@/files/FileStatusIndicator";
 import { FileGroupCount } from "./panels";
 import { fileGroupCounts } from "@/files/file_util";
 import { useFileContext } from "@/files/FileContext";

@@ -1,7 +1,7 @@
 import React from "react";
 import { format } from "date-fns";
-import { useFileContext } from "@/files/FileContext";
-import { getStatusInfo } from "@/components/FileStatusIndicator";
+import { useFileContext } from "./FileContext";
+import { getStatusInfo } from "./file_status_util";
 import {
   Dialog,
   DialogContent,
