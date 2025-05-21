@@ -300,7 +300,7 @@ class FileStore:
     ) -> None:
         pass
 
-def update_server_directories(self, workspace_id: str, files: list[LocalFile]):
+    def update_server_directories(self, workspace_id: str, files: list[LocalFile]):
         workspace = self.get_workspaces()[workspace_id]
         files_by_id = self.get_files(workspace_id)
         file_path_updates: dict[str, str] = {}
