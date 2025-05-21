@@ -25,7 +25,7 @@ from src.chat_store import ChatStore, JsonType
 from src.comment_store import CommentGroup, CommentStore
 from src.tool_library import ToolLibrary
 
-from src.file_store import FileStore, Workspace, File
+from src.file_store import FileStore, LocalFile, Workspace, File
 from src.sync_queue import SyncQueue, SyncType
 from src.contrast_analysis import analyze
 
@@ -233,6 +233,18 @@ def get_workspace_files_status(workspace_id: str = Query(..., alias="workspaceId
         file_id: sync_queue.get_sync_status(file_id)
         for file_id in file_store.get_files(workspace_id).keys()
     }
+
+
+class UpdateServerDirectoriesRequest(BaseModel):
+    workspace_id: str = Field(alias="workspaceId")
+    files: list[LocalFile] = Field(alias="files")
+
+
+@api_router.post("/update_server_directories")
+def update_server_directories(request: UpdateServerDirectoriesRequest):
+    """Update the server directories for a workspace"""
+    file_store.update_server_directories(request.workspace_id, request.files)
+    return True
 
 
 @api_router.get("/contrast/analyze")

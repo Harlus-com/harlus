@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import shutil
 import tempfile
-from typing import Union, Iterator
+from typing import Tuple, Union, Iterator
 import uuid
 from pydantic import BaseModel, ConfigDict, Field
 from src.util import get_content_hash, normalize_underscores, snake_to_camel, clean_name
@@ -24,6 +24,17 @@ class Workspace(BaseModel):
         from_attributes=True,
         frozen=True,
     )
+
+
+"""
+Representation of a file on the users local file system.
+"""
+
+
+class LocalFile(BaseModel):
+    content_hash: str = Field(alias="contentHash")
+    name: str
+    path_relative_to_workspace: list[str] = Field(alias="pathRelativeToWorkspace")
 
 
 class File(BaseModel):
@@ -156,27 +167,15 @@ class FileStore:
         with open(self.app_data_path.joinpath("workspaces.json"), "w") as f:
             json.dump(new_workspaces, f, indent=2)
 
-    def _get_file_dir_name(
-        self, content_hash: str, app_dir: list[str], file_name: str
-    ) -> str:
-        path_prefix = normalize_underscores("_".join(app_dir))
-        if not path_prefix:
-            return f"{file_name}__{content_hash}"
-        else:
-            return f"{path_prefix}__{file_name}__{content_hash}"
-
-    def _get_file_dir_name_from_path(self, path: str, app_dir: list[str]) -> str:
-        content_hash = get_content_hash(path)
-        file_name = normalize_underscores(clean_name(os.path.basename(path)))
-        return self._get_file_dir_name(content_hash, app_dir, file_name)
-
     # TODO: Delete this method
     def copy_file_to_workspace(
         self, path: str, workspace_id: str, app_dir: list[str] = []
     ) -> File:
         print("Copying file to workspace", path, workspace_id, app_dir)
         workspace = self.get_workspaces()[workspace_id]
-        file_dir_name = self._get_file_dir_name_from_path(path, app_dir)
+        content_hash = get_content_hash(path)
+        file_name = normalize_underscores(clean_name(os.path.basename(path)))
+        file_dir_name = _get_file_dir_name(content_hash, app_dir, file_name)
         absolute_path = str(
             self.app_data_path.joinpath(
                 workspace.dir_name,
@@ -186,8 +185,8 @@ class FileStore:
             )
         )
         file = File(
-            id=file_dir_name.split("__")[-1],
-            name=file_dir_name.split("__")[-2],
+            id=content_hash,
+            name=file_name,
             absolute_path=absolute_path,
             workspace_id=workspace_id,
         )
@@ -214,7 +213,7 @@ class FileStore:
         file_name: str,
     ) -> File:
         workspace = self.get_workspaces()[workspace_id]
-        file_dir_name = self._get_file_dir_name(
+        file_dir_name = _get_file_dir_name(
             content_hash, path_relative_to_workspace, file_name
         )
         absolute_path = str(
@@ -351,3 +350,53 @@ class FileStore:
             files_added.append(file)
 
         return files_added
+
+    def update_server_directories(self, workspace_id: str, files: list[LocalFile]):
+        workspace = self.get_workspaces()[workspace_id]
+        files_by_id = self.get_files(workspace_id)
+        file_path_updates: dict[str, str] = {}
+        for file in files:
+            if not file.content_hash in files_by_id:
+                continue
+            current_file = files_by_id[file.content_hash]
+            current_working_dir = current_file.working_dir()
+            incoming_file_dir_name = _get_file_dir_name(
+                file.content_hash, file.path_relative_to_workspace, file.name
+            )
+            incoming_working_dir = str(
+                self.app_data_path.joinpath(workspace.dir_name, incoming_file_dir_name)
+            )
+
+            if current_working_dir != incoming_working_dir:
+                print(f"Moving {current_working_dir} to {incoming_working_dir}")
+                shutil.move(
+                    current_working_dir,
+                    incoming_working_dir,
+                )
+                file_path_updates[file.content_hash] = os.path.join(
+                    incoming_working_dir, "content.pdf"
+                )
+        if len(file_path_updates) > 0:
+            new_files = []
+            for file_id, file in files_by_id.items():
+                if file_id in file_path_updates:
+                    new_files.append(
+                        File(
+                            id=file_id,
+                            name=file.name,
+                            absolute_path=file_path_updates[file_id],
+                            workspace_id=workspace_id,
+                        )
+                    )
+                else:
+                    new_files.append(file)
+            with self._open(workspace_id, "files.json", "w") as f:
+                json.dump([file.model_dump() for file in new_files], f, indent=2)
+
+
+def _get_file_dir_name(content_hash: str, app_dir: list[str], file_name: str) -> str:
+    path_prefix = normalize_underscores("_".join(app_dir))
+    if not path_prefix:
+        return f"{file_name}__{content_hash[:5]}"
+    else:
+        return f"{path_prefix}__{file_name}__{content_hash[:5]}"
