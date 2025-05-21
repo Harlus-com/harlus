@@ -1,10 +1,9 @@
 import os
 import dill
 import json
-import time
 from src.util import timestamp_now
-from src.sync_status import SyncStatus
-from src.file_store import FileStore, File
+from src.file_store import FileStore
+from src.file_types import File
 from harlus_doc_search import ToolWrapper
 from harlus_doc_search import DocToolLoader
 from enum import Enum

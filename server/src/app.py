@@ -1,7 +1,5 @@
 import datetime
 import json
-import shutil
-import tempfile
 import fastapi
 from fastapi import (
     Body,
@@ -20,12 +18,14 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pathlib import Path
 
 from pydantic import BaseModel, Field
+from src.workspace_store import WorkspaceStore
 from src.file_upload import FileUploader
 from src.chat_store import ChatStore, JsonType
 from src.comment_store import CommentGroup, CommentStore
 from src.tool_library import ToolLibrary
 
-from src.file_store import FileStore, LocalFile, Workspace, File
+from src.file_store import FileStore, Workspace
+from src.file_types import LocalFile
 from src.sync_queue import SyncQueue, SyncType
 from src.contrast_analysis import analyze
 from src.sec_loader import SecSourceLoader, WebFile
@@ -102,8 +102,10 @@ if not APP_DATA_PATH_STRING:
 else:
     APP_DATA_PATH = Path(APP_DATA_PATH_STRING)
 
-file_store = FileStore(APP_DATA_PATH)
-
+workspace_store = WorkspaceStore(APP_DATA_PATH)
+workspace_store.initialize()
+file_store = FileStore(workspace_store)
+file_store.initialize()
 tool_library = ToolLibrary(file_store)
 chat_store = ChatStore(file_store, tool_library)
 comment_store = CommentStore(file_store)
@@ -151,7 +153,7 @@ class CreateWorkspaceRequest(BaseModel):
 @api_router.post("/workspace/create")
 async def create_workspace(request: CreateWorkspaceRequest):
     print("Creating workspace", request.name)
-    workspace = file_store.create_workspace(request.name, request.local_dir)
+    workspace = workspace_store.create_workspace(request.name, request.local_dir)
     chat_store.add_workspace(workspace)
     comment_store.add_workspace(workspace)
     return workspace
@@ -171,7 +173,7 @@ def get_workspaces() -> list[Workspace]:
 @api_router.delete("/workspace/delete")
 def delete_workspace(workspace_id: str = Query(..., alias="workspaceId")):
     """Delete a workspace and all its associated files"""
-    file_store.delete_workspace(workspace_id)
+    workspace_store.delete_workspace(workspace_id)
 
 
 @api_router.get("/workspace/files")
@@ -426,15 +428,17 @@ async def get_online_data(
     start_date: str = Query(..., alias="startDate"),
 ):
     web_files: list[WebFile] = SecSourceLoader().download_files(
-        workspace_ticker, 
-        start_date=datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
+        workspace_ticker,
+        start_date=datetime.datetime.strptime(start_date, "%Y-%m-%d").date(),
     )
     files_to_download_json = []
     for web_file in web_files:
-        files_to_download_json.append({
-            "fileName": web_file.file_name,
-            "contentBase64": base64.b64encode(web_file.pdf_content).decode('utf-8')
-        })
+        files_to_download_json.append(
+            {
+                "fileName": web_file.file_name,
+                "contentBase64": base64.b64encode(web_file.pdf_content).decode("utf-8"),
+            }
+        )
     return files_to_download_json
 
 
