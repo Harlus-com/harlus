@@ -116,14 +116,12 @@ class OpenBBFilingsLoader:
             print(f"Warning: OpenBB login failed: {e}.")
 
     def _fetch(self, ticker: str, start_date: date | None = None) -> pl.DataFrame:
-        print(f"OpenBBFilingsLoader: Fetching fresh data for {ticker}")
         if start_date is None:
             # can't define time-dependent default value in function definition
             start_date = date.today() - timedelta(days=365)
         out = obb.equity.fundamental.filings(
             ticker,
             provider="sec", # start_date only works with "sec" provider
-            # limit=1000, # remove limit so all files after start_date are fetched
             start_date=start_date,
         ).to_polars()
         out = out.with_columns(
@@ -142,7 +140,6 @@ class OpenBBFilingsLoader:
                 "|".join(self.config["sec_relevant_filings"])
             )
         )
-        print(f"OpenBBFilingsLoader: Successfully fetched data for {ticker}")
         return out
 
     def get(self, ticker: str, start_date: date | None = None) -> pl.DataFrame:
@@ -209,9 +206,7 @@ class SecSourceLoader:
                     pdf_content=pdf,
                 ))
             else:
-                print(
-                    f"Warning: Could not fetch content for {file_name_no_ext} from {report_url}"
-                )
+                print(f"Warning: Could not fetch content for {file_name_no_ext} from {report_url}")
 
         return files
 

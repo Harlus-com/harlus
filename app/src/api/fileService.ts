@@ -102,7 +102,6 @@ class FileService {
     });
   
     await Promise.all(creationPromises);
-    console.log("[FileService] All files downloaded and created successfully.");
   }
 
   createFolder(

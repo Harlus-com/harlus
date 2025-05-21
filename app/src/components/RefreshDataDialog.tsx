@@ -109,14 +109,14 @@ export default function RefreshDataDialog({
                   Select Download Options
                 </AlertDialogTitle>
                 <AlertDialogDescription className="text-gray-600 dark:text-gray-300 mt-2">
-                  Please enter the folder path where you want to download the online data, and select the start date for the data pull. Each click will prompt you for these values.
+                  Please enter the folder path where you want to download the online data, and select the start date for the data pull.
                 </AlertDialogDescription>
               </AlertDialogHeader>
     
               <div className="py-4">
                 <Input
                   id="destination-folder"
-                  placeholder="e.g., /path/to/your/folder"
+                  placeholder="/path/to/your/folder"
                   value={dialogInputDestination}
                   onChange={(e) => setDialogInputDestination(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
