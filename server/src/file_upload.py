@@ -7,6 +7,14 @@ import threading
 import time
 
 
+"""
+Uploads a file to the file store.
+
+Note: This is probably over-engineered because we just get the entire file on the post message.
+It will be more necessary if we start streaming large files.
+"""
+
+
 class FileUploader:
     def __init__(self, file_store: FileStore):
         self.file_store = file_store

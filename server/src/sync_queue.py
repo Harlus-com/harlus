@@ -106,7 +106,6 @@ class SyncQueue:
                 sync_request = self.sync_queue.pop(0)
                 tools_to_sync = self.tool_library.get_tools_to_sync(sync_request.file)
                 if len(tools_to_sync) == 0:
-                    self.sync_queue.mark_no_op(sync_request)
                     for tool_name in self.tool_library.all_tool_names():
                         self.tool_library.write_sync_status(
                             sync_request.file,
