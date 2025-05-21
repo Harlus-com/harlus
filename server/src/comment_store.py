@@ -5,7 +5,8 @@ from typing import Dict, Optional, Any
 
 from pydantic import BaseModel, ConfigDict, Field
 from src.util import Timestamp, snake_to_camel
-from src.file_store import FileStore, Workspace
+from src.file_store import FileStore
+from src.workspace_store import WorkspaceStore, Workspace
 
 JsonType = Dict[str, Any]
 
@@ -24,11 +25,12 @@ class CommentGroup(BaseModel):
 
 
 class CommentStore:
-    def __init__(self, file_store: FileStore):
+    def __init__(self, workspace_store: WorkspaceStore, file_store: FileStore):
+        self.workspace_store = workspace_store
         self.file_store = file_store
         self.lock = asyncio.Lock()
 
-        for workspace in self.file_store.get_workspaces().values():
+        for workspace in self.workspace_store.get_workspaces().values():
             add_workspace(workspace)
 
     def add_workspace(self, workspace):
@@ -123,7 +125,7 @@ class CommentStore:
         return comments
 
     def _get_comments_dir(self, workspace_id: str) -> str:
-        workspace = self.file_store.get_workspaces()[workspace_id]
+        workspace = self.workspace_store.get_workspaces()[workspace_id]
         return os.path.join(workspace.absolute_path, "comments")
 
     def _get_comments_file_path(self, workspace_id: str, file_name: str) -> str:

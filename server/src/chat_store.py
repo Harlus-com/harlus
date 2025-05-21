@@ -6,9 +6,10 @@ from typing import Dict, Optional, Any
 
 from harlus_workspace_chat.build_graph import ChatAgentGraph
 from pydantic import BaseModel, ConfigDict, Field
+from src.workspace_store import WorkspaceStore, Workspace
 from src.tool_library import ToolLibrary
 from src.util import Timestamp, snake_to_camel, timestamp_now
-from src.file_store import FileStore, Workspace
+from src.file_store import FileStore
 
 JsonType = Dict[str, Any]
 
@@ -28,7 +29,13 @@ class ChatThread(BaseModel):
 
 
 class ChatStore:
-    def __init__(self, file_store: FileStore, tool_library: ToolLibrary):
+    def __init__(
+        self,
+        workspace_store: WorkspaceStore,
+        file_store: FileStore,
+        tool_library: ToolLibrary,
+    ):
+        self.workspace_store = workspace_store
         self.file_store = file_store
         self.tool_library = tool_library
         self.chat_models: dict[str, ChatAgentGraph] = {}
@@ -36,7 +43,7 @@ class ChatStore:
         self.save_task: Optional[asyncio.Task] = None
         self.lock = asyncio.Lock()
 
-        for workspace in self.file_store.get_workspaces().values():
+        for workspace in self.workspace_store.get_workspaces().values():
             add_workspace(workspace)
 
     def add_workspace(self, workspace: Workspace):
@@ -48,7 +55,7 @@ class ChatStore:
         Get a chat model, and set the active thread to the given thread_id.
         """
         if workspace_id not in self.chat_models:
-            workspace = self.file_store.get_workspaces()[workspace_id]
+            workspace = self.workspace_store.get_workspaces()[workspace_id]
             chat_dir = os.path.join(workspace.absolute_path, "chat")
             file_id_to_path = {
                 file.id: file.absolute_path
@@ -172,7 +179,7 @@ class ChatStore:
             return {"messagePairs": []}
 
     def _get_chat_dir(self, workspace_id: str) -> str:
-        workspace = self.file_store.get_workspaces()[workspace_id]
+        workspace = self.workspace_store.get_workspaces()[workspace_id]
         return os.path.join(workspace.absolute_path, "chat")
 
     def _get_chat_file_path(self, workspace_id: str, file_name: str) -> str:

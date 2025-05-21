@@ -6,9 +6,10 @@ import traceback
 
 from src.tool_library import ToolLibrary, ToolSyncStatus
 
-from src.file_store import File, FileStore
+from src.file_store import FileStore
 from src.sync_status import SyncStatus
 from enum import Enum
+from src.file_types import File
 
 
 class SyncType(Enum):
