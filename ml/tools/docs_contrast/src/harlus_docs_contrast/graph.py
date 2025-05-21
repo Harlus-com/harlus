@@ -1,8 +1,7 @@
 from langchain_core.messages import (
     SystemMessage,
 )
-from langgraph.graph import StateGraph, END, START
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from langgraph.checkpoint.memory import InMemorySaver
 from typing import (
     AsyncIterator,
 )
@@ -23,7 +22,8 @@ from .utils import (
     _sanitize_tool_name,
     _parse_tool_class,
 )
-from .claim_comments import get_claim_comments_from_driver_tree
+from .claim_comments import _get_claim_comments_from_driver_tree
+
 
 
 class ContrastAgentGraph:
@@ -32,13 +32,10 @@ class ContrastAgentGraph:
 
         self.LLM = LLM
         self.config = {"configurable": {"thread_id": "n.a.", "user_id": "n.a."}}
-        self.persist_dir = persist_dir
-        os.makedirs(self.persist_dir, exist_ok=True)
-        self.db_path = os.path.join(self.persist_dir, "langgraph.db")
-        self.memory = None
         self.graph = None
         self.tools_descriptions = {}
         self.file_id_to_path = file_id_to_path
+        self.checkpointer = InMemorySaver()
 
     def _add_tool(self, tool, metadata_dict, doc_type: str, tool_type: str):
 
@@ -90,7 +87,7 @@ class ContrastAgentGraph:
                     "type": tool_type,
                     "friendly_name": tool.metadata.friendly_name,
                 }
-                self._add_tool(retriever_tool, metadata_dict, doc_type, tool_type)
+                self._add_tool(semantic_retriever_tool, metadata_dict, doc_type, tool_type)
 
     def _sanitize_tool_names(self, doc_type: str):
         for tool_type in self.tools[doc_type]:
@@ -151,10 +148,8 @@ class ContrastAgentGraph:
     def set_thread(self, thread_id: str):
         self.config["configurable"]["thread_id"] = thread_id
 
-    # TODO: Use SummaryIndexRetrieverTool to get the full document
     async def _get_tree(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
-
-        # TODO: add comment
+        
         print("[harlus_contrast_tool] getting tree")
 
         with open(
@@ -179,29 +174,6 @@ class ContrastAgentGraph:
             "driver_tree": driver_tree,
         }
        
-    # async def _add_statement_source_texts(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
-        
-    #     print("[harlus_contrast_tool] adding statement source texts")
-
-    #     with open(os.path.join(os.path.dirname(__file__), "prompts/add_statement_source_texts_prompt.md"), "r") as f:
-    #         system_prompt = f.read()
-        
-    #     system_prompt = system_prompt + self.tools_descriptions["internal"]["doc_search_semantic_retriever"]
-    #     prompt = [
-    #         SystemMessage(content=system_prompt),
-    #         *state["internal_messages"],
-    #         state["driver_tree"],
-    #     ]
-    #     message = await self.refine_tree_llm.ainvoke(prompt)
-            
-    #     if hasattr(message, "tool_calls") and message.tool_calls:
-    #         driver_tree = state["driver_tree"]
-    #     else:
-    #         driver_tree = message.content
-    #     yield {
-    #         "internal_messages": [message],
-    #         "driver_tree": driver_tree,
-    #     }
 
     async def _refine_tree(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
 
@@ -302,23 +274,6 @@ class ContrastAgentGraph:
         else:
             return "no_tools"
         
-    # @staticmethod
-    # def _custom_tools_condition_external(state: ContrastToolGraphState) -> str:
-    #     last_msg = state["external_messages"][-1]
-    #     if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
-    #         return "tools"
-    #     else:
-    #         return "no_tools"
-        
-    # @staticmethod
-    # def _parsable_json_condition(state: ContrastToolGraphState) -> str:
-    #     driver_tree = state["driver_tree"]
-    #     try:
-    #         _clean_and_parse_json(driver_tree)
-    #         return "parsable"
-    #     except:
-    #         return "not_parsable"
-        
     @staticmethod
     def _post_verify_tree_condition(state: ContrastToolGraphState) -> str:
         last_msg = state["external_messages"][-1]
@@ -340,15 +295,12 @@ class ContrastAgentGraph:
         graph_builder.add_node("refine_tree", self._refine_tree, metadata={"name": "refine_tree"})
         graph_builder.add_node("verify_tree", self._verify_tree, metadata={"name": "verify_tree"})
         graph_builder.add_node("format_output", self._format_output, metadata={"name": "format_output"})
-        #graph_builder.add_node("add_statement_source_texts", self._add_statement_source_texts, metadata={"name": "add_statement_source_texts"})
         graph_builder.add_node("get_source_nodes", self._get_source_nodes, metadata={"name": "get_source_nodes"})
         graph_builder.add_node("tools_get_tree", self.tool_nodes["get_tree"], metadata={"name": "tools_get_tree"})
         graph_builder.add_node("tools_verify_tree", self.tool_nodes["verify_tree"], metadata={"name": "tools_verify_tree"})
         graph_builder.add_node("tools_refine_tree", self.tool_nodes["refine_tree"], metadata={"name": "tools_refine_tree"})
-        #graph_builder.add_node("tools_add_statement_source_texts", self.tool_nodes["add_statement_source_texts"], metadata={"name": "tools_add_statement_source_texts"})
         
         
-        # Get tree loop
         graph_builder.add_edge(START, "get_tree")
         graph_builder.add_conditional_edges(
             "get_tree",
@@ -356,23 +308,12 @@ class ContrastAgentGraph:
             {"tools":"tools_get_tree", "no_tools":"refine_tree"}
         )
         graph_builder.add_edge("tools_get_tree", "get_tree")
-
-        # Add statement source texts loop
-        #graph_builder.add_conditional_edges(
-        #    "add_statement_source_texts",
-        #    self._custom_tools_condition_internal,
-        #    {"tools":"tools_add_statement_source_texts", "no_tools":"refine_tree"}
-        #)
-        #graph_builder.add_edge("tools_add_statement_source_texts", "add_statement_source_texts")
-
-
         graph_builder.add_conditional_edges(
             "refine_tree",
             self._custom_tools_condition_internal,
             {"tools": "tools_refine_tree", "no_tools": "verify_tree"},
         )
         graph_builder.add_edge("tools_refine_tree", "refine_tree")
-
         graph_builder.add_conditional_edges(
             "verify_tree",
             self._custom_tools_condition_external,
@@ -392,28 +333,24 @@ class ContrastAgentGraph:
         graph_builder.add_edge("get_source_nodes", END)       
 
         self.graph_builder = graph_builder
-
         return self.graph_builder
 
-    async def _get_claim_comments(self, graph):
-        state = await graph.aget_state(self.config)
-        return state.values.get("claim_comments", [])
+    async def _get_state(self):
+        state = await self.graph.aget_state(self.config)
+        return state
 
-    async def _get_driver_tree(self, graph):
-        state = await graph.aget_state(self.config)
+    async def _get_claim_comments(self):
+        state = await self._get_state()
+        return state.values.get("claim_comments", [])
+    
+    async def _get_driver_tree(self):
+        state = await self._get_state()
         return state.values.get("driver_tree", "")
 
-    async def _get_state(self):
-        async with AsyncSqliteSaver.from_conn_string(self.db_path) as memory:
-            graph = self.graph_builder.compile(checkpointer=memory)
-            state = await graph.aget_state(self.config)
-            return state
 
     async def _get_graph_picture(self):
-        async with AsyncSqliteSaver.from_conn_string(self.db_path) as memory:
-            graph = self.graph_builder.compile(checkpointer=memory)
-            return graph.get_graph().draw_ascii()
-
+        return self.graph.get_graph().draw_ascii()
+        
     async def run(self, user_message: str):
         input_state = {
             "internal_messages": [("user", user_message)],
@@ -422,15 +359,16 @@ class ContrastAgentGraph:
             "internal_retrieved_items": [],
             "external_retrieved_items": [],
         }
-        async with AsyncSqliteSaver.from_conn_string(self.db_path) as memory:
-            graph = self.graph_builder.compile(checkpointer=memory)
-            async for message_chunk in graph.astream(
-                input_state, stream_mode="custom", config=self.config
-            ):
-                pass
-            claim_comments = await self._get_claim_comments(graph)
-            driver_tree = await self._get_driver_tree(graph)
-            return claim_comments, driver_tree
+        self.graph = self.graph_builder.compile(checkpointer=self.checkpointer)
+        async for message_chunk in self.graph.astream(
+            input_state,
+            stream_mode="custom",
+            config = self.config
+        ):
+            pass 
+        claim_comments = await self._get_claim_comments()
+        driver_tree = await self._get_driver_tree()
+        return claim_comments, driver_tree
 
     async def stream(self, user_message: str):
 
@@ -442,35 +380,44 @@ class ContrastAgentGraph:
             "external_retrieved_items": [],
         }
 
-        # TODO: strip checkpointer
-        async with AsyncSqliteSaver.from_conn_string(self.db_path) as memory:
-            graph = self.graph_builder.compile(checkpointer=memory)
+        
 
-            # 1. stream the answer
-            print("[harlus_contrast_tool] Streaming answer...")
-            async for message_chunk in graph.astream(
-                input_state, stream_mode="custom", config=self.config
-            ):
-                for key, value in message_chunk.items():
-                    response = "\n".join(
-                        [
-                            f'data: {json.dumps({"text": value})}',
-                            f"event: {key}",
-                            "\n\n",
-                        ]
-                    )
-                    yield response
+        self.graph = self.graph_builder.compile(checkpointer=self.checkpointer)
+        
+        # 1. stream the answer 
+        print("[harlus_contrast_tool] Streaming answer...")
+        async for message_chunk in self.graph.astream(
+            input_state,
+            stream_mode="custom",
+            config = self.config
+        ):
+            for key, value in message_chunk.items():
+                response = '\n'.join([
+                    f'data: {json.dumps({"text": value})}',
+                    f'event: {key}',
+                    '\n\n'
+                ])
+                yield response
+            
+            
+        # 2. stream the claim comments
+        print("[harlus_contrast_tool] Streaming claim comments...")
+        data = await self._get_claim_comments(graph)
+        data = [d.model_dump() for d in data]
+        response = '\n'.join([
+                f'data: {json.dumps(data)}',
+                f'event: claim_comments',
+                '\n\n'
+        ])
+        print(f"[harlus_contrast_tool] Sent {len(data)} claim comments")
+        yield response
+        
 
-            # 2. stream the claim comments
-            print("[harlus_contrast_tool] Streaming claim comments...")
-            data = await self._get_claim_comments(graph)
-            data = [d.model_dump() for d in data]
-            response = "\n".join(
-                [f"data: {json.dumps(data)}", f"event: claim_comments", "\n\n"]
-            )
-            print(f"[harlus_contrast_tool] Sent {len(data)} claim comments")
-            yield response
+        # 3. stream the completion
+        response = '\n'.join([
+                    f'data: ',
+                    f'event: complete',
+                    '\n\n'
+            ])
+        yield response
 
-            # 3. stream the completion
-            response = "\n".join([f"data: ", f"event: complete", "\n\n"])
-            yield response
