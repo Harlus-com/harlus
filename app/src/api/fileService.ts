@@ -75,6 +75,15 @@ class FileService {
     return window.electron.getLocalFolders(workspace.localDir);
   }
 
+  async refreshOnlineData(workspaceId: string): Promise<WorkspaceFile[]> {
+    console.log("[FileService] Refreshing online data for workspace:", workspaceId);
+    const response = await client.post(
+      `/workspace/download_sec_data?workspaceId=${workspaceId}`,
+      {}
+    );
+    return response as WorkspaceFile[];
+  }
+
   createFolder(
     parentFolder: LocalFolder,
     newFolderName: string
