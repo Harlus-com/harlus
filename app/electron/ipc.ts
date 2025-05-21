@@ -3,11 +3,12 @@ import { ipcMain, dialog } from "electron";
 import mime from "mime";
 import axios from "axios";
 import { EventSource } from "eventsource";
-import { ElectronAppState, LocalFile } from "./electron_types";
+import { ElectronAppState, LocalFile, LocalFolder } from "./electron_types";
 import { Uploader } from "./upload";
 import {
   getLocalFiles,
   getLocalFolders,
+  moveItem,
   WorkspaceWatcher,
 } from "./local_file_system";
 
@@ -180,4 +181,11 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
       electronAppState.workspaceWatchers.delete(workspacePath);
     }
   });
+
+  ipcMain.handle(
+    "move-item",
+    async (_, item: LocalFile | LocalFolder, newRelativePath: string[]) => {
+      return moveItem(item, newRelativePath);
+    }
+  );
 }

@@ -97,28 +97,14 @@ class FileService {
     });
   }
 
-  moveFolder(
-    workspaceId: string,
-    appDir: string[],
-    newParentDir: string[]
+  moveItem(
+    item: LocalFile | LocalFolder,
+    newRelativePath: string[]
   ): Promise<boolean> {
-    return client.post(`/workspace/move_folder`, {
-      workspaceId,
-      appDir,
-      newParentDir,
-    });
-  }
-
-  moveFile(
-    workspaceId: string,
-    fileId: string,
-    newParentDir: string[]
-  ): Promise<boolean> {
-    return client.post(`/workspace/move_file`, {
-      workspaceId,
-      fileId,
-      newParentDir,
-    });
+    if (!window.electron) {
+      throw new Error("Electron is not available");
+    }
+    return window.electron.moveItem(item, newRelativePath);
   }
 }
 

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import { LocalFile } from "./electron_types";
+import { LocalFile, LocalFolder } from "./electron_types";
 console.log("PRELOAD");
 
 contextBridge.exposeInMainWorld("electron", {
@@ -40,4 +40,6 @@ contextBridge.exposeInMainWorld("electron", {
       console.log("PRELOAD onLocalFileSystemChange", event);
       callback(event);
     }),
+  moveItem: (item: LocalFile | LocalFolder, newRelativePath: string[]) =>
+    ipcRenderer.invoke("move-item", item, newRelativePath),
 });

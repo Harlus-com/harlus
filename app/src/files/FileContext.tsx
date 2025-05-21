@@ -14,6 +14,7 @@ import { toWorkspaceFile } from "./file_util";
 interface FileContextType {
   getFiles: () => WorkspaceFile[];
   getFolders: () => WorkspaceFolder[];
+  getLocalFolder: (path: string[]) => LocalFolder | null;
   getFile: (id: string) => WorkspaceFile;
   getFileSyncStatus: (id: string) => SyncStatus;
   startSyncFile: (localFile: LocalFile) => void;
@@ -147,6 +148,12 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
     return workspaceFolders;
   };
 
+  const getLocalFolder = (path: string[]) => {
+    return folders.find(
+      (folder) => folder.pathRelativeToWorkspace.join("/") === path.join("/")
+    );
+  };
+
   /**
    * If a given local file has not been synced to the server, this function will return null.
    *
@@ -168,6 +175,7 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
       value={{
         getFiles,
         getFolders,
+        getLocalFolder,
         getFile,
         getFileSyncStatus,
         startSyncFile,
