@@ -3,6 +3,14 @@ from .custom_types import HighlightArea
 import fitz
 from llama_index.core.schema import NodeWithScore
 
+# TODO: Write these cleaner according to the following schema:
+# class Dummy(BaseModel):
+#     pass
+# 
+#     @classmethod
+#     def from_node(cls, node: NodeWithScore) -> Self:
+#         pass
+
 
 def _get_page_from_node(
     node: NodeWithScore,
