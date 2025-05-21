@@ -38,7 +38,7 @@ from .claim_comments import _get_claim_comments_from_driver_tree
 
 class ContrastAgentGraph:
 
-    def __init__(self,  persist_dir: str):
+    def __init__(self):
         
         self.LLM = LLM
         self.config = {"configurable": {"thread_id": "n.a.", "user_id": "n.a."}}
@@ -275,19 +275,19 @@ class ContrastAgentGraph:
             "driver_tree": driver_tree,
         }
 
-    # async def _format_output(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
-    #     print("[harlus_contrast_tool] formatting output")
-    #     with open(os.path.join(os.path.dirname(__file__), "prompts/format_output_prompt.md"), "r") as f:
-    #         system_prompt = f.read()
-    #     system_prompt = system_prompt
-    #     prompt = [
-    #         SystemMessage(content=system_prompt),
-    #         state["driver_tree"],
-    #     ]
-    #     message = await self.LLM.ainvoke(prompt)
-    #     yield {
-    #         "driver_tree": message.content,
-    #     }
+    async def _format_output(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
+        print("[harlus_contrast_tool] formatting output")
+        with open(os.path.join(os.path.dirname(__file__), "prompts/format_output_prompt.md"), "r") as f:
+            system_prompt = f.read()
+        system_prompt = system_prompt
+        prompt = [
+            SystemMessage(content=system_prompt),
+            state["driver_tree"],
+        ]
+        message = await self.LLM.ainvoke(prompt)
+        yield {
+            "driver_tree": message.content,
+        }
     
     async def _get_source_nodes(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
         print("[harlus_contrast_tool] getting claim comments")
@@ -311,13 +311,35 @@ class ContrastAgentGraph:
         else:
             return "no_tools"
         
+    # @staticmethod
+    # def _custom_tools_condition_external(state: ContrastToolGraphState) -> str:
+    #     last_msg = state["external_messages"][-1]
+    #     if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
+    #         return "tools"
+    #     else:
+    #         return "no_tools"
+        
+    # @staticmethod
+    # def _parsable_json_condition(state: ContrastToolGraphState) -> str:
+    #     driver_tree = state["driver_tree"]
+    #     try:
+    #         _clean_and_parse_json(driver_tree)
+    #         return "parsable"
+    #     except:
+    #         return "not_parsable"
+        
     @staticmethod
-    def _custom_tools_condition_external(state: ContrastToolGraphState) -> str:
+    def _post_verify_tree_condition(state: ContrastToolGraphState) -> str:
         last_msg = state["external_messages"][-1]
         if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
             return "tools"
         else:
-            return "no_tools"
+            driver_tree = state["driver_tree"]
+        try:
+            _clean_and_parse_json(driver_tree)
+            return "parsable"
+        except:
+            return "not_parsable"
         
 
     def build(self):
@@ -326,7 +348,7 @@ class ContrastAgentGraph:
         graph_builder.add_node("get_tree", self._get_tree, metadata={"name": "get_tree"})
         graph_builder.add_node("refine_tree", self._refine_tree, metadata={"name": "refine_tree"})
         graph_builder.add_node("verify_tree", self._verify_tree, metadata={"name": "verify_tree"})
-        #graph_builder.add_node("format_output", self._format_output, metadata={"name": "format_output"})
+        graph_builder.add_node("format_output", self._format_output, metadata={"name": "format_output"})
         #graph_builder.add_node("add_statement_source_texts", self._add_statement_source_texts, metadata={"name": "add_statement_source_texts"})
         graph_builder.add_node("get_source_nodes", self._get_source_nodes, metadata={"name": "get_source_nodes"})
         graph_builder.add_node("tools_get_tree", self.tool_nodes["get_tree"], metadata={"name": "tools_get_tree"})
@@ -353,7 +375,6 @@ class ContrastAgentGraph:
         #graph_builder.add_edge("tools_add_statement_source_texts", "add_statement_source_texts")
 
 
-        # Refine tree loop
         graph_builder.add_conditional_edges(
             "refine_tree",
             self._custom_tools_condition_internal,
@@ -361,16 +382,13 @@ class ContrastAgentGraph:
         )
         graph_builder.add_edge("tools_refine_tree", "refine_tree")
 
-        # Verify tree loop
         graph_builder.add_conditional_edges(
             "verify_tree",
-            self._custom_tools_condition_external,
-            {"tools":"tools_verify_tree", "no_tools": "get_source_nodes"}
+            self._post_verify_tree_condition,
+            {"tools":"tools_verify_tree", "parsable": "get_source_nodes", "not_parsable": "format_output"}
         )
         graph_builder.add_edge("tools_verify_tree", "verify_tree") 
-
-        # Format output
-        #graph_builder.add_edge("format_output", "get_source_nodes") 
+        graph_builder.add_edge("format_output", "get_source_nodes") 
         graph_builder.add_edge("get_source_nodes", END)       
 
         self.graph_builder = graph_builder
