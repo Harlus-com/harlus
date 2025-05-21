@@ -21,148 +21,30 @@ import re
 import json
 from rapidfuzz.fuzz import partial_ratio
 from .custom_types import (
-    GraphState,
+    ChatGraphState,
     BoundingBox,
     HighlightArea,
     ChatSourceComment,
     DocSearchRetrievedNode,
     TavilyToolRetrievedWebsite,
-    DocSearchNodeMetadata,
+    DocSearchNodeMetadata
 )
+from harlus_doc_search.loader import DocSearchToolWrapper
+
 import uuid
 from llama_index.core.schema import NodeWithScore
 from langchain_tavily import TavilySearch
 import fitz
-
+from .tool_executor import ToolExecutorNode
 from langgraph.config import get_stream_writer
+from .utils import (
+    sanitize_tool_name,
+    parse_tool_class,
+)
 
 
-class BasicToolNode:
-    """
-    Runs the tools requested in the last AIMessage.
-
-    Updates the state with the retrieved nodes from the tool calls.
-
-    """
-
-    def __init__(self, tools: list, tool_name_to_metadata: dict) -> None:
-
-        self.tools_by_name = {tool.name: tool for tool in tools}
-        self.tool_name_to_metadata = tool_name_to_metadata
-
-    async def __call__(self, state: dict) -> AsyncIterator[dict | AIMessageChunk]:
-
-        # TODO: test if this interferes when using multiple simultaneous calls
-        writer = get_stream_writer()
-
-        if messages := state.get("messages", []):
-            message = messages[-1]
-        else:
-            raise ValueError("No message found in input")
-        outputs = []
-
-        for tool_call in message.tool_calls:
-
-            tool = self.tools_by_name[tool_call["name"]]
-            sources_list = []
-
-            if self.tool_name_to_metadata[tool_call["name"]]["type"] == "doc_search":
-                print("- executing doc search tool call: ", tool_call["name"])
-
-                tool_friendly_name = self.tool_name_to_metadata[tool_call["name"]][
-                    "friendly_name"
-                ]
-
-                writer({"reading_message": f"Reading {tool_friendly_name} ... "})
-
-                tool_result = await tool.ainvoke(tool_call["args"])
-
-                for retrieved_node in tool_result.raw_output.source_nodes:
-
-                    # assert that the retrieved node is a NodeWithScore
-                    assert isinstance(
-                        retrieved_node, NodeWithScore
-                    ), "[Harlus_chat] Retreived node is not a NodeWithScore"
-
-                    # convert from NodeWithScore to DocSearchRetrievedNode
-                    page_nb = 0
-                    bounding_boxes = []
-                    doc_items = retrieved_node.metadata.get("doc_items", [])
-                    for doc_item in doc_items:
-                        positions = doc_item.get("prov", [])
-                        for position in positions:
-                            page_nb = position.get("page_no", 0)
-                            bbox = position.get("bbox", None)
-                            if bbox is not None:
-                                bounding_boxes.append(
-                                    {
-                                        "left": bbox["l"],
-                                        "top": bbox["t"],
-                                        "width": bbox["r"] - bbox["l"],
-                                        "height": bbox["t"] - bbox["b"],
-                                        "page": page_nb,
-                                        "type": "absolute",
-                                    }
-                                )
-
-                    metadata = DocSearchNodeMetadata(
-                        raw_metadata=retrieved_node.metadata,
-                        page_nb=page_nb,
-                        file_path=retrieved_node.metadata.get("file_path", None),
-                        bounding_boxes=bounding_boxes,
-                    )
-                    sources_list.append(
-                        DocSearchRetrievedNode(
-                            metadata=metadata,
-                            text=retrieved_node.text,
-                        )
-                    )
-                content = json.dumps(tool_result.content)
-                outputs.append(
-                    ToolMessage(
-                        content=content,
-                        name=tool_call["name"],
-                        tool_call_id=tool_call["id"],
-                    )
-                )
-
-            # Tool is TavilySearchTool
-            elif tool_call.get("name", "") == "tavily_search":
-                print("- executing tavily search tool call: ", tool_call["name"])
-                tool_friendly_name = self.tool_name_to_metadata[tool_call["name"]][
-                    "friendly_name"
-                ]
-                writer({"tool": f"Searching {tool_friendly_name} ... "})
-                tool_result = await tool.ainvoke(tool_call["args"])
-                content = json.dumps(tool_result)
-                for result in tool_result.get("results", []):
-                    tavily_tool_metadata = TavilyToolRetrievedWebsite(
-                        title=result.get("title", ""),
-                        url=result.get("url", ""),
-                        content=result.get("content", ""),
-                    )
-                    sources_list.append(tavily_tool_metadata)
-                outputs.append(
-                    ToolMessage(
-                        content=content,
-                        name=tool_call["name"],
-                        tool_call_id=tool_call["id"],
-                    )
-                )
-
-        yield {
-            "messages": outputs,
-            "sources": state.get("sources", []) + sources_list,
-            "full_answer": state.get("full_answer", ""),
-        }
 
 
-def sanitize_tool_name(name):
-    return re.sub(r"[^a-zA-Z0-9_-]", "_", name)
-
-
-# TODO: summarize long-term memorys
-# https://langchain-ai.github.io/langgraph/concepts/memory/#writing-memories-in-the-background
 class ChatAgentGraph:
 
     def __init__(self, persist_dir: str):
@@ -174,6 +56,8 @@ class ChatAgentGraph:
             "stream_events": True,
         }
 
+        # TODO: summarize long-term memories
+        # https://langchain-ai.github.io/langgraph/concepts/memory/#writing-memories-in-the-background
         self.persist_dir = persist_dir
         os.makedirs(self.persist_dir, exist_ok=True)
 
@@ -181,78 +65,106 @@ class ChatAgentGraph:
 
         self.memory = None
 
-        self.tool_node = BasicToolNode(tools=[], tool_name_to_metadata={})
+        self.tool_node = ToolExecutorNode(
+            tools=[], 
+            tool_name_to_metadata={},
+            message_state_key="messages",
+            retrieved_items_state_key="retrieved_nodes"
+        )
+        self.tools_descriptions = {}
 
         self.graph = None
         self.build()
 
-    def update_tools(self, tools: List[any]):
+    def _add_tool(self, tool, metadata_dict, doc_type: str, tool_type: str):
 
-        self.tools = []
-        self.tool_name_to_metadata = {}
-        print("[harlus_chat] adding tools")
+        # add tool to tools dict
+        if doc_type not in self.tools:
+            self.tools[doc_type] = {}
+        if tool_type not in self.tools[doc_type]:
+            self.tools[doc_type][tool_type] = []
+        self.tools[doc_type][tool_type].append(tool)
+
+        # add tool to tool_name_to_metadata dict
+        if doc_type not in self.tool_name_to_metadata:
+            self.tool_name_to_metadata[doc_type] = {}
+        if tool_type not in self.tool_name_to_metadata[doc_type]:
+            self.tool_name_to_metadata[doc_type][tool_type] = {}
+        sanitized_name = sanitize_tool_name(tool.name)
+        self.tool_name_to_metadata[doc_type][tool_type][sanitized_name] = metadata_dict
+    
+    def _add_tools(self, tools: list[any], doc_type: str):
+
+        # parse tool to right class for adding it to the graph
         for tool in tools:
+            tool_class = parse_tool_class(tool)
+            if tool_class == "tavily_search":
+                metadata_dict = {
+                    "type": "tavily_search",
+                    "friendly_name": "the web"
+                }
+                self._add_tool(tool, metadata_dict, doc_type, tool_class)
+            
+            # only add the doc_search_semantic_retriever for now.
+            elif tool_class == "doc_search":
+                semantic_retriever_tool = tool.semantic_retriever_tool.to_langchain_tool()
+                tool_type = "doc_search_semantic_retriever"
+                metadata_dict = {
+                    "type": tool_type,
+                    "friendly_name": tool.metadata.friendly_name
+                }
+                self._add_tool(semantic_retriever_tool, metadata_dict, doc_type, tool_type)
 
-            if isinstance(tool, TavilySearch):
-                print(" - adding tavily search tool")
-                self.tools.append(tool)
-                self.tool_name_to_metadata.update(
-                    {
-                        sanitize_tool_name(tool.name): {
-                            "type": "tavily_search",
-                            "friendly_name": "the web",
-                        }
-                    }
-                )
+    def _sanitize_tool_names(self, doc_type: str):
+        for tool_type in self.tools[doc_type]:
+            for tool in self.tools[doc_type][tool_type]:
+                tool.name = sanitize_tool_name(tool.name)
 
-            elif (
-                hasattr(tool, "tool_class")
-                and tool.tool_class == "DocSearchToolWrapper"
-            ):
-                print(" - adding doc search tool")
-                lctool = tool.semantic_query_engine_tool.to_langchain_tool()
-                self.tools.append(lctool)
-                self.tool_name_to_metadata.update(
-                    {
-                        sanitize_tool_name(lctool.name): {
-                            "type": "doc_search",
-                            "friendly_name": tool.metadata.friendly_name,
-                        }
-                    }
-                )
+    def _generate_tool_descriptions(self, doc_type: str, tool_type: str):
+        nl = "\n\n\n"
+        sp = "=========="
+        if doc_type not in self.tools_descriptions:
+            self.tools_descriptions[doc_type] = {}
+        if tool_type not in self.tools_descriptions[doc_type]:
+            self.tools_descriptions[doc_type][tool_type] = ""
+        self.tools_descriptions[doc_type][tool_type] = nl + nl.join([f"{sp} {t.name} {sp} \n\n {t.description}" for t in self.tools[doc_type][tool_type]]) + nl
+        
+    # TODO: have one single ToolExecutorNode 
+    def update_tools(self, doc_search_tools: list[DocSearchToolWrapper]):
 
-            else:
-                raise ValueError(f" - {tool} is not a recognized tool.")
+        self.tools = {}
+        self.tool_name_to_metadata = {}
 
-        for tool in self.tools:
-            tool.name = sanitize_tool_name(tool.name)
+        # TODO: remove this layer of complexity on segmenting different tools
+        self._add_tools(doc_search_tools, "all_docs")
+        self._sanitize_tool_names("all_docs")
+        self._generate_tool_descriptions("all_docs", "doc_search_semantic_retriever")
 
-        self.tools_descriptions_string = "\n - " + "\n -".join(
-            [f"{tool.name}: {tool.description}" for tool in tools]
-        )
-
-        self.TOOL_LLM = LLM.bind_tools(self.tools)
-
-        self.tool_node = BasicToolNode(
-            tools=self.tools, tool_name_to_metadata=self.tool_name_to_metadata
-        )
+        self.tool_node = ToolExecutorNode(
+            tools=self.tools["all_docs"]["doc_search_semantic_retriever"],
+            tool_name_to_metadata=self.tool_name_to_metadata["all_docs"]["doc_search_semantic_retriever"], 
+            message_state_key="messages", 
+            retrieved_items_state_key="retrieved_nodes")
+        
+        self.tool_llm = self.LLM.bind_tools(self.tools["all_docs"]["doc_search_semantic_retriever"])
 
         self.build()
 
+    
     def get_current_thread_id(self):
         return self.config["configurable"].get("thread_id")
 
     def set_thread(self, thread_id: str):
         self.config["configurable"]["thread_id"] = thread_id
 
-    async def _communicate_plan(self, state: GraphState) -> AsyncIterator[dict]:
+    async def _communicate_plan(self, state: ChatGraphState) -> AsyncIterator[dict]:
         prompt = [
             SystemMessage(
                 content=f"""
             Provide a plan to answer the last Human Message, make sure the plan involves using the tools described below. DO NOT USE THE TOOLS.
 
-            Each part of the plan should be a new line. NO ADDITIONAL INFORMATION IS NEEDED.                                          
-            {self.tools_descriptions_string}
+            Each part of the plan should be a new line with a bullet point. NO ADDITIONAL INFORMATION IS NEEDED.                                          
+            {self.tools_descriptions["all_docs"]["doc_search_semantic_retriever"]}
             """
             ),
             *state["messages"],
@@ -270,7 +182,7 @@ class ChatAgentGraph:
             "full_answer": state.get("full_answer", ""),
         }
 
-    async def _call_tools(self, state: GraphState) -> AsyncIterator[dict]:
+    async def _call_tools(self, state: ChatGraphState) -> AsyncIterator[dict]:
         prompt = [
             SystemMessage(
                 content=f"""
@@ -284,7 +196,7 @@ class ChatAgentGraph:
             *state["messages"],
         ]
 
-        assistant_msg = await self.TOOL_LLM.ainvoke(prompt)
+        assistant_msg = await self.tool_llm.ainvoke(prompt)
 
         yield {
             "messages": [assistant_msg],
@@ -292,7 +204,7 @@ class ChatAgentGraph:
             "full_answer": state["full_answer"],
         }
 
-    async def _communicate_result(self, state: GraphState) -> AsyncIterator[dict]:
+    async def _communicate_result(self, state: ChatGraphState) -> AsyncIterator[dict]:
         prompt = [
             SystemMessage(
                 content=f"""
@@ -316,7 +228,7 @@ class ChatAgentGraph:
         }
 
     @staticmethod
-    def _custom_tools_condition(state: GraphState) -> str:
+    def _custom_tools_condition(state: ChatGraphState) -> str:
         print("[harlus_chat] checking if tools are needed")
         last_msg = state["messages"][-1]
         if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
@@ -326,7 +238,7 @@ class ChatAgentGraph:
 
     def build(self):
 
-        graph_builder = StateGraph(GraphState)
+        graph_builder = StateGraph(ChatGraphState)
 
         graph_builder.add_node(
             "communicate_plan",
@@ -358,15 +270,12 @@ class ChatAgentGraph:
 
         return self.graph_builder
 
-    async def _get_sources(self, graph):
-        state = await graph.aget_state(self.config)
-        return state.values.get("sources", [])
-
+    # TODO: use source_highlight_pipeline here
     async def _get_retrieved_nodes(self, graph):
-        # extract nodes which were retrieved during the last run through the graph
-        sources = await self._get_sources(graph)
+        state = await graph.aget_state(self.config)
+        retrieved_nodes = state.values.get("retrieved_nodes", [])
         retrieved_nodes = [
-            source for source in sources if isinstance(source, DocSearchRetrievedNode)
+            source for source in retrieved_nodes if isinstance(source, DocSearchRetrievedNode)
         ]
 
         # prune nodes which have similar text
@@ -383,10 +292,13 @@ class ChatAgentGraph:
         return pruned_retrieved_nodes
 
     async def _get_chat_source_comments(self, graph):
+        
         chat_source_comments = []
 
         # get the retrieved nodes from the graph
+        # TODO: implement time travel to get the retrieved nodes from the previous steps
         retrieved_nodes = await self._get_retrieved_nodes(graph)
+        retriever_tools = self.tools["all_docs"]["doc_search_semantic_retriever"]
 
         # Get the graph state to access its values
         state = await graph.aget_state(self.config)

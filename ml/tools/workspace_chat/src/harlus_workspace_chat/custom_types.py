@@ -37,7 +37,7 @@ class TavilyToolRetrievedWebsite(BaseModel):
     url: str
     content: str
 
-class GraphState(TypedDict):
+class ChatGraphState(TypedDict):
     messages: Annotated[list, add_messages]
     sources: list[Union[DocSearchRetrievedNode, TavilyToolRetrievedWebsite]]
     full_answer: str

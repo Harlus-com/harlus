@@ -1,41 +1,10 @@
 import json
 import re
 from langchain_core.messages import AIMessage
-from .custom_types import ContrastToolGraphState
 from langchain_tavily import TavilySearch
 from langchain_core.tools import Tool
+from .custom_types import ChatGraphState
 
-
-def clean_and_parse_json(text: str):
-    
-    cleaned = re.sub(r"^`{3}(json)?", "", text.strip(), flags=re.IGNORECASE)
-    cleaned = re.sub(r"`{3}$", "", cleaned.strip())
-    cleaned = re.sub(r"^'+", "", cleaned.strip())
-    cleaned = re.sub(r"'+$", "", cleaned.strip())
-    cleaned = re.sub(r"\\n", "", cleaned.strip())
-    cleaned = re.sub(r"\\", "", cleaned.strip())
-    cleaned = re.sub(r"'", "", cleaned.strip())
-
-    try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
-        pass
-
-    match = re.search(r'({.*?}|\[.*?\])', cleaned, re.DOTALL)
-    if match:
-        candidate = match.group(1)
-        try:
-            return json.loads(candidate)
-        except json.JSONDecodeError:
-            pass
-
-    cleaned_no_trailing_commas = re.sub(r',(\s*[}\]])', r'\1', cleaned)
-    try:
-        return json.loads(cleaned_no_trailing_commas)
-    except json.JSONDecodeError:
-        pass
-
-    raise ValueError("Failed to parse JSON from input.")
 
 
 def sanitize_tool_name(name: str) -> str:
@@ -58,7 +27,7 @@ def convert_verdict(verdict: str) -> str:
         return "unknown"
     
 
-def get_last_message(state: dict | ContrastToolGraphState, state_key: str = "messages") -> AIMessage:
+def get_last_message(state: dict | ChatGraphState, state_key: str = "messages") -> AIMessage:
     if messages := state.get(state_key, []):
         message = messages[-1]
         return message
