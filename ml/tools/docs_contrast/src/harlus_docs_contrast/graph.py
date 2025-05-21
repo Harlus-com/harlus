@@ -18,12 +18,13 @@ from .custom_types import (
 )
 import uuid
 from .utils import (
-    _clean_and_parse_json,
-    _sanitize_tool_name,
-    _parse_tool_class,
+    clean_and_parse_json,
+    sanitize_tool_name,
+    parse_tool_class,
 )
-from .claim_comments import _get_claim_comments_from_driver_tree
-
+from .claim_comments import (
+    _get_claim_comments_from_driver_tree
+)
 
 
 class ContrastAgentGraph:
@@ -51,14 +52,14 @@ class ContrastAgentGraph:
             self.tool_name_to_metadata[doc_type] = {}
         if tool_type not in self.tool_name_to_metadata[doc_type]:
             self.tool_name_to_metadata[doc_type][tool_type] = {}
-        sanitized_name = _sanitize_tool_name(tool.name)
+        sanitized_name = sanitize_tool_name(tool.name)
         self.tool_name_to_metadata[doc_type][tool_type][sanitized_name] = metadata_dict
 
     def _add_tools(self, tools: list[any], doc_type: str):
 
         # parse tool to right class for adding it to the graph
         for tool in tools:
-            tool_class = _parse_tool_class(tool)
+            tool_class = parse_tool_class(tool)
             if tool_class == "tavily_search":
                 metadata_dict = {"type": "tavily_search", "friendly_name": "the web"}
                 self._add_tool(tool, metadata_dict, doc_type, tool_class)
@@ -67,20 +68,6 @@ class ContrastAgentGraph:
             # - their different namings
             # to the DocSearchToolWrapper, so we can just iterate over a list of available tools
             elif tool_class == "doc_search":
-                semantic_query_engine_tool = tool.semantic_query_engine_tool.to_langchain_tool()
-                tool_type = "doc_search_semantic_query_engine"
-                metadata_dict = {
-                    "type": tool_type,
-                    "friendly_name": tool.metadata.friendly_name,
-                }
-                self._add_tool(semantic_query_engine_tool, metadata_dict, doc_type, tool_type)
-                summary_query_engine_tool = tool.summary_query_engine_tool.to_langchain_tool()
-                tool_type = "doc_search_summary_query_engine"
-                metadata_dict = {
-                    "type": tool_type,
-                    "friendly_name": tool.metadata.friendly_name,
-                }
-                self._add_tool(summary_query_engine_tool, metadata_dict, doc_type, tool_type)
                 semantic_retriever_tool = tool.semantic_retriever_tool.to_langchain_tool()
                 tool_type = "doc_search_semantic_retriever"
                 metadata_dict = {
@@ -88,11 +75,19 @@ class ContrastAgentGraph:
                     "friendly_name": tool.metadata.friendly_name,
                 }
                 self._add_tool(semantic_retriever_tool, metadata_dict, doc_type, tool_type)
+                summary_retriever_tool = tool.summary_retriever_tool.to_langchain_tool()
+                tool_type = "doc_search_summary_retriever"
+                metadata_dict = {
+                    "type": tool_type,
+                    "friendly_name": tool.metadata.friendly_name
+                }
+                self._add_tool(summary_retriever_tool, metadata_dict, doc_type, tool_type)
+
 
     def _sanitize_tool_names(self, doc_type: str):
         for tool_type in self.tools[doc_type]:
             for tool in self.tools[doc_type][tool_type]:
-                tool.name = _sanitize_tool_name(tool.name)
+                tool.name = sanitize_tool_name(tool.name)
 
     def _generate_tool_descriptions(self, doc_type: str, tool_type: str):
         nl = "\n\n\n"
@@ -258,8 +253,8 @@ class ContrastAgentGraph:
     async def _get_source_nodes(self, state: ContrastToolGraphState) -> AsyncIterator[dict]:
         print("[harlus_contrast_tool] getting claim comments")
         driver_tree = state["driver_tree"]
-        parsed_driver_tree = _clean_and_parse_json(driver_tree)
-        claim_comments = await get_claim_comments_from_driver_tree(
+        parsed_driver_tree = clean_and_parse_json(driver_tree)
+        claim_comments = await _get_claim_comments_from_driver_tree(
             parsed_driver_tree,
             self.tools["internal"]["doc_search_semantic_retriever"],
             self.tools["external"]["doc_search_semantic_retriever"]
@@ -282,7 +277,7 @@ class ContrastAgentGraph:
         else:
             driver_tree = state["driver_tree"]
         try:
-            _clean_and_parse_json(driver_tree)
+            clean_and_parse_json(driver_tree)
             return "parsable"
         except:
             return "not_parsable"
@@ -402,7 +397,7 @@ class ContrastAgentGraph:
             
         # 2. stream the claim comments
         print("[harlus_contrast_tool] Streaming claim comments...")
-        data = await self._get_claim_comments(graph)
+        data = await self._get_claim_comments(self.graph)
         data = [d.model_dump() for d in data]
         response = '\n'.join([
                 f'data: {json.dumps(data)}',

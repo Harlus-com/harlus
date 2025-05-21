@@ -1,7 +1,7 @@
 import asyncio
 from .custom_types import LinkComment, ClaimComment, HighlightArea
 from harlus_source_highlight import HighlightPipeline
-from .utils import _strip_none, _convert_verdict
+from .utils import strip_none, convert_verdict
 from langchain_core.tools import Tool
 
 
@@ -78,13 +78,13 @@ async def _get_claim_comments_from_contrast(
             for source_text in source_texts
         ]
         link_comments = await asyncio.gather(*evidence_tasks)
-        link_comments = _strip_none(link_comments)
+        link_comments = strip_none(link_comments)
         if len(link_comments) == 0:
             return None
 
         source_texts = contrast["statement_source_texts"]
         comment_text = contrast["verdict_statement"]
-        verdict = _convert_verdict(contrast["verdict"])
+        verdict = convert_verdict(contrast["verdict"])
         statement_highlight_pipeline = HighlightPipeline(
             retrievers=source_retrievers,
             file_id_to_path=file_id_to_path,
@@ -100,7 +100,7 @@ async def _get_claim_comments_from_contrast(
             for source_text in source_texts
         ]
         claim_comments = await asyncio.gather(*statement_tasks)
-        claim_comments = _strip_none(claim_comments)
+        claim_comments = strip_none(claim_comments)
         # TODO: merge claim comments 
         if len(claim_comments) == 0:
             return None
@@ -128,8 +128,8 @@ async def get_claim_comments_from_driver_tree(
         for contrast in driver_tree
     ]
     results = await asyncio.gather(*contrast_tasks)
-    results = _strip_none(results)
+    results = strip_none(results)
     for result in results:
         claim_comments.extend(result)
-    claim_comments = _strip_none(claim_comments)
+    claim_comments = strip_none(claim_comments)
     return claim_comments
