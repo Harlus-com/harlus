@@ -188,6 +188,21 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     notifyFileListChanged();
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    console.log("handleDragOver");
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDropInRoot = (e: React.DragEvent) => {
+    console.log("handleDropInRoot");
+    e.preventDefault();
+    e.stopPropagation();
+    if (draggedItem) {
+      handleMoveItem([]); // Empty array represents root folder
+    }
+  };
+
   const renderFolder = (folder: FolderNode, level: number = 0) => {
     const pathKey = folder.path.join("/");
     const hasChildren = folder.children.size > 0 || folder.files.length > 0;
@@ -204,25 +219,18 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
       setDraggedItem(item);
     };
 
-    const handleDragOver = (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
-
-    const handleDrop = (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (draggedItem) {
-        handleMoveItem(folder.path);
-      }
-    };
-
     return (
       <div
         key={pathKey}
         className="select-none"
         onDragOver={handleDragOver}
-        onDrop={handleDrop}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (draggedItem) {
+            handleMoveItem(folder.path);
+          }
+        }}
       >
         {!isRoot && (
           <div
@@ -437,7 +445,11 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
         {isExpanded && (
           <>
             {isRoot && (
-              <div className="pl-2">
+              <div
+                className="pl-2"
+                onDragOver={handleDragOver}
+                onDrop={handleDropInRoot}
+              >
                 <Button
                   variant="ghost"
                   size="sm"
@@ -585,8 +597,12 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     <>
       <div className="h-full bg-sidebar border-r border-border flex flex-col">
         <div className="flex-1 overflow-auto p-2 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300">
-          <div className="mb-2">
-            <div className="pl-1 mt-1 space-y-1">
+          <div className="h-full mb-2">
+            <div
+              className="pl-1 mt-1 space-y-1 h-full min-h-full"
+              onDragOver={handleDragOver}
+              onDrop={handleDropInRoot}
+            >
               {files.length === 0 ? (
                 <div className="text-muted-foreground text-sm italic p-2">
                   No files yet.
