@@ -29,8 +29,7 @@ export default function RefreshDataDialog({
   const [isRefreshSuccess, setIsRefreshSuccess] = useState(false);
   const [showDownloadDialog, setShowDownloadDialog] = useState(false);
 
-  // Map to store destination folders per workspace ID
-  // Key: workspace.id (string), Value: destinationFolder (string | null)
+  // Map of destination folders per workspace ID
   const [workspaceDestinations, setWorkspaceDestinations] = useState<Map<string, string | null>>(new Map());
 
   // Current destination folder for the active workspace (as a single string)
@@ -42,22 +41,17 @@ export default function RefreshDataDialog({
   // Effect to update currentWorkspaceDestination and dialogInputDestination when the workspace changes
   useEffect(() => {
     if (workspace?.id) {
-      // Retrieve the destination for the current workspace from the map, or null if not set
       const storedDestination = workspaceDestinations.get(workspace.id) || null;
       setCurrentWorkspaceDestination(storedDestination);
-      // Initialize dialog input with the current workspace's destination
       setDialogInputDestination(storedDestination || '');
     } else {
-      // If no workspace is active, reset destinations
       setCurrentWorkspaceDestination(null);
       setDialogInputDestination('');
     }
-  }, [workspace, workspaceDestinations]); // Re-run when workspace or the map of destinations changes
+  }, [workspace, workspaceDestinations]);
 
-  // Function to handle the actual data refresh with a destination folder (now string | null)
   const performRefresh = useCallback(async (destination: string | null) => {
     if (isRefreshingOnlineData || !workspace?.id) {
-      // Prevent refresh if already refreshing or no workspace ID
       return;
     }
 
@@ -65,20 +59,16 @@ export default function RefreshDataDialog({
     setIsRefreshSuccess(false);
 
     try {
-      // The fileService.refreshOnlineData expects `string | null` for destination.
-      // If the destination is an empty string, convert it to null to match the expected type.
       const finalDestination = destination === '' ? null : destination;
 
-      // Pass both workspaceId and destination folder (string) to the service
-      const refreshedFiles = await fileService.refreshOnlineData(workspace.id, finalDestination);
+      const refreshedFiles = await fileService.refreshOnlineData(workspace, finalDestination);
       console.log("Online data refreshed:", refreshedFiles);
 
-      reloadWorkspace(); // Reload the workspace to show new files
+      reloadWorkspace();
 
       setIsRefreshSuccess(true);
       toast.success("Successful refresh!");
 
-      // Briefly show success icon, then revert
       setTimeout(() => {
         setIsRefreshSuccess(false);
       }, 2000);
@@ -91,50 +81,37 @@ export default function RefreshDataDialog({
     }
   }, [isRefreshingOnlineData, workspace, reloadWorkspace]);
 
-  // Main handler for the refresh button click
   const handleRefreshButtonClick = useCallback(() => {
     if (currentWorkspaceDestination === null || currentWorkspaceDestination === '') {
-      // If no destination is set for the current workspace (or it's an empty string), open the dialog
-      // Initialize dialog input with the current workspace's destination (which is null/empty here)
       setDialogInputDestination(currentWorkspaceDestination || '');
       setShowDownloadDialog(true);
     } else {
-      // If a destination is already set for the current workspace, perform refresh directly
       performRefresh(currentWorkspaceDestination);
     }
   }, [currentWorkspaceDestination, performRefresh]);
 
-  // Handler for when the user confirms the destination in the dialog
   const handleDialogConfirm = useCallback(() => {
     if (workspace?.id) {
-      // The dialogInputDestination is already a string, no parsing needed
       const newDestinationString = dialogInputDestination;
 
-      // Update the map with the new destination for the current workspace
       setWorkspaceDestinations(prevMap => {
         const newMap = new Map(prevMap);
-        // Store the string. If it's empty, store null.
         newMap.set(workspace.id, newDestinationString === '' ? null : newDestinationString);
         return newMap;
       });
-      // Update current state with the confirmed destination
       setCurrentWorkspaceDestination(newDestinationString === '' ? null : newDestinationString);
-      // Perform refresh with the new destination
       performRefresh(newDestinationString);
     }
-    setShowDownloadDialog(false); // Close the dialog
+    setShowDownloadDialog(false);
   }, [dialogInputDestination, performRefresh, workspace]);
 
-  // Handler for when the user cancels the dialog
   const handleDialogCancel = useCallback(() => {
     setShowDownloadDialog(false);
-    // Reset dialog input to current workspace's destination if cancelled
     setDialogInputDestination(currentWorkspaceDestination || '');
   }, [currentWorkspaceDestination]);
 
   return (
     <>
-      {/* The Refresh Button */}
       <Button
         variant="outline"
         size="sm"
@@ -142,7 +119,6 @@ export default function RefreshDataDialog({
         disabled={isRefreshingOnlineData}
         className="group relative ml-2"
       >
-        {/* Conditional rendering for the icon */}
         {isRefreshingOnlineData ? (
           <RefreshCw size={16} className="animate-spin" />
         ) : isRefreshSuccess ? (
@@ -159,7 +135,6 @@ export default function RefreshDataDialog({
         </div>
       </Button>
 
-      {/* Download Destination Dialog */}
       <AlertDialog open={showDownloadDialog} onOpenChange={setShowDownloadDialog}>
         <AlertDialogContent className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full">
           <AlertDialogHeader>

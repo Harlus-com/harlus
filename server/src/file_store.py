@@ -8,7 +8,7 @@ import uuid
 from pydantic import BaseModel, ConfigDict, Field
 from src.util import get_content_hash, normalize_underscores, snake_to_camel, clean_name
 
-from src.sec_loader import SecSourceLoader, WebFileData
+# from src.sec_loader import SecSourceLoader, WebFile
 
 
 class Workspace(BaseModel):
@@ -275,37 +275,13 @@ class FileStore:
         )
         self._update_file(new_file)
 
-    # TODO: remove the SEC specific naming
-    def download_online_files(self, workspace_id: str, destination_dir: str) -> list[File]:
-        if workspace_id not in self.get_workspaces():
-            raise ValueError(f"Workspace with id {workspace_id} not found")
-        workspace = self.get_workspaces()[workspace_id]
-        ticker = workspace.name  # Assuming workspace name is the ticker symbol
-        print(f"Fetching SEC files for ticker: {ticker} in workspace: {workspace.name}")
+    # def download_online_files(self, workspace_ticker: str) -> list[File]:
+    #     print(f"Fetching SEC files for ticker: {workspace_ticker}")
         
-        # TODO: how not to download the same file twice? / recompute the full docsearch?
+        # TODO: how not to compute the full docsearch twice?
+        # TODO: handle case where the ticker is not found
+        # TODO: remove the SEC specific naming
+        # sec_loader = SecSourceLoader()
+        # new_files_data: list[WebFile] = sec_loader.download_files(workspace_ticker)
 
-        sec_loader = SecSourceLoader()
-        new_files_data: list[WebFileData] = sec_loader.download_files(ticker)
-
-        if not new_files_data:
-            print(f"No new SEC files found for ticker: {ticker}.")
-            return []
-        
-        # TODO: this hard code / will probably fail in windows bc file paths are different
-        path_components = os.path.normpath(destination_dir).strip('/').split('/')
-        local_reports_dir = os.path.join(workspace.local_dir, *path_components)
-        os.makedirs(local_reports_dir, exist_ok=True)
-
-        files_added: list[File] = []
-        for file_data in new_files_data:
-            print(f"Processing file data for: {file_data.file_name_no_ext}")
-
-            local_file_path = os.path.join(local_reports_dir, f"{file_data.file_name_no_ext}.pdf")
-            with open(local_file_path, "wb") as out:
-                out.write(file_data.pdf_content)
-
-            file = self.copy_file_to_workspace(str(local_file_path), workspace_id, path_components)
-            files_added.append(file)
-
-        return files_added
+        # return new_files_data

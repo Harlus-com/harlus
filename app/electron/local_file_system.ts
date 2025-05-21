@@ -241,6 +241,19 @@ export async function createFolder(
   await fs.mkdir(path.join(parentFolder.absolutePath, newFolderName));
 }
 
+export async function createFile(
+  workspaceLocalPath: string,
+  relativeDestPath: string,
+  fileName: string,
+  data: Buffer
+) {
+  const destinationDirectory = path.join(workspaceLocalPath, relativeDestPath);
+  await fs.mkdir(destinationDirectory, { recursive: true });
+  const filePath = path.join(destinationDirectory, fileName);
+  await fs.writeFile(filePath, data);
+  console.log(`[LocalFileSystem] File created: ${filePath}`);
+}
+
 export async function deleteItem(item: LocalFile | LocalFolder) {
   if (!(item as LocalFile).name) {
     await fs.rm(item.absolutePath, { recursive: true, force: true });

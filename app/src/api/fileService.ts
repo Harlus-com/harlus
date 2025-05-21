@@ -1,6 +1,7 @@
 import { Workspace, WorkspaceFile, WorkspaceFolder } from "./workspace_types";
 import { client } from "./client";
 import { ClaimComment } from "./comment_types";
+import { Buffer } from 'buffer';
 
 class FileService {
   addFiles(filePaths: string[], workspaceId: string): Promise<WorkspaceFile[]> {
@@ -75,13 +76,28 @@ class FileService {
     return window.electron.getLocalFolders(workspace.localDir);
   }
 
-  async refreshOnlineData(workspaceId: string, destinationPath: string): Promise<WorkspaceFile[]> {
-    console.log("[FileService] Refreshing online data for workspace:", workspaceId);
-    const response = await client.post(
-      `/workspace/download_online_data?workspaceId=${workspaceId}&destinationPath=${destinationPath}`,
-      {}
+  async refreshOnlineData(workspace: Workspace, relativeDestinationPath: string | ""): Promise<void> {
+    console.log(
+      `[FileService] Refreshing online data for workspace: ${workspace.name} into ${relativeDestinationPath === "" ? 'workspace root' : relativeDestinationPath}`
     );
-    return response as WorkspaceFile[];
+    if (!window.electron) {
+      throw new Error("Electron is not available");
+    }
+  
+    const filesToDownload = await client.get(`/workspace/get_online_data?workspaceTicker=${workspace.name}`);
+    
+    console.log("[FileService] Raw filesToDownload from server:", JSON.stringify(filesToDownload, null, 2));
+    const creationPromises = filesToDownload.map(async (fileToDownload) => {
+      await window.electron.createFile(
+        workspace.localDir,
+        relativeDestinationPath,
+        fileToDownload.fileName,
+        Buffer.from(fileToDownload.contentBase64, "base64")
+      );
+    });
+  
+    await Promise.all(creationPromises);
+    console.log("[FileService] All files downloaded and created successfully.");
   }
 
   createFolder(

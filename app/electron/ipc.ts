@@ -12,6 +12,7 @@ import {
   WorkspaceWatcher,
   createFolder,
   deleteItem,
+  createFile,
 } from "./local_file_system";
 
 export function setupIpcHandlers(electronAppState: ElectronAppState) {
@@ -195,6 +196,13 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
     "create-folder",
     async (_, parentFolder: LocalFolder, newFolderName: string) => {
       return createFolder(parentFolder, newFolderName);
+    }
+  );
+
+  ipcMain.handle(
+    "create-file",
+    async (_, workspaceLocalDir: string, relativeDestPath: string, fileName: string, data: Buffer) => {
+      return createFile(workspaceLocalDir, relativeDestPath, fileName, data);
     }
   );
 

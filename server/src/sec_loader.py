@@ -163,16 +163,16 @@ class OpenBBFilingsLoader:
 # ---------------------------------------------------------------------------
 
 
-class WebFileData:
+class WebFile:
     def __init__(
-        self, file_name_no_ext: str, report_url: str, pdf_content: bytes | None
+        self, file_name: str, report_url: str, pdf_content: bytes | None
     ):
-        self.file_name_no_ext = file_name_no_ext
+        self.file_name = file_name
         self.report_url = report_url
         self.pdf_content = pdf_content
 
     def __repr__(self):
-        return f"SECFileData(filename_stem='{self.filename_stem}', report_url='{self.report_url}', has_pdf={self.pdf_content is not None})"
+        return f"SECFileData(filename_stem='{self.file_name}', report_url='{self.report_url}', has_pdf={self.pdf_content is not None})"
 
 
 class SecSourceLoader:
@@ -183,35 +183,32 @@ class SecSourceLoader:
         self.selenium_loader = SeleniumWebLoader()
         self.obb_loader = OpenBBFilingsLoader()
 
-    def _fetch(self, url: str) -> tuple[str | bytes, bytes | None]:
+    def _fetch_pdf(self, url: str) -> tuple[str | bytes, bytes | None]:
         try:
             self.selenium_loader.load(url)
-            # source = self.selenium_loader.get_source()
             pdf = self.selenium_loader.get_pdf()
         except Exception as e:
             print(f"Error fetching with Selenium from {url}: {e}")
-            # TODO: Fallback or raise? For now, return None for content
-            # source = None
             pdf = None
 
         return pdf
 
-    def download_files(self, ticker: str) -> list[WebFileData]:
+    def download_files(self, ticker: str) -> list[WebFile]:
         files_to_fetch_df = self.obb_loader.get(ticker)
         print(f"SecSourceLoader: Found {len(files_to_fetch_df)} files to fetch.")
 
         if files_to_fetch_df.is_empty():
             return []
 
-        files: list[WebFileData] = []
+        files: list[WebFile] = []
         for row in files_to_fetch_df.to_dicts():
             file_name_no_ext = row["filename_stem"]
             report_url = row["report_url"]
-            pdf = self._fetch(report_url)
+            pdf = self._fetch_pdf(report_url)
 
             if pdf is not None:
-                files.append(WebFileData(
-                    file_name_no_ext=file_name_no_ext,
+                files.append(WebFile(
+                    file_name=f"{file_name_no_ext}.pdf",
                     report_url=report_url,
                     pdf_content=pdf,
                 ))
@@ -237,4 +234,4 @@ class SecSourceLoader:
                 print(f"Error cleaning up OpenBB loader: {e}")
 
 
-__all__ = ["OpenBBFilingsLoader", "SecSourceLoader", "WebFileData"]
+__all__ = ["OpenBBFilingsLoader", "SecSourceLoader", "WebFile"]
