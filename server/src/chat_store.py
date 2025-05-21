@@ -6,10 +6,10 @@ from typing import Dict, Optional, Any
 
 from harlus_workspace_chat.build_graph import ChatAgentGraph
 from pydantic import BaseModel, ConfigDict, Field
-from src.workspace_store import WorkspaceStore
+from src.workspace_store import WorkspaceStore, Workspace
 from src.tool_library import ToolLibrary
 from src.util import Timestamp, snake_to_camel, timestamp_now
-from src.file_store import FileStore, Workspace
+from src.file_store import FileStore
 
 JsonType = Dict[str, Any]
 

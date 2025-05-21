@@ -5,8 +5,8 @@ from typing import Dict, Optional, Any
 
 from pydantic import BaseModel, ConfigDict, Field
 from src.util import Timestamp, snake_to_camel
-from src.file_store import FileStore, Workspace
-from src.workspace_store import WorkspaceStore
+from src.file_store import FileStore
+from src.workspace_store import WorkspaceStore, Workspace
 
 JsonType = Dict[str, Any]
 

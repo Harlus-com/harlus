@@ -18,13 +18,13 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pathlib import Path
 
 from pydantic import BaseModel, Field
-from src.workspace_store import WorkspaceStore
+from src.workspace_store import WorkspaceStore, Workspace
 from src.file_upload import FileUploader
 from src.chat_store import ChatStore, JsonType
 from src.comment_store import CommentGroup, CommentStore
 from src.tool_library import ToolLibrary
 
-from src.file_store import FileStore, Workspace
+from src.file_store import FileStore
 from src.file_types import LocalFile
 from src.sync_queue import SyncQueue, SyncType
 from src.contrast_analysis import analyze

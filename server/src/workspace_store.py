@@ -89,3 +89,4 @@ class WorkspaceStore:
         print("Adding workspace", new_workspaces)
         with open(self.app_data_path.joinpath("workspaces.json"), "w") as f:
             json.dump(new_workspaces, f, indent=2)
+        return workspace

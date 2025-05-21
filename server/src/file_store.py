@@ -95,6 +95,7 @@ class FileStore:
         new_files = [file.model_dump() for file in current_files] + [file.model_dump()]
         with open(workspace.relative_path("files.json"), "w") as f:
             json.dump(new_files, f, indent=2)
+        return file
 
     def delete_file(self, file_id: str, workspace_id: str):
         print("Deleting file", file_id)
@@ -134,9 +135,7 @@ class FileStore:
             incoming_file_dir_name = _get_file_dir_name(
                 file.content_hash, file.path_relative_to_workspace, file.name
             )
-            incoming_working_dir = str(
-                self.app_data_path.joinpath(workspace.dir_name, incoming_file_dir_name)
-            )
+            incoming_working_dir = str(workspace.relative_path(incoming_file_dir_name))
 
             if current_working_dir != incoming_working_dir:
                 print(f"Moving {current_working_dir} to {incoming_working_dir}")
