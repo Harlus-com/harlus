@@ -4,6 +4,7 @@ from .node_pipeline import NodePipeline
 from .doc_tool_pipeline import DocumentPipeline
 from .doc_tool_pipeline import DocSearchToolWrapper
 
+
 # TODO: Now we use a DocSearchToolWrapper instead of a QueryEngineTool
 # we could abolish this wrapper and move all functionality to DocSearchToolWrapper
 class ToolWrapper:
@@ -30,12 +31,14 @@ class DocToolLoader:
     def get_tool_name(self) -> str:
         return "doc_search"
 
-    async def load(self, file_path: str, file_name: str) -> ToolWrapper:
+    async def load(self, file_id: str, file_id_to_path: dict[str, str]) -> ToolWrapper:
         """
         Loads the doctool, using the given file path
         """
-        parsed_text, json_nodes, nodes = await NodePipeline(file_path).execute()
-        tool = await DocumentPipeline(nodes, file_path, file_name).execute()
+        parsed_text, json_nodes, nodes = await NodePipeline(file_id_to_path).execute(
+            file_id
+        )
+        tool = await DocumentPipeline(nodes, file_id_to_path).execute(file_id)
         return ToolWrapper(
             tool,
             self.get_tool_name(),

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
 import { useMemo } from "react";
 import { ChatSourceCommentGroup } from "./chat_types";
-
+import { useFileContext } from "@/files/FileContext";
 interface SourceBadgeProps {
   source: ChatSourceCommentGroup;
   onClick: () => void;
@@ -14,8 +14,8 @@ export const SourceBadge: React.FC<SourceBadgeProps> = ({
   source,
   onClick,
 }) => {
-  // TODO: Get the Actual File Name
-  const fileName = source.filePath.split("/").slice(-2, -1)[0] || "Unknown";
+  const { getFile } = useFileContext();
+  const fileName = getFile(source.fileId).name;
 
   // Extract page numbers if available
   const pageNumbers = useMemo(() => {

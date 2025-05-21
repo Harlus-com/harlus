@@ -49,20 +49,22 @@ class NodePipeline:
         get_nodes(): External method to return the nodes, either from the cache or by creating them
     """
 
-    def __init__(self, file_path: str, cache_file_name: str = "nodes.json"):
-        self.file_path = file_path
+    def __init__(
+        self, file_id_to_path: dict[str, str], cache_file_name: str = "nodes.json"
+    ):
+        self.file_id_to_path = file_id_to_path
         self.cache_file_name = cache_file_name
         self.nodes = []
 
-    async def execute(self) -> tuple[str, str, list[Node]]:
-        print(f"Creating nodes for {self.file_path} ...")
+    async def execute(self, file_id: str) -> tuple[str, str, list[Node]]:
+        print(f"Creating nodes for {file_id} ...")
 
         # TODO: Docling gives us control over which models we use.
         # We can use remote OpenAI LLMs or a remote open source model "SmolDocling"
         # Default configuration should be a local set-up.
         print(" - reading document with Docling...")
         reader = DoclingReader(export_type=DoclingReader.ExportType.JSON)
-        documents = reader.load_data(self.file_path)
+        documents = reader.load_data(self.file_id_to_path[file_id])
 
         print(" - creating nodes from documents...")
         node_parser = DoclingNodeParser()
@@ -78,7 +80,7 @@ class NodePipeline:
         print(" - adding file path to nodes...")
         nodes_out = []
         for node in nodes:
-            node.metadata["file_path"] = self.file_path
+            node.metadata["file_id"] = file_id
             nodes_out.append(node)
 
         # TODO: extract parsed json from DoclingReader

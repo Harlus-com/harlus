@@ -3,7 +3,7 @@ import { Timestamp } from "@/api/common_api_types";
 import { ComponentData, ReadonlyComponentData } from "@/core/ui_state";
 
 export interface ChatSourceCommentGroup {
-  filePath: string;
+  fileId: string;
   chatSourceComments: ChatSourceComment[];
 }
 

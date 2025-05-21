@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel
 from typing import Annotated, TypedDict, Union
 from langgraph.graph.message import add_messages
@@ -10,13 +9,15 @@ class BoundingBox(BaseModel):
     width: float
     height: float
     page: int
-    type: str 
+    type: str
+
 
 class DocSearchNodeMetadata(BaseModel):
     raw_metadata: dict
     page_nb: int
-    file_path: str
+    file_id: str
     bounding_boxes: list[BoundingBox]
+
 
 class DocSearchToolMetadata(BaseModel):
     date: str
@@ -26,16 +27,19 @@ class DocSearchToolMetadata(BaseModel):
     title: str
     company_name: str
     summary: str
-    file_path: str
+    file_id: str
+
 
 class DocSearchRetrievedNode(BaseModel):
     metadata: DocSearchNodeMetadata
     text: str
 
+
 class TavilyToolRetrievedWebsite(BaseModel):
     title: str
     url: str
     content: str
+
 
 class GraphState(TypedDict):
     messages: Annotated[list, add_messages]
@@ -50,13 +54,15 @@ class BoundingBox(BaseModel):
     height: float
     page: int
 
+
 class HighlightArea(BaseModel):
     bounding_boxes: list[BoundingBox]
     jump_to_page_number: int
 
+
 class ChatSourceComment(BaseModel):
     id: str
-    file_path: str
+    file_id: str
     thread_id: str
     message_id: str
     text: str
