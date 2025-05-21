@@ -19,7 +19,6 @@ interface FileContextType {
   getFileSyncStatus: (id: string) => SyncStatus;
   startSyncFile: (localFile: LocalFile) => void;
   forceSyncFile: (localFile: LocalFile) => void;
-  notifyFileListChanged: () => void;
   notifyFileSyncStatusChanged: () => void;
   workspaceFileToLocalFile: (workspaceFile: WorkspaceFile) => LocalFile | null;
 }
@@ -67,6 +66,7 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
   });
 
   const loadFiles = async (workspace: Workspace) => {
+    console.log("loadFiles, callstack: ", new Error().stack);
     const files = await fileService.getLocalFiles(workspace);
     const folders = await fileService.getLocalFolders(workspace);
     fileService.updateServerDirectories(workspaceId, files);
@@ -103,13 +103,6 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
     statusManager.start();
     return () => statusManager.end();
   }, [files]);
-
-  const notifyFileListChanged = () => {
-    if (!workspace) {
-      return;
-    }
-    loadFiles(workspace);
-  };
 
   const getFile = (id: string) => {
     const localFile = files.find((file) => file.contentHash === id);
@@ -191,7 +184,6 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
         getFileSyncStatus,
         startSyncFile,
         forceSyncFile,
-        notifyFileListChanged,
         notifyFileSyncStatusChanged,
         workspaceFileToLocalFile,
       }}
