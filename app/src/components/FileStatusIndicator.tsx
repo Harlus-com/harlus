@@ -47,7 +47,7 @@ interface StatusInfo {
   label: string;
   moreInfo?: string;
 }
-function getStatusInfo(status: SyncStatus): StatusInfo {
+export function getStatusInfo(status: SyncStatus): StatusInfo {
   switch (status) {
     case "SYNC_COMPLETE":
       return {

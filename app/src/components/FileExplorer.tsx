@@ -13,6 +13,7 @@ import {
   Pencil,
   Upload,
   X,
+  Info,
 } from "lucide-react";
 import { WorkspaceFile } from "@/api/workspace_types";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import FileInfoDialog from "@/files/FileInfoDialog";
 
 const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
   const {
@@ -83,6 +85,9 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     name: string;
   } | null>(null);
   const [fileToDelete, setFileToDelete] = React.useState<WorkspaceFile | null>(
+    null
+  );
+  const [fileInfoOpen, setFileInfoOpen] = React.useState<LocalFile | null>(
     null
   );
 
@@ -549,6 +554,16 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFileInfoOpen(workspaceFileToLocalFile(file)!);
+                        }}
+                      >
+                        <Info size={12} className="mr-2" />
+                        Info
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
                         className="text-red-500 focus:text-red-500"
                         onClick={(e) => handleDeleteFile(file, e)}
                       >
@@ -638,6 +653,13 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {fileInfoOpen && (
+        <FileInfoDialog
+          file={fileInfoOpen}
+          open={true}
+          onOpenChange={(open) => !open && setFileInfoOpen(null)}
+        />
+      )}
     </>
   );
 };
