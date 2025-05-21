@@ -47,6 +47,9 @@ class SyncQueue:
 
     async def queue_model_sync(self, file: File, sync_type: SyncType = SyncType.NORMAL):
         """Add a file to the sync queue"""
+        if not self.file_store.is_fully_uploaded(file.id):
+            print(f"File {file.id} is not fully uploaded, skipping")
+            return False
         with self.lock:
             if self._is_pending(file.id):
                 print(f"Sync of file {file.id} is pending")
