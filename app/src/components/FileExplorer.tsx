@@ -167,14 +167,14 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
 
   const confirmDeleteFolder = async () => {
     if (!folderToDelete) return;
-    await fileService.deleteFolder(workspaceId, folderToDelete.path);
+    await fileService.deleteFolder(getLocalFolder(folderToDelete.path)!);
     setFolderToDelete(null);
     notifyFileListChanged();
   };
 
   const confirmDeleteFile = async () => {
     if (!fileToDelete) return;
-    await fileService.deleteFile(fileToDelete);
+    await fileService.deleteLocalFile(workspaceFileToLocalFile(fileToDelete));
     setFileToDelete(null);
     notifyFileListChanged();
   };

@@ -240,3 +240,11 @@ export async function createFolder(
 ) {
   await fs.mkdir(path.join(parentFolder.absolutePath, newFolderName));
 }
+
+export async function deleteItem(item: LocalFile | LocalFolder) {
+  if (!(item as LocalFile).name) {
+    await fs.rm(item.absolutePath, { recursive: true, force: true });
+  } else {
+    await fs.rm(item.absolutePath);
+  }
+}
