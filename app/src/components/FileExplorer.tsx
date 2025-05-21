@@ -90,6 +90,9 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
   const [fileInfoOpen, setFileInfoOpen] = React.useState<LocalFile | null>(
     null
   );
+  const [draggingOverPath, setDraggingOverPath] = React.useState<string | null>(
+    null
+  );
 
   const selectedFileIds: string[] = [];
   for (const fileGroup of Object.values(getOpenFiles())) {
@@ -188,6 +191,27 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     notifyFileListChanged();
   };
 
+  const handleDragOver = (e: React.DragEvent, path: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDraggingOverPath(path);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDraggingOverPath(null);
+  };
+
+  const handleDropInRoot = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDraggingOverPath(null);
+    if (draggedItem) {
+      handleMoveItem([]); // Empty array represents root folder
+    }
+  };
+
   const renderFolder = (folder: FolderNode, level: number = 0) => {
     const pathKey = folder.path.join("/");
     const hasChildren = folder.children.size > 0 || folder.files.length > 0;
@@ -204,31 +228,28 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
       setDraggedItem(item);
     };
 
-    const handleDragOver = (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
-
-    const handleDrop = (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (draggedItem) {
-        handleMoveItem(folder.path);
-      }
-    };
-
     return (
       <div
         key={pathKey}
         className="select-none"
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
+        onDragOver={(e) => handleDragOver(e, pathKey)}
+        onDragLeave={handleDragLeave}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setDraggingOverPath(null);
+          if (draggedItem) {
+            handleMoveItem(folder.path);
+          }
+        }}
       >
         {!isRoot && (
           <div
             className={cn(
               "flex items-center p-2 rounded-md cursor-pointer group",
-              "hover:bg-muted"
+              "hover:bg-muted",
+              draggingOverPath === pathKey &&
+                "border-2 border-dashed border-primary"
             )}
             style={getIndentStyle(level)}
             onClick={() => toggleFolder(pathKey)}
@@ -437,7 +458,12 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
         {isExpanded && (
           <>
             {isRoot && (
-              <div className="pl-2">
+              <div
+                className={cn("pl-2")}
+                onDragOver={(e) => handleDragOver(e, "")}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDropInRoot}
+              >
                 <Button
                   variant="ghost"
                   size="sm"
@@ -585,8 +611,17 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     <>
       <div className="h-full bg-sidebar border-r border-border flex flex-col">
         <div className="flex-1 overflow-auto p-2 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300">
-          <div className="mb-2">
-            <div className="pl-1 mt-1 space-y-1">
+          <div className="h-full mb-2">
+            <div
+              className={cn(
+                "pl-1 mt-1 space-y-1 h-full min-h-full rounded-md transition-colors",
+                draggingOverPath === "" &&
+                  "border-2 border-dashed border-primary"
+              )}
+              onDragOver={(e) => handleDragOver(e, "")}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDropInRoot}
+            >
               {files.length === 0 ? (
                 <div className="text-muted-foreground text-sm italic p-2">
                   No files yet.
