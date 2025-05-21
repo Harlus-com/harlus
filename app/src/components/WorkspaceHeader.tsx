@@ -24,7 +24,6 @@ import { useFileContext } from "@/files/FileContext";
 import { useFileViewContext } from "@/files/FileViewContext";
 import { useState } from "react";
 import { toast } from "sonner";
-// TODO: move this to a separate dialogfile
 import { fileService } from "@/api/fileService";
 
 export type WorkSpaceHeaderProps = {
@@ -47,6 +46,7 @@ export default function WorkspaceHeader({
   const [isRefreshingOnlineData, setIsRefreshingOnlineData] = useState(false);
   const [isRefreshSuccess, setIsRefreshSuccess] = useState(false);
 
+  // TODO: move this to a separate dialogfile
   const handleRefreshOnlineData = async () => {
     if (isRefreshingOnlineData || !workspace?.id) {
       return;
