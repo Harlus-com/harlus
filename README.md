@@ -11,8 +11,18 @@ az acr login -n harlusregistry
 
 ## 2. Build and push
 
+#### This doesn't seem to cache the layers
+
 docker build --platform linux/amd64 -t harlusregistry.azurecr.io/harlus-server:latest .
 docker push harlusregistry.azurecr.io/harlus-server:latest
+
+#### This does appear to cache layers (and push in one step)
+
+This is really a hack. I've identified the above commands (which just store the image locally before pushing it) do work with caching of certain pip requriments.
+
+It seems the issue is docling, but I'm not sure.
+
+docker buildx build --platform linux/amd64 --cache-to type=inline --cache-from type=registry,ref=harlusregistry.azurecr.io/harlus-server:latest -t harlusregistry.azurecr.io/harlus-server:latest --push .
 
 Note: We can provide different tags if we want, but right now there is really no reason to keep a history or images, so we just use "latest"
 

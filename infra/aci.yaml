@@ -13,8 +13,8 @@ properties:
         image: harlusregistry.azurecr.io/harlus-server:latest
         resources:
           requests:
-            cpu: 2
-            memoryInGb: 4
+            cpu: 8
+            memoryInGb: 8
         ports:
           - port: 8000
         volumeMounts:
