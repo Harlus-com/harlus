@@ -35,9 +35,6 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt
 import httpx
 
-import base64
-import io
-
 TENANT_ID = "27dfce8d-8b21-4c81-8579-2baedebea216"
 API_AUDIENCE_URI = "api://6acbb67d-3153-4ed6-8041-f2c52a5a68e4"
 
