@@ -14,8 +14,9 @@ import {
   Upload,
   X,
   Info,
+  Import,
 } from "lucide-react";
-import { WorkspaceFile } from "@/api/workspace_types";
+import { WorkspaceFile, Workspace } from "@/api/workspace_types";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -52,8 +53,18 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import FileInfoDialog from "@/files/FileInfoDialog";
+import RefreshDataDialog from "./RefreshDataDialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
+const FileExplorer: React.FC<{
+  workspaceId: string;
+  workspace: Workspace | null;
+}> = ({ workspaceId, workspace }) => {
   const {
     getFiles,
     getFolders,
@@ -604,6 +615,42 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
   return (
     <>
       <div className="h-full bg-sidebar border-r border-border flex flex-col">
+        <div className="flex items-center gap-2 p-2 border-b border-border">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => setOpenNewFolderPath("")}
+                >
+                  <FolderPlus size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>New Folder</TooltipContent>
+            </Tooltip>
+
+            <RefreshDataDialog workspace={workspace} />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => {
+                    // Placeholder for import functionality
+                    console.log("Import clicked");
+                  }}
+                >
+                  <RefreshCw size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Sync</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+
         <div className="flex-1 overflow-auto p-2 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300">
           <div className="h-full mb-2">
             <div

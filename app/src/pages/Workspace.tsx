@@ -91,7 +91,10 @@ export default function Workspace() {
                       minSize={FILE_EXPLORER.minSize}
                       className="bg-blue-50 h-full w-auto"
                     >
-                      <FileExplorer workspaceId={workspaceId!} />
+                      <FileExplorer
+                        workspaceId={workspaceId!}
+                        workspace={workspace}
+                      />
                     </Panel>
                   )}
                   <PanelDivider />

@@ -1,12 +1,9 @@
 import {
-  ScanSearch,
   RefreshCw,
   Columns2,
   MessagesSquare,
-  MessageSquareQuote,
   Files,
   LayoutDashboard,
-  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +19,6 @@ import { useNavigate } from "react-router-dom";
 import ContrastAnalysisDialog from "./ContrastAnalysisDialog";
 import { useFileContext } from "@/files/FileContext";
 import { useFileViewContext } from "@/files/FileViewContext";
-import RefreshDataDialog from "./RefreshDataDialog";
 
 export type WorkSpaceHeaderProps = {
   workspace: Workspace;
@@ -56,7 +52,6 @@ export default function WorkspaceHeader({
           </div>
         </Button>
         <h1 className="text-xl font-semibold">{workspace?.name || ""}</h1>
-        <RefreshDataDialog workspace={workspace} reloadWorkspace={reloadWorkspace} />
       </div>
       <div className="flex-1" />
       <div className="flex items-center space-x-2">
