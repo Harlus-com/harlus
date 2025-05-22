@@ -7,11 +7,12 @@ Your task has **two parts**:
 
 2. **Make the tree more specific** by asking "how", "how much", "which segment", "which geograph". You MUST ask these questions to the tools you have.
 
-You must use the **RETRIEVER tool** on INTERNAL DOCUMENTS to find both evidence for existing statements and to generate new ones.
+You must use the **TOOLS** to obtain the information on which you can base your answer.
 
 ==== Tool Usage ====
-Only use the RETRIEVER tool.
-Only use INTERNAL DOCUMENTS.
+Use the tools with input that is:
+  - rich: it is a full question, and contains enough context
+  - specific: it is focused on one topic
 
 GOOD TOOL INPUTS:
 - "Why does the fund believe operating margins will expand?"
@@ -19,11 +20,92 @@ GOOD TOOL INPUTS:
 - "What evidence underpins margin expansion expectations?"
 
 BAD TOOL INPUTS:
-- "Summarize the documents"
-- "What's going on?"
-- "Tell me more"
+- "cash flow"
+- "inrease?"
+- "tell me more"
 
-Each RETRIEVER query must be specific and focused on one investment belief at a time.
+==== Deepen tree approach ==== 
+You can use the following approach to deepen the tree:
+
+  1. For each original statement, use the tools witn questions like: 
+      - “Why does the fund believe statement A?”
+      - "Which information in the document does support statement A?"
+      - "Which statements could support statement A? Are they indeed mentioned in the tool(s)?"
+    to get more information.
+  2. When you get the tool results, add the new drivers correctly to the tree and recursively use this approach to add new and deper drivers.
+
+A good driver tree will have 10-15 drivers on 2-4 levels.
+
+-- Example 1 --
+
+1. Existing statement:
+ - The free cash flow will grow
+
+  Questions to use:
+  - What factors contribute to free cash flow?
+  - Why does the fund believe free cash flow will grow?
+
+2. Tool returns:
+ - "... as the company is doing large investements ... we believe maintenance CAPEX to be at x% ... "
+ - "... we are bullish on the ability for the company to grow its revenue at x% per year ..."
+
+  New sub-statements:
+  - Maintenance CAPEX is lower than expected at x%
+  - Revenue will grow at x% per year
+
+
+-- Example 2 --
+
+1. Existing statement:
+ - Revenue will grow at x% per year
+
+Questions to use:
+ - What factors contribute to growth of revenue?
+
+2. Tool returns:
+ - "... driven by growth in the end markets X and Y  ... "
+ - "... the company is gaining market share ..."
+
+  New sub-statements:
+  - The company is gaining market share
+  - The end-markets in X and Y are growing at x%  
+
+==== Specify tree approach ==== 
+
+After you have deepened the tree, you can specifiy the tree. 
+
+  1. For each original statement, use your tools with questions like:
+    - "Is this stament specific enough?"
+    - "If I am sceptical, what would I want to know more to believe this statement"?
+    - "How?", "How much?", "Wich segement?", "Which period?", "Which geography?"
+  2. Update the drivers to make them more specific.
+
+s
+A statement is more specific if it is:
+  - measurable, meaning it has a
+      - number with unit: e.g. $500B
+      - scope: e.g. sales in EU
+        note: scope can be geographical, over product, over business units
+      - (potentially) date or period: e.g. for Q1 2025
+  - uses more concrete language (using comparissons, examples, better vocabulary)
+
+-- Example --
+
+1. Existing statement
+   The market is growing
+
+   Questions to use
+     - By how much is the market growing?
+     - Which market is growing?
+     - Is the market growing in all geographies and products?
+
+2. Tool input
+   ... We see especially that the electronics end-market is growing .. globally this is x% per year. ... especially India is driving growth with y% per year.
+
+   New statment
+   The electronics end-market is growing at x% per year, driven by India (growing at y% per year)
+   
+
 
 ==== Output Format (Flat JSON) ====
 Return the driver tree as a **flat JSON list**. Each item must include:
@@ -34,7 +116,7 @@ Return the driver tree as a **flat JSON list**. Each item must include:
 
 Each deeper-level driver should follow the hierarchy in the label (e.g., a reason that explains "#D-1" should be labeled "#D-1-1").
 
-==== Example ====
+Example output format:
 ```json
 [
   {
@@ -62,8 +144,6 @@ Each deeper-level driver should follow the hierarchy in the label (e.g., a reaso
 ```
 
 ==== Summary ====
-	- Step 1: Add new, deeper drivers using “why” reasoning. Use enough variation in your questions to ensure a good response from the tool.
-  - Step 2: Make the drivers more specific by using the RETRIEVER tools.
+	- Step 1: Deepen the tree as explained in the approach 
+  - Step 2: Specify the tree as explained in the approach
 	- Return the full updated driver tree as a flat JSON list.
-	- Use only INTERNAL DOCUMENTS.
-	- Do not include tool calls or metadata — just the completed driver items.

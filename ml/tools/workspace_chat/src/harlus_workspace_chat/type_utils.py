@@ -1,20 +1,21 @@
 from llama_index.core.schema import NodeWithScore
 from .custom_types import (
-    DocSearchRetrievedNode,
-    DocSearchNodeMetadata,
+    DocSearchRetrievedNode, 
+    DocSearchNodeMetadata, 
     TavilyToolRetrievedWebsite,
+    BoundingBox
 )
 import fitz
-from .custom_types import BoundingBox
 
 
 # TODO: Write these cleaner according to the following schema:
 # class Dummy(BaseModel):
 #     pass
-#
+# 
 #     @classmethod
 #     def from_node(cls, node: NodeWithScore) -> Self:
 #         pass
+
 
 def get_bounding_boxes_from_node(
         node: NodeWithScore, 
@@ -71,14 +72,13 @@ def get_doc_search_retrieved_node_from_node_with_score(retrieved_node: NodeWithS
         raw_metadata=retrieved_node.metadata,
         page_nb=page_nb,
         file_id=file_id,
-        bounding_boxes=bounding_boxes
+        bounding_boxes=[BoundingBox(**bbox.model_dump()) for bbox in bounding_boxes]
     )
     output = DocSearchRetrievedNode(
         metadata=metadata,
         text=retrieved_node.text,
     )
     return output
-
 
 
 def get_nodes_with_score_from_doc_search_tool_result(tool_result: any, tool_type: str) -> list[NodeWithScore]:
@@ -96,3 +96,6 @@ def get_tavily_tool_retrieved_website_from_tool_result(tool_result: any) -> Tavi
         content=tool_result.get("content", ""),
     )
     return tavily_tool_retrieved_website
+
+
+

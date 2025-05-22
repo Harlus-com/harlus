@@ -9,8 +9,6 @@ class BoundingBox(BaseModel):
     width: float
     height: float
     page: int
-    type: str
-
 
 class DocSearchNodeMetadata(BaseModel):
     raw_metadata: dict
@@ -40,19 +38,9 @@ class TavilyToolRetrievedWebsite(BaseModel):
     url: str
     content: str
 
-
-class GraphState(TypedDict):
+class ChatGraphState(TypedDict):
     messages: Annotated[list, add_messages]
-    sources: list[Union[DocSearchRetrievedNode, TavilyToolRetrievedWebsite]]
-    full_answer: str
-
-
-class BoundingBox(BaseModel):
-    left: float
-    top: float
-    width: float
-    height: float
-    page: int
+    retrieved_nodes: list[Union[DocSearchRetrievedNode, TavilyToolRetrievedWebsite]]
 
 
 class HighlightArea(BaseModel):

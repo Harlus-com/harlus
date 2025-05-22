@@ -43,7 +43,6 @@ class ToolExecutorNode:
             "doc_search_sub_question_semantic_query_engine"
         ]
         self.file_id_to_path = file_id_to_path
-
     async def _process_doc_search_tool_call(self, tool_call) -> tuple[list[DocSearchRetrievedNode], ToolMessage]:
         retrieved_nodes = []
         tool = self.tools_by_name[tool_call["name"]]

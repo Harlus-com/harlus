@@ -3,8 +3,8 @@ from .pdf_utils import _get_bag_of_words_rects, _get_fuzzy_match_rects
 from .type_utils import (
     get_bounding_box_from_rect,
     get_bounding_boxes_from_node,
-    _get_page_from_node,
     get_file_id_from_node,
+    get_page_from_node,
 )
 from .custom_types import HighlightArea
 from langchain_core.tools import Tool
@@ -86,7 +86,7 @@ class HighlightPipeline:
                     if self.verbose > 0:
                         verbose_text += f" - retriever step failed\n"
                 else:
-                    page_nb = _get_page_from_node(best_retrieved_nodes[0])
+                    page_nb = get_page_from_node(best_retrieved_nodes[0])
                     file_id = get_file_id_from_node(best_retrieved_nodes[0])
                     if self.verbose > 1:
                         verbose_text += f" - best retrieved nodes:\n"
@@ -118,7 +118,7 @@ class HighlightPipeline:
                 if self.verbose > 1:
                     verbose_text += f" <fuzzy match step>\n"
                 file_id = get_file_id_from_node(matching_node)
-                page_nb = _get_page_from_node(matching_node)
+                page_nb = get_page_from_node(matching_node)
                 rects, pdf_matched_text = _get_fuzzy_match_rects(
                     matched_text, self.file_id_to_path[file_id], page_nb
                 )

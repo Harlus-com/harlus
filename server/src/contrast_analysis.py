@@ -30,10 +30,8 @@ async def analyze(
     )
 
     thread_id = f"{old_file_id}_{new_file_id}_{uuid.uuid4()}"
-    contrast_dir = os.path.join(workspace.absolute_path, cache_file_path_base)
     contrast_agent = ContrastAgentGraph(
         {old_file_id: old_file.absolute_path, new_file_id: new_file.absolute_path},
-        persist_dir=contrast_dir,
     )
     contrast_agent.update_tools(
         [old_file_doc_search_tool_wrapper.get()],

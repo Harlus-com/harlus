@@ -1,3 +1,3 @@
-from .build_graph import ChatAgentGraph
+from .graph import ChatAgentGraph
 
 __all__ = ["ChatAgentGraph"]
