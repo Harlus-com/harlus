@@ -11,6 +11,7 @@ from llama_index.core.retrievers import (
     RecursiveRetriever,
     VectorIndexRetriever,
     KeywordTableSimpleRetriever,
+    SummaryIndexRetriever,
 )
 from llama_index.core.query_engine import RetrieverQueryEngine, SubQuestionQueryEngine
 from llama_index.core.postprocessor import LLMRerank
@@ -18,8 +19,7 @@ from llama_index.core.question_gen import LLMQuestionGenerator
 from llama_index.core.question_gen.prompts import DEFAULT_SUB_QUESTION_PROMPT_TMPL
 from typing import List
 from llama_index.core.schema import Node
-from llama_index.core.retrievers import SummaryIndexRetriever
-from .config import LLM, EMBEDDING_MODEL, FASTLLM
+from .config import LLM, EMBEDDING_MODEL, FASTLLM, MAX_CONTEXT_LENGTH
 from .mixed_retriever import MixKeywordVectorRetriever
 
 from pydantic import BaseModel
@@ -89,25 +89,16 @@ class DocumentPipeline:
 
         print(" - building indices ...")
         vector_index = VectorStoreIndex(self.nodes, embed_model=EMBEDDING_MODEL)
-
-        vector_retriever = VectorIndexRetriever(index=vector_index, similarity_top_k=15)
-
+        vector_retriever = VectorIndexRetriever(index=vector_index, similarity_top_k=30)
         storage_context = StorageContext.from_defaults()
         storage_context.docstore.add_documents(self.nodes)
         keyword_index = SimpleKeywordTableIndex(
             self.nodes, storage_context=storage_context, llm=FASTLLM
         )
-
-        summary_index = SummaryIndex(self.nodes, embed_model=EMBEDDING_MODEL)
-
-        summary_retriever = SummaryIndexRetriever(index=summary_index)
-
         keyword_retriever = KeywordTableSimpleRetriever(
-            index=keyword_index, similarity_top_k=8
+            index=keyword_index, similarity_top_k=15
         )
-
         mix_retriever = MixKeywordVectorRetriever(vector_retriever, keyword_retriever)
-
         recursive_retriever = RecursiveRetriever(
             "vector",
             retriever_dict={
@@ -117,9 +108,50 @@ class DocumentPipeline:
             verbose=False,
         )
 
+        summary_index = SummaryIndex(self.nodes, embed_model=EMBEDDING_MODEL)
+        summary_retriever = SummaryIndexRetriever(index=summary_index)
+        summary_retriever_tool = RetrieverTool(
+            retriever=summary_retriever,
+            metadata=ToolMetadata(
+                name="temp",
+                description="temp"
+                )
+            )
+        summary_query_engine = summary_index.as_query_engine(llm=LLM)
+        summary_retriever_result = summary_retriever_tool.call("Summarize the full document.")
+        full_node_len = len(summary_retriever_result.content)
+        if full_node_len > MAX_CONTEXT_LENGTH:
+            print(" - Context length too long ({}k > {}k). Replacing summary index with vector index".format(int(full_node_len/1000), int(MAX_CONTEXT_LENGTH/1000)))
+            nb_nodes = len(self.nodes)
+            avg_node_len = full_node_len / nb_nodes
+            max_nodes = (MAX_CONTEXT_LENGTH / avg_node_len) * 0.9
+
+            summary_index = vector_index
+            summary_retriever = VectorIndexRetriever(index=summary_index, similarity_top_k=max_nodes)
+            summary_recursive_retriever = RecursiveRetriever(
+                "vector",
+                retriever_dict={
+                    "vector": summary_retriever,
+                },
+                node_dict={node.node_id: node for node in self.nodes},
+                verbose=False,
+            )
+            node_postprocessors = [
+                LLMRerank(choice_batch_size=15, top_n=int(max_nodes*0.75) , llm=FASTLLM),
+            ]
+            summary_query_engine = RetrieverQueryEngine(
+                retriever=summary_recursive_retriever,
+                response_synthesizer=get_response_synthesizer(
+                    response_mode="tree_summarize", llm=LLM, verbose=False
+                ),
+                node_postprocessors=node_postprocessors,
+            )
+
+        
         node_postprocessors = [
-            LLMRerank(choice_batch_size=15, top_n=8, llm=FASTLLM),
+            LLMRerank(choice_batch_size=15, top_n=15, llm=FASTLLM),
         ]
+        
 
         mix_query_engine = RetrieverQueryEngine(
             retriever=recursive_retriever,
@@ -129,7 +161,7 @@ class DocumentPipeline:
             node_postprocessors=node_postprocessors,
         )
 
-        summary_query_engine = summary_index.as_query_engine(llm=LLM, )
+        
 
         # 2. Extract metadata from query engines
         print(" - extracting metadata")
@@ -238,6 +270,7 @@ class DocumentPipeline:
             node_postprocessors=node_postprocessors,
         )
 
+        
         summary_retriever_tool = RetrieverTool(
             retriever=summary_retriever,
             metadata=ToolMetadata(

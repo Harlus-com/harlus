@@ -89,7 +89,7 @@ class HighlightPipeline:
             # Retrieve nodes
             if not start_with_nodes:
                 self._log_collect(f" <retriever step>\n", level=2)
-                best_retrieved_nodes = await get_best_retrieved_nodes(
+                best_retrieved_nodes, file_id = await get_best_retrieved_nodes(
                     source_text,  # use full source text for better performance
                     self.retrievers,
                     min_score=8,
@@ -111,7 +111,7 @@ class HighlightPipeline:
                         self._log_collect(f"     - {node.text}\n", level=2)
             else:
                 best_retrieved_nodes = self.nodes
-
+                file_id = get_file_id_from_node(best_retrieved_nodes[0])
             # Extract source text from nodes with LLM
             if not skip_to_bag_of_words:
                 self._log_collect(f" <source text extraction step>\n", level=2)
@@ -219,7 +219,7 @@ class HighlightPipeline:
             file_id = all_wrapped_bounding_boxes[0]["file_id"]
             state = all_wrapped_bounding_boxes[0]["state"]
             highlight_area = HighlightArea(
-                bounding_boxes=bounding_boxes,
+                bounding_boxes=[bbox.model_dump() for bbox in bounding_boxes],
                 jump_to_page_number=page_number,
             )
             return highlight_area, file_id, state

@@ -300,21 +300,23 @@ class ChatAgentGraph:
         retrieved_nodes = await self._get_retrieved_nodes(graph)
         retriever_tools = self.tools["all_docs"]["doc_search_semantic_retriever"]
         citations = await self._get_citations(graph)
-            
-        chat_source_comments = await get_chat_source_comments_from_citations(
-            citations, 
-            retrieved_nodes, 
-            self.file_id_to_path, 
-            self.get_current_thread_id(), 
-            str(uuid.uuid4()) # not implementing message_id tracking yet
-        )
+        if len(citations) > 0 and len(retrieved_nodes) > 0:
+            chat_source_comments = await get_chat_source_comments_from_citations(
+                citations, 
+                retrieved_nodes, 
+                self.file_id_to_path, 
+                self.get_current_thread_id(), 
+                str(uuid.uuid4()) # not implementing message_id tracking yet
+            )
+        # fall back to retrieved nodes if LLM did not find any citations
+        # for now this will hilight all 
+        elif len(retrieved_nodes) > 0: 
+            chat_source_comments = await get_chat_source_comments_from_retrieved_nodes(
+                retrieved_nodes, 
+                self.get_current_thread_id(), 
+                str(uuid.uuid4()) # not implementing message_id tracking yet
+            )
         
-        # fallback option
-        #chat_source_comments = get_chat_source_comments_from_retrieved_nodes(
-        #    retrieved_nodes, 
-        #    self.get_current_thread_id(), 
-        #    str(uuid.uuid4()) # not implementing message_id tracking yet
-        #)
         return chat_source_comments
 
     async def stream(self, user_message: str):

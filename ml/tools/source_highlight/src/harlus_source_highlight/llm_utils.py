@@ -2,6 +2,7 @@ from typing import List
 from .config import FASTLLM
 from llama_index.core.schema import NodeWithScore
 from .custom_types import DocSearchRetrievedNode
+from .type_utils import get_file_id_from_node
 async def _get_retrieved_nodes(
         query: str, 
         retriever: any 
@@ -23,13 +24,16 @@ async def get_best_retrieved_nodes(
         all_nodes.extend(retrieved_nodes)
     
     sorted_nodes = sorted(all_nodes, key=lambda node: node.score, reverse=True)
-    
+    file_id = ""
+    if len(sorted_nodes) >= 0:
+        file_id = get_file_id_from_node(sorted_nodes[0])
+        
     qualified_nodes = [node for node in sorted_nodes if node.score >= min_score]
     
     if not qualified_nodes:
-        return None
+        return None, file_id
     
-    return qualified_nodes[:max_nodes]
+    return qualified_nodes[:max_nodes], file_id
 
 
 async def _get_source_from_node_with_llm(
