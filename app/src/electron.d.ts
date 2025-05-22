@@ -61,6 +61,8 @@ interface ElectronAPI {
     data: Buffer
   ) => Promise<boolean>;
   deleteItem: (item: LocalFile | LocalFolder) => Promise<boolean>;
+  ensureFile: (dir: string, subpath: string, name: string) => Promise<string>;
+  downloadPdfFromUrl: (downloadUrl: string, localFilePath: string, authHeader?: string) => Promise<boolean>;
 }
 
 declare interface Window {

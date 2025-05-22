@@ -48,4 +48,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("create-file", workspaceLocalDir, relativeDestPath, fileName, data),
   deleteItem: (item: LocalFile | LocalFolder) =>
     ipcRenderer.invoke("delete-item", item),
+  ensureFile: (dir: string, subpath: string, name: string) =>
+    ipcRenderer.invoke("ensure-file", dir, subpath, name),
+  downloadPdfFromUrl: (downloadUrl: string, localFilePath: string, authHeader?: string) =>
+    ipcRenderer.invoke("download-pdf-from-url", downloadUrl, localFilePath, authHeader),
 });

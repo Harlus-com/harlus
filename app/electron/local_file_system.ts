@@ -1,8 +1,13 @@
 import { promises as fs } from "fs";
+import * as fsCallback from "fs";
 import path from "path";
 import crypto from "crypto";
+import axios, { AxiosError } from "axios";
+import stream from "stream";
+import { promisify } from "util";
 import { LocalFile, LocalFolder } from "./electron_types";
 import chokidar, { FSWatcher } from "chokidar";
+import { Agent } from "https";
 
 export async function walkFiles(dir: string): Promise<string[]> {
   let results: string[] = [];
@@ -259,5 +264,49 @@ export async function deleteItem(item: LocalFile | LocalFolder) {
     await fs.rm(item.absolutePath, { recursive: true, force: true });
   } else {
     await fs.rm(item.absolutePath);
+  }
+}
+
+export async function ensureFile(
+  localDir: string,
+  pathRelativeToWorkspace: string,
+  fileName: string
+): Promise<string> {
+  const dirPath = path.resolve(localDir, pathRelativeToWorkspace);
+  await fs.mkdir(dirPath, { recursive: true });
+  return path.join(dirPath, fileName);
+}
+
+const pipeline = promisify(stream.pipeline);
+
+export async function downloadPdfFromUrl(
+  downloadUrl: string, 
+  localFilePath: string, 
+  httpsAgent: Agent | undefined,
+  authHeader?: string
+): Promise<boolean> {
+  try {
+    console.log(`[Local File System] Downloading from ${downloadUrl} to ${localFilePath}`);
+    const headers: Record<string, string> = {};
+    if (authHeader) {
+      headers["Authorization"] = authHeader;
+    }
+
+    const response = await axios.get(downloadUrl, {
+      responseType: "stream",
+      httpsAgent,
+      headers,
+    });
+
+    const localFileWriteStream = fsCallback.createWriteStream(localFilePath);
+    await pipeline(response.data, localFileWriteStream);
+    console.log(`[Local File System] Successfully downloaded and saved ${localFilePath}`);
+    return true;
+  } catch (error: unknown) {
+    console.error(`[Local File System] Error downloading from ${downloadUrl}`, error);
+    try {
+      await fs.unlink(localFilePath);
+    } catch (cleanupError) { /* ignore or log simply */ }
+    throw new Error(`Error downloading from ${downloadUrl}`);
   }
 }

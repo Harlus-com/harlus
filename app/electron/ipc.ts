@@ -13,6 +13,8 @@ import {
   createFolder,
   deleteItem,
   createFile,
+  ensureFile,
+  downloadPdfFromUrl
 } from "./local_file_system";
 
 export function setupIpcHandlers(electronAppState: ElectronAppState) {
@@ -208,5 +210,13 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
 
   ipcMain.handle("delete-item", async (_, item: LocalFile | LocalFolder) => {
     return deleteItem(item);
+  });
+
+  ipcMain.handle("ensure-file", async (_evt, dir, subpath, name) => {
+    return await ensureFile(dir, subpath, name);
+  });
+
+  ipcMain.handle("download-pdf-from-url", async (_evt, downloadUrl, localFilePath, authHeader) => {
+    return await downloadPdfFromUrl(downloadUrl, localFilePath, httpsAgent, authHeader);
   });
 }

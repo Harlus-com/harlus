@@ -1,7 +1,6 @@
 import { Workspace, WorkspaceFile, WorkspaceFolder } from "./workspace_types";
 import { client } from "./client";
 import { ClaimComment } from "./comment_types";
-import { Buffer } from 'buffer';
 
 const filesBeingUploaded = new Set<string>();
 
@@ -102,26 +101,35 @@ class FileService {
 
   async refreshOnlineData(
     workspace: Workspace, 
-    relativeDestinationPath: string | "", 
+    pathRelativeToWorkspace: string | "", 
     startDate: string
   ): Promise<void> {
-    console.log(
-      `[FileService] Refreshing online data for workspace: ${workspace.name} into ${relativeDestinationPath === "" ? 'workspace root' : relativeDestinationPath}`
-    );
     if (!window.electron) {
       throw new Error("Electron is not available");
     }
   
-    const filesToDownload = await client.get(
-      `/workspace/get_online_data?workspaceTicker=${workspace.name}&startDate=${startDate}`
+    const files: { name: string; url: string }[] = await client.get(
+      `/workspace/${workspace.name}/online_files?startDate=${startDate}`
     );
-    
-    await Promise.all(filesToDownload.map(file => window.electron.createFile(
-        workspace.localDir,
-        relativeDestinationPath,
-        file.fileName,
-        Buffer.from(file.contentBase64, "base64")
-      )));
+    const baseUrl = await window.electron.getBaseUrl();
+    const authHeader = await client.getAuthHeader(); // Assumes client has a method to get the current auth header
+
+    for (const { name, url: remoteFileUrlSuffix } of files) {
+      try {
+        const serverApiDownloadUrl = `${baseUrl}/file/download_pdf_from_url?url=${encodeURIComponent(remoteFileUrlSuffix)}`;
+
+        const destPath = await window.electron.ensureFile(
+          workspace.localDir,
+          pathRelativeToWorkspace,
+          `${name}.pdf`
+        );
+        await window.electron.downloadPdfFromUrl(serverApiDownloadUrl, destPath, authHeader);
+        
+        console.log(`[FileService] Successfully downloaded ${name} to ${destPath}`);
+      } catch (error) {
+        console.error(`[FileService] Failed to download ${name}:`, error);
+      }
+    }
   }
 
   createFolder(
