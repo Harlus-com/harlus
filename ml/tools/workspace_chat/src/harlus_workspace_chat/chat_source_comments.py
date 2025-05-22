@@ -1,31 +1,24 @@
-from .type_utils import(
-    get_bounding_boxes_from_node,
-    get_file_path_from_node,
-    get_page_from_node
-)
 from .custom_types import(
     ChatSourceComment,
-    BoundingBox,
-    HighlightArea
+    HighlightArea,
+    DocSearchRetrievedNode
 )
 import uuid
+from llama_index.core.schema import NodeWithScore
 
-def get_chat_source_comments_from_retrieved_nodes(retrieved_nodes: list[RetrievedNode], thread_id: str, message_id: str) -> list[ChatSourceComment]:
+def get_chat_source_comments_from_retrieved_nodes(retrieved_nodes: list[DocSearchRetrievedNode], thread_id: str, message_id: str) -> list[ChatSourceComment]:
     chat_source_comments = []
     for retrieved_node in retrieved_nodes:
-        file_path = get_file_path_from_node(retrieved_node)
-        page_nb = get_page_from_node(retrieved_node)
-        bounding_boxes = get_bounding_boxes_from_node(retrieved_node, page_nb, file_path)
         highlight_area = HighlightArea(
-            bounding_boxes=bounding_boxes,
-            jump_to_page_number=page_nb
+            bounding_boxes=retrieved_node.metadata.bounding_boxes,
+            jump_to_page_number=retrieved_node.metadata.page_nb
         )
         chat_source_comment = ChatSourceComment(
             id=str(uuid.uuid4()),
             highlight_area=highlight_area,
-            file_path=file_path,
+            file_path=retrieved_node.metadata.file_path,
             text="Source used in chat",
-            next_chat_comment_id=None,
+            next_chat_comment_id=str(uuid.uuid4()), # currently not used
             thread_id=thread_id,
             message_id=message_id,
         )
@@ -33,5 +26,5 @@ def get_chat_source_comments_from_retrieved_nodes(retrieved_nodes: list[Retrieve
     return chat_source_comments
         
 
-def get_chat_source_comments_from_citations(citations: list[str], retrieved_nodes: list[RetrievedNode]) -> list[ChatSourceComment]:
+def get_chat_source_comments_from_citations(citations: list[str], retrieved_nodes: list[NodeWithScore]) -> list[ChatSourceComment]:
     pass

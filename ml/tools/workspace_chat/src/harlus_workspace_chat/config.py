@@ -3,7 +3,7 @@ from langchain_openai import ChatOpenAI
 import os
 from dotenv import load_dotenv
 
-print(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "python", "env", ".env"))
+# TODO: delete
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "python", "env", ".env"))
 
 assert "OPENAI_API_KEY" in os.environ, "OPENAI_API_KEY is not set in the environment variables."

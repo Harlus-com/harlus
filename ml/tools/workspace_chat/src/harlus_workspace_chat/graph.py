@@ -52,20 +52,24 @@ class ChatAgentGraph:
         # https://langchain-ai.github.io/langgraph/concepts/memory/#writing-memories-in-the-background
         self.persist_dir = persist_dir
         os.makedirs(self.persist_dir, exist_ok=True)
-
         self.db_path = os.path.join(self.persist_dir, "chat_agent_graph.db")
-
         self.memory = None
 
+        # TODO: get this cirectly from the state type (ChatGraphState)
+        self.state_message_key = "messages"
+        self.state_retrieved_nodes_key = "retrieved_nodes"
+
+        
         self.tool_node = ToolExecutorNode(
             tools=[], 
             tool_name_to_metadata={},
-            message_state_key="messages",
-            retrieved_items_state_key="retrieved_nodes"
+            message_state_key=self.state_message_key,
+            retrieved_items_state_key=self.state_retrieved_nodes_key
         )
         self.tools_descriptions = {}
 
         self.graph = None
+        
         self.build()
 
     def _add_tool(self, tool, metadata_dict, doc_type: str, tool_type: str):
@@ -135,8 +139,8 @@ class ChatAgentGraph:
         self.tool_node = ToolExecutorNode(
             tools=self.tools["all_docs"]["doc_search_semantic_retriever"],
             tool_name_to_metadata=self.tool_name_to_metadata["all_docs"]["doc_search_semantic_retriever"], 
-            message_state_key="messages", 
-            retrieved_items_state_key="retrieved_nodes")
+            message_state_key=self.state_message_key, 
+            retrieved_items_state_key=self.state_retrieved_nodes_key)
         
         self.tool_llm = self.LLM.bind_tools(self.tools["all_docs"]["doc_search_semantic_retriever"])
 
@@ -156,7 +160,7 @@ class ChatAgentGraph:
         system_prompt = system_prompt_template + self.tools_descriptions["all_docs"]["doc_search_semantic_retriever"]
         prompt = [
             SystemMessage(content=system_prompt),
-            *state["messages"],
+            *state[self.state_message_key],
             HumanMessage(content="Provide a plan for your next step."),
         ]
         writer = get_stream_writer()
@@ -166,8 +170,8 @@ class ChatAgentGraph:
             writer({"planning_message": delta})
             final += delta
         yield {
-            "messages": state["messages"] + [AIMessage(content=final)],
-            "sources": state["sources"],  # reset sources
+            self.state_message_key: state[self.state_message_key] + [AIMessage(content=final)],
+            self.state_retrieved_nodes_key: state[self.state_retrieved_nodes_key],  # reset sources
         }
 
     async def _call_tools(self, state: ChatGraphState) -> AsyncIterator[dict]:
@@ -177,12 +181,12 @@ class ChatAgentGraph:
         system_prompt = system_prompt_template + self.tools_descriptions["all_docs"]["doc_search_semantic_retriever"]
         prompt = [
             SystemMessage(content=system_prompt),
-            *state["messages"],
+            *state[self.state_message_key],
         ]
         assistant_msg = await self.tool_llm.ainvoke(prompt)
         yield {
-            "messages": [assistant_msg],
-            "sources": state["sources"],
+            self.state_message_key: state[self.state_message_key] + [assistant_msg],
+            self.state_retrieved_nodes_key: state[self.state_retrieved_nodes_key],
         }
 
     async def _communicate_result(self, state: ChatGraphState) -> AsyncIterator[dict]:
@@ -192,7 +196,7 @@ class ChatAgentGraph:
         system_prompt = system_prompt_template # no tools descriptions here
         prompt = [
             SystemMessage(content=system_prompt),
-            *state["messages"],
+            *state[self.state_message_key],
         ]
 
         writer = get_stream_writer()
@@ -203,14 +207,14 @@ class ChatAgentGraph:
             final += delta
 
         yield {
-            "messages": state["messages"] + [AIMessage(content=final)],
-            "sources": state["sources"],
+            self.state_message_key: state[self.state_message_key] + [AIMessage(content=final)],
+            self.state_retrieved_nodes_key: state[self.state_retrieved_nodes_key],
         }
 
     @staticmethod
     def _custom_tools_condition(state: ChatGraphState) -> str:
         print("[harlus_chat] checking if tools are needed")
-        last_msg = state["messages"][-1]
+        last_msg = state["messages"][-1] # TODO: make this cleaner by passing self.state_message_key
         if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
             return "tools"
         else:
@@ -253,7 +257,7 @@ class ChatAgentGraph:
     # TODO: use source_highlight_pipeline here
     async def _get_retrieved_nodes(self, graph):
         state = await graph.aget_state(self.config)
-        retrieved_nodes = state.values.get("retrieved_nodes", [])
+        retrieved_nodes = state.values.get(self.state_retrieved_nodes_key, [])
         retrieved_nodes = [
             source for source in retrieved_nodes if isinstance(source, DocSearchRetrievedNode)
         ]
