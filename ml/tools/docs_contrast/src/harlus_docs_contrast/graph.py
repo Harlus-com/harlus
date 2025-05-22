@@ -254,6 +254,9 @@ class ContrastAgentGraph:
         print("[harlus_contrast_tool] getting claim comments")
         driver_tree = state["driver_tree"]
         parsed_driver_tree = clean_and_parse_json(driver_tree)
+        # note: while retrieved_nodes are tracked here as well
+        # these cannot be used for the claim comments pipeline
+        # as it expects NodeWithSource whilst we stored DocSearchRetrievedNode
         claim_comments = await get_claim_comments_from_driver_tree(
             parsed_driver_tree,
             self.tools["internal"]["doc_search_semantic_retriever"],
