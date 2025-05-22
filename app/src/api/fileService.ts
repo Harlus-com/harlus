@@ -116,16 +116,12 @@ class FileService {
       `/workspace/get_online_data?workspaceTicker=${workspace.name}&startDate=${startDate}`
     );
     
-    const creationPromises = filesToDownload.map(async (fileToDownload) => {
-      await window.electron.createFile(
+    await Promise.all(filesToDownload.map(file => window.electron.createFile(
         workspace.localDir,
         relativeDestinationPath,
-        fileToDownload.fileName,
-        Buffer.from(fileToDownload.contentBase64, "base64")
-      );
-    });
-  
-    await Promise.all(creationPromises);
+        file.fileName,
+        Buffer.from(file.contentBase64, "base64")
+      )));
   }
 
   createFolder(
