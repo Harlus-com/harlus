@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  File,
   Trash2,
   MoreVertical,
   Columns2,
@@ -14,7 +13,6 @@ import {
   Upload,
   X,
   Info,
-  Import,
 } from "lucide-react";
 import { WorkspaceFile, Workspace } from "@/api/workspace_types";
 import { cn } from "@/lib/utils";
@@ -462,27 +460,6 @@ const FileExplorer: React.FC<{
 
         {isExpanded && (
           <>
-            {isRoot && (
-              <div
-                className={cn("pl-2")}
-                onDragOver={(e) => handleDragOver(e, "")}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDropInRoot}
-              >
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOpenNewFolderPath(pathKey);
-                  }}
-                >
-                  <FolderPlus size={12} className="mr-2" />
-                  New Folder
-                </Button>
-              </div>
-            )}
             {Array.from(folder.children.values()).map((child) =>
               renderFolder(child, level + 1)
             )}
