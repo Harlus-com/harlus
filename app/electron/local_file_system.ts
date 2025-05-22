@@ -1,9 +1,13 @@
 import { promises as fs } from "fs";
-import * as fsCallback from "fs";
+import * as fsCallback from "fs"; // For fs.createWriteStream
 import path from "path";
 import crypto from "crypto";
+import axios, { AxiosError } from "axios"; // Import axios
+import stream from "stream"; // Import stream for pipeline
+import { promisify } from "util"; // Import promisify
 import { LocalFile, LocalFolder } from "./electron_types";
 import chokidar, { FSWatcher } from "chokidar";
+import { Agent } from "https"; // Import Agent for httpsAgent type
 
 export async function walkFiles(dir: string): Promise<string[]> {
   let results: string[] = [];
@@ -273,30 +277,83 @@ export async function ensureFile(
   return path.join(dirPath, fileName);
 }
 
-export async function createWriteStream(
-  filePath: string
-): Promise<{
-  write(chunk: Uint8Array): Promise<void>;
-  close(): Promise<void>;
-}> {
-  const stream = fsCallback.createWriteStream(filePath);
-  return {
-    write(chunk: Uint8Array): Promise<void> {
-      return new Promise<void>((resolve, reject) => {
-        const ok = stream.write(chunk, (err) => {
-          if (err) reject(err);
-          else resolve();
-        });
-        if (!ok) {
-          stream.once("drain", () => resolve());
+// export async function createWriteStream(
+//   filePath: string
+// ): Promise<{
+//   write(chunk: Uint8Array): Promise<void>;
+//   close(): Promise<void>;
+// }> {
+//   const stream = fsCallback.createWriteStream(filePath);
+//   return {
+//     write(chunk: Uint8Array): Promise<void> {
+//       return new Promise<void>((resolve, reject) => {
+//         const ok = stream.write(chunk, (err) => {
+//           if (err) reject(err);
+//           else resolve();
+//         });
+//         if (!ok) {
+//           stream.once("drain", () => resolve());
+//         }
+//       });
+//     },
+//     close(): Promise<void> {
+//       return new Promise<void>((resolve, reject) => {
+//         stream.end(() => resolve());
+//         stream.once("error", (err) => reject(err));
+//       });
+//     },
+//   };
+// }
+
+const pipeline = promisify(stream.pipeline);
+
+export async function downloadPdfFromUrl(
+  downloadUrl: string, 
+  localFilePath: string, 
+  httpsAgent: Agent | undefined,
+  authHeader?: string
+): Promise<boolean> {
+  try {
+    console.log(`[Local File System] Downloading from ${downloadUrl} to ${localFilePath}`);
+    const headers: Record<string, string> = {};
+    if (authHeader) {
+      headers["Authorization"] = authHeader;
+    }
+
+    const response = await axios.get(downloadUrl, {
+      responseType: "stream",
+      httpsAgent,
+      headers,
+    });
+
+    const localFileWriteStream = fsCallback.createWriteStream(localFilePath); // Use fsCallback
+    await pipeline(response.data, localFileWriteStream);
+    console.log(`[Local File System] Successfully downloaded and saved ${localFilePath}`); // Log updated
+    return true;
+  } catch (error: unknown) { // Catch as unknown
+    let errorMessage = `Error downloading from ${downloadUrl} to ${localFilePath}`;
+    if (error instanceof Error) {
+      errorMessage += `: ${error.message}`;
+    }
+    // For Axios specific errors, you might want to extract more info
+    if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+        if (axiosError.response) {
+            errorMessage += ` - Status: ${axiosError.response.status}, Data: ${JSON.stringify(axiosError.response.data)}`;
+        } else if (axiosError.request) {
+            errorMessage += ` - No response received`;
         }
-      });
-    },
-    close(): Promise<void> {
-      return new Promise<void>((resolve, reject) => {
-        stream.end(() => resolve());
-        stream.once("error", (err) => reject(err));
-      });
-    },
-  };
+    }
+    console.error(`[Local File System] ${errorMessage}`, error); // Log the original error too for server-side debugging
+
+    try {
+      await fs.unlink(localFilePath);
+    } catch (cleanupError) {
+      console.error(`[Local File System] Error cleaning up ${localFilePath}:`, cleanupError);
+    }
+    // Throw a new, simple error that is serializable
+    throw new Error(errorMessage);
+  }
 }
+
+

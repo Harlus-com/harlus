@@ -3,7 +3,7 @@ import { ipcMain, dialog } from "electron";
 import mime from "mime";
 import axios from "axios";
 import { EventSource } from "eventsource";
-import crypto from "crypto"; 
+// import crypto from "crypto"; 
 import { ElectronAppState, LocalFile, LocalFolder } from "./electron_types";
 import { Uploader } from "./upload";
 import {
@@ -15,15 +15,19 @@ import {
   deleteItem,
   createFile,
   ensureFile,
-  createWriteStream
+  downloadPdfFromUrl
+  // createWriteStream
 } from "./local_file_system";
+// import stream from "stream"; // Added for pipeline
+// import { promisify } from "util"; // Added for promisify
 
-type StreamWriter = {
-  write: (chunk: Uint8Array) => Promise<void>;
-  close: () => Promise<void>;
-};
+// type StreamWriter = {
+//   write: (chunk: Uint8Array) => Promise<void>;
+//   close: () => Promise<void>;
+// };
 
-const streamMap = new Map<string, StreamWriter>();
+// const streamMap = new Map<string, StreamWriter>();
+// const pipeline = promisify(stream.pipeline);
 
 export function setupIpcHandlers(electronAppState: ElectronAppState) {
   const { mainWindow, baseUrl, httpsAgent, httpsDispatcher, eventSources } =
@@ -223,24 +227,29 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
   ipcMain.handle("ensure-file", async (_evt, dir, subpath, name) => {
     return await ensureFile(dir, subpath, name);
   });
-  
-  ipcMain.handle("create-write-stream", async (_evt, filePath) => {
-    const writer = await createWriteStream(filePath);
-    const id = crypto.randomUUID();
-    streamMap.set(id, writer);
-    return id;
+
+  ipcMain.handle("download-pdf-from-url", async (_evt, downloadUrl, localFilePath, authHeader) => {
+    // Pass httpsAget from electronAppState
+    return await downloadPdfFromUrl(downloadUrl, localFilePath, httpsAgent, authHeader);
   });
   
-  ipcMain.handle("write-chunk", async (_evt, id: string, chunk: Uint8Array) => {
-    const writer = streamMap.get(id);
-    if (!writer) throw new Error("Unknown stream ID");
-    await writer.write(chunk);
-  });
+  // ipcMain.handle("create-write-stream", async (_evt, filePath) => {
+  //   const writer = await createWriteStream(filePath);
+  //   const id = crypto.randomUUID();
+  //   streamMap.set(id, writer);
+  //   return id;
+  // });
   
-  ipcMain.handle("close-stream", async (_evt, id: string) => {
-    const writer = streamMap.get(id);
-    if (!writer) throw new Error("Unknown stream ID");
-    await writer.close();
-    streamMap.delete(id);
-  });
+  // ipcMain.handle("write-chunk", async (_evt, id: string, chunk: Uint8Array) => {
+  //   const writer = streamMap.get(id);
+  //   if (!writer) throw new Error("Unknown stream ID");
+  //   await writer.write(chunk);
+  // });
+  
+  // ipcMain.handle("close-stream", async (_evt, id: string) => {
+  //   const writer = streamMap.get(id);
+  //   if (!writer) throw new Error("Unknown stream ID");
+  //   await writer.close();
+  //   streamMap.delete(id);
+  // });
 }

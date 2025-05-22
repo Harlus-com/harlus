@@ -1,7 +1,6 @@
 import { Workspace, WorkspaceFile, WorkspaceFolder } from "./workspace_types";
 import { client } from "./client";
 import { ClaimComment } from "./comment_types";
-import { Buffer } from 'buffer';
 
 const filesBeingUploaded = new Set<string>();
 
@@ -115,32 +114,34 @@ class FileService {
     const files: { name: string; url: string }[] = await client.get(
       `/workspace/${workspace.name}/online_files?startDate=${startDate}`
     );
+    const baseUrl = await window.electron.getBaseUrl();
+    const authHeader = await client.getAuthHeader(); // Assumes client has a method to get the current auth header
 
-    for (const { name, url } of files) {
-      const response = await client.getBuffer(
-        `/file/download_pdf_from_url?url=${encodeURIComponent(url)}`
-      );
-      if (!response) {
-        console.error(`Failed to download ${name}`);
-        continue;
+    for (const { name, url: remoteFileUrlSuffix } of files) {
+      try {
+        // Ensure the remoteFileUrlSuffix is just the query part or path + query
+        // The server's OpenBBLoader returns 'report_url' which should be a full URL.
+        // If it's a full URL, we don't need to prepend baseUrl.
+        // If it's a path, we might. Let's assume 'remoteFileUrlSuffix' is a full valid URL for now.
+        // The backend endpoint is /file/download_pdf_from_url?url=<ACTUAL_FILE_URL>
+        // So the `downloadUrl` for the IPC call should be `${baseUrl}/file/download_pdf_from_url?url=${encodeURIComponent(remoteFileUrlSuffix)}`
+        
+        const serverApiDownloadUrl = `${baseUrl}/file/download_pdf_from_url?url=${encodeURIComponent(remoteFileUrlSuffix)}`;
+
+        const destPath = await window.electron.ensureFile(
+          workspace.localDir,
+          pathRelativeToWorkspace,
+          `${name}.pdf` // The name from the listing should be the desired local filename
+        );
+
+        console.log(`[FileService] Requesting download for ${name} from ${serverApiDownloadUrl} to ${destPath}`);
+        
+        await window.electron.downloadPdfFromUrl(serverApiDownloadUrl, destPath, authHeader);
+        
+        console.log(`[FileService] Successfully downloaded ${name} to ${destPath}`);
+      } catch (error) {
+        console.error(`[FileService] Failed to download ${name}:`, error);
       }
-
-      const destPath = await window.electron.ensureFile(
-        workspace.localDir,
-        pathRelativeToWorkspace,
-        name
-      );
-      const streamId = await window.electron.createWriteStream(destPath);
-
-
-      const reader = response.body!.getReader();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        await writer.write(value!);
-      }
-      await writer.close();
-      console.log(`Succesfully streamed ${name}`);
     }
   }
 
