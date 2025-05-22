@@ -4,8 +4,7 @@ import json
 from src.util import timestamp_now
 from src.file_store import FileStore
 from src.file_types import File
-from harlus_doc_search import ToolWrapper
-from harlus_doc_search import DocToolLoader
+from harlus_doc_search import ToolWrapper, CacheOptions, DocToolLoader
 from enum import Enum
 
 
@@ -34,8 +33,18 @@ class ToolLibrary:
         self.file_store = file_store
 
     async def load(self, tool_name: str, file: File) -> ToolWrapper:
+        tool_dir = os.path.join(os.path.dirname(file.absolute_path), "tools", tool_name)
+        os.makedirs(tool_dir, exist_ok=True)
         loader = loaders_by_name[tool_name]
-        tool_wrapper = await loader.load(file.id, {file.id: file.absolute_path})
+        tool_wrapper = await loader.load(
+            file.id,
+            {file.id: file.absolute_path},
+            CacheOptions(
+                cache_dir_path=tool_dir,
+                load_from_cache=True,
+                save_to_cache=True,
+            ),
+        )
         self._add_tool(file.absolute_path, tool_wrapper, overwrite=True)
 
     def has_all_tools(self, file: File):
@@ -82,14 +91,9 @@ class ToolLibrary:
         if tool_name in [t.get_tool_name() for t in current_tools] and not overwrite:
             raise ValueError(f"Tool {tool_name} already exists for file {file_path}")
         tool_dir = os.path.join(os.path.dirname(file_path), "tools", tool_name)
-        debug_dir = os.path.join(tool_dir, "debug")
         os.makedirs(tool_dir, exist_ok=True)
-        os.makedirs(debug_dir, exist_ok=True)
         with open(os.path.join(tool_dir, "tool.pkl"), "wb") as f:
             dill.dump(tool_wrapper.get(), f)
-        for key, value in tool_wrapper.get_debug_info().items():
-            with open(os.path.join(debug_dir, key), "w") as f:
-                f.write(value)
         self._load_tools(file_path)
 
     def _load_tools(self, file_path, filter: str | None = None) -> list[ToolWrapper]:
@@ -111,7 +115,7 @@ class ToolLibrary:
                 # We can do this by storing the file hash next to the tool
                 # Then we can check that the file hash matches the current file on disk, otherwise discard the tool
                 tool = dill.load(f)
-                tool_wrapper = ToolWrapper(tool, tool_dir, debug_info={})
+                tool_wrapper = ToolWrapper(tool, tool_dir)
                 tools.append(tool_wrapper)
         return tools
 

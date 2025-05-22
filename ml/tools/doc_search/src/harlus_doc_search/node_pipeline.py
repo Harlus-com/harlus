@@ -17,7 +17,7 @@ import json
 from .node_parse import *
 from .node_store import *
 from .config import NUM_WORKERS, FASTLLM
-
+from .cache import CacheHelper
 
 # TODO: use IngestionPipeline framework from llama_index
 
@@ -49,14 +49,19 @@ class NodePipeline:
         get_nodes(): External method to return the nodes, either from the cache or by creating them
     """
 
-    def __init__(
-        self, file_id_to_path: dict[str, str], cache_file_name: str = "nodes.json"
-    ):
+    def __init__(self, file_id_to_path: dict[str, str], cache_helper: CacheHelper):
         self.file_id_to_path = file_id_to_path
-        self.cache_file_name = cache_file_name
+        self.cache_helper = cache_helper
         self.nodes = []
 
     async def execute(self, file_id: str) -> tuple[str, str, list[Node]]:
+        nodes_out = self.cache_helper.unpickle("nodes")
+        if nodes_out is not None:
+            self.cache_helper.dump_json(
+                "debug/nodes.json", nodes_to_json_obj(nodes_out)
+            )
+            return nodes_out
+
         print(f"Creating nodes for {file_id} ...")
 
         # TODO: Docling gives us control over which models we use.
@@ -83,9 +88,6 @@ class NodePipeline:
             node.metadata["file_id"] = file_id
             nodes_out.append(node)
 
-        # TODO: extract parsed json from DoclingReader
-        return (
-            "",
-            json.dumps(nodes_to_json_obj(nodes_out), indent=2),
-            nodes_out,
-        )
+        self.cache_helper.pickle("nodes", nodes_out)
+        self.cache_helper.dump_json("debug/nodes.json", nodes_to_json_obj(nodes_out))
+        return nodes_out
