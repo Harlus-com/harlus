@@ -80,17 +80,6 @@ class FileService {
       files,
     });
   }
-  // TODO: We should really get rid of this function and make sure the server only ever returns contentHash
-  async getFileFromServer(args: {
-    serverFilePath: string;
-  }): Promise<WorkspaceFile> {
-    const params = new URLSearchParams({
-      filePath: args.serverFilePath,
-    });
-    const file = await client.get(`/file/get?${params.toString()}`);
-    return file;
-  }
-
   async getLocalFolders(workspace: Workspace): Promise<LocalFolder[]> {
     console.log("Getting folders for workspace", workspace.id);
     if (!window.electron) {
@@ -100,14 +89,14 @@ class FileService {
   }
 
   async refreshOnlineData(
-    workspace: Workspace, 
-    pathRelativeToWorkspace: string | "", 
+    workspace: Workspace,
+    pathRelativeToWorkspace: string | "",
     startDate: string
   ): Promise<void> {
     if (!window.electron) {
       throw new Error("Electron is not available");
     }
-  
+
     const files: { name: string; url: string }[] = await client.get(
       `/workspace/${workspace.name}/online_files?startDate=${startDate}`
     );
@@ -116,16 +105,24 @@ class FileService {
 
     for (const { name, url: remoteFileUrlSuffix } of files) {
       try {
-        const serverApiDownloadUrl = `${baseUrl}/file/download_pdf_from_url?url=${encodeURIComponent(remoteFileUrlSuffix)}`;
+        const serverApiDownloadUrl = `${baseUrl}/file/download_pdf_from_url?url=${encodeURIComponent(
+          remoteFileUrlSuffix
+        )}`;
 
         const destPath = await window.electron.ensureFile(
           workspace.localDir,
           pathRelativeToWorkspace,
           `${name}.pdf`
         );
-        await window.electron.downloadPdfFromUrl(serverApiDownloadUrl, destPath, authHeader);
-        
-        console.log(`[FileService] Successfully downloaded ${name} to ${destPath}`);
+        await window.electron.downloadPdfFromUrl(
+          serverApiDownloadUrl,
+          destPath,
+          authHeader
+        );
+
+        console.log(
+          `[FileService] Successfully downloaded ${name} to ${destPath}`
+        );
       } catch (error) {
         console.error(`[FileService] Failed to download ${name}:`, error);
       }
@@ -149,26 +146,65 @@ class FileService {
     return window.electron.deleteItem(folder);
   }
 
-  renameFolder(
-    workspaceId: string,
-    appDir: string[],
-    newName: string
-  ): Promise<boolean> {
-    return client.post(`/workspace/rename_folder`, {
-      workspaceId,
-      appDir,
-      newName,
-    });
-  }
-
-  moveItem(
-    item: LocalFile | LocalFolder,
-    newRelativePath: string[]
+  renameFile(
+    item: LocalFile,
+    newName: string,
+    workspace: Workspace
   ): Promise<boolean> {
     if (!window.electron) {
       throw new Error("Electron is not available");
     }
-    return window.electron.moveItem(item, newRelativePath);
+    return window.electron.moveItem(item.absolutePath, [
+      ...workspace.localDirParts,
+      ...item.pathRelativeToWorkspace,
+      newName,
+    ]);
+  }
+
+  renameFolder(
+    item: LocalFolder,
+    newName: string,
+    workspace: Workspace
+  ): Promise<boolean> {
+    if (!window.electron) {
+      throw new Error("Electron is not available");
+    }
+    return window.electron.moveItem(item.absolutePath, [
+      ...workspace.localDirParts,
+      ...item.pathRelativeToWorkspace.slice(0, -1),
+      newName,
+    ]);
+  }
+
+  moveItem(
+    item: LocalFile,
+    newRelativePath: string[],
+    workspace: Workspace
+  ): Promise<boolean> {
+    if (!window.electron) {
+      throw new Error("Electron is not available");
+    }
+    return window.electron.moveItem(item.absolutePath, [
+      ...workspace.localDirParts,
+      ...newRelativePath,
+      item.name,
+    ]);
+  }
+
+  moveFolder(
+    folder: LocalFolder,
+    newRelativePath: string[],
+    workspace: Workspace
+  ): Promise<boolean> {
+    if (!window.electron) {
+      throw new Error("Electron is not available");
+    }
+    const name = [...folder.pathRelativeToWorkspace].pop();
+    return window.electron.moveItem(folder.absolutePath, [
+      ...workspace.localDirParts,
+      ...newRelativePath,
+      name,
+    ]);
   }
 }
 

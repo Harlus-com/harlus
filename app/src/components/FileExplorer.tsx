@@ -60,6 +60,13 @@ import {
 } from "@/components/ui/tooltip";
 import SyncDialog from "./SyncDialog";
 
+type RenameInfo = {
+  renameFile?: LocalFile;
+  renameFolder?: LocalFolder;
+  parentFolder?: LocalFolder;
+  newName?: string;
+};
+
 const FileExplorer: React.FC<{
   workspaceId: string;
   workspace: Workspace | null;
@@ -79,16 +86,10 @@ const FileExplorer: React.FC<{
   const [closedFolders, setClosedFolders] = React.useState<Set<string>>(
     new Set()
   );
-  const [newFolderName, setNewFolderName] = React.useState("");
   const [draggedItem, setDraggedItem] = React.useState<
     LocalFile | LocalFolder | null
   >(null);
-  const [openNewFolderPath, setOpenNewFolderPath] = React.useState<
-    string | null
-  >(null);
-  const [openRenamePath, setOpenRenamePath] = React.useState<string | null>(
-    null
-  );
+  const [renameInfo, setRenameInfo] = React.useState<RenameInfo | null>(null);
   const [folderToDelete, setFolderToDelete] = React.useState<{
     path: string[];
     name: string;
@@ -119,16 +120,22 @@ const FileExplorer: React.FC<{
     setFileToDelete(file);
   };
 
-  const handleCreateFolder = async (parentFolder: LocalFolder) => {
-    if (!newFolderName.trim()) {
-      throw new Error("Failed to create folder: Folder name is empty");
+  const handleRename = async () => {
+    if (!renameInfo) {
+      return;
     }
-    if (!parentFolder) {
-      throw new Error("Failed to create folder: Parent folder not found");
+    const { renameFile, renameFolder, parentFolder, newName } = renameInfo;
+    if (!newName?.trim()) {
+      return;
     }
-    await fileService.createFolder(parentFolder, newFolderName);
-    setNewFolderName("");
-    setOpenNewFolderPath(null);
+    if (renameFile) {
+      await fileService.renameFile(renameFile, newName, workspace);
+    } else if (renameFolder) {
+      await fileService.renameFolder(renameFolder, newName, workspace);
+    } else if (parentFolder) {
+      await fileService.createFolder(parentFolder, newName);
+    }
+    setRenameInfo(null);
   };
 
   const handleDeleteFolder = async (path: string[], e: React.MouseEvent) => {
@@ -139,17 +146,22 @@ const FileExplorer: React.FC<{
     });
   };
 
-  const handleRenameFolder = async (path: string[], newName: string) => {
-    if (!newName.trim()) return;
-    await fileService.renameFolder(workspaceId, path, newName);
-    setOpenRenamePath(null);
-    setNewFolderName("");
-  };
-
   const handleMoveItem = async (targetPath: string[]) => {
     if (!draggedItem) return;
-    await fileService.moveItem(draggedItem, targetPath);
-    setDraggedItem(null);
+    if ((draggedItem as LocalFile).contentHash) {
+      await fileService.moveItem(
+        draggedItem as LocalFile,
+        targetPath,
+        workspace
+      );
+    } else {
+      await fileService.moveFolder(
+        draggedItem as LocalFolder,
+        targetPath,
+        workspace
+      );
+      setDraggedItem(null);
+    }
   };
 
   const handleOpenInGroup = (
@@ -157,7 +169,11 @@ const FileExplorer: React.FC<{
     groupNumber: FileGroupCount
   ) => {
     openFiles({
-      [file.id]: { fileGroup: groupNumber, showComments: false, select: true },
+      [file.id]: {
+        fileGroup: groupNumber,
+        showComments: false,
+        select: true,
+      },
     });
   };
 
@@ -225,8 +241,7 @@ const FileExplorer: React.FC<{
     const hasChildren = folder.children.size > 0 || folder.files.length > 0;
     const isRoot = folder.path.length === 0;
     const isExpanded = !closedFolders.has(pathKey);
-    const isNewFolderOpen = openNewFolderPath === pathKey;
-    const isRenameOpen = openRenamePath === pathKey;
+    const isRenamePopoverOpen = !!renameInfo;
 
     const handleDragStart = (
       e: React.DragEvent,
@@ -293,8 +308,10 @@ const FileExplorer: React.FC<{
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
-                      setOpenRenamePath(pathKey);
-                      setNewFolderName(folder.name);
+                      setRenameInfo({
+                        newName: folder.name,
+                        renameFolder: getLocalFolder(folder.path)!,
+                      });
                     }}
                   >
                     <Pencil size={12} className="mr-2" />
@@ -303,7 +320,9 @@ const FileExplorer: React.FC<{
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
-                      setOpenNewFolderPath(pathKey);
+                      setRenameInfo({
+                        parentFolder: getLocalFolder(folder.path)!,
+                      });
                     }}
                   >
                     <FolderPlus size={12} className="mr-2" />
@@ -333,11 +352,10 @@ const FileExplorer: React.FC<{
         )}
 
         <Popover
-          open={isNewFolderOpen}
+          open={isRenamePopoverOpen}
           onOpenChange={(open) => {
             if (!open) {
-              setOpenNewFolderPath(null);
-              setNewFolderName("");
+              setRenameInfo(null);
             }
           }}
           modal={true}
@@ -350,7 +368,9 @@ const FileExplorer: React.FC<{
                 className="w-full justify-start text-xs"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setOpenNewFolderPath(pathKey);
+                  setRenameInfo({
+                    parentFolder: getLocalFolder(folder.path)!,
+                  });
                 }}
               >
                 <FolderPlus size={12} className="mr-2" />
@@ -366,14 +386,19 @@ const FileExplorer: React.FC<{
           >
             <div className="space-y-2">
               <Input
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
+                value={renameInfo?.newName}
+                onChange={(e) =>
+                  setRenameInfo({
+                    ...renameInfo,
+                    newName: e.target.value,
+                  })
+                }
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    handleCreateFolder(getLocalFolder(folder.path)!);
+                    handleRename();
                   }
                 }}
-                placeholder="Enter folder name"
+                placeholder={getRenamePlaceholder(renameInfo)}
                 autoFocus
               />
               <div className="flex justify-end gap-2">
@@ -382,8 +407,7 @@ const FileExplorer: React.FC<{
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setNewFolderName("");
-                    setOpenNewFolderPath(null);
+                    setRenameInfo(null);
                   }}
                 >
                   Cancel
@@ -392,81 +416,10 @@ const FileExplorer: React.FC<{
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleCreateFolder(getLocalFolder(folder.path)!);
+                    handleRename();
                   }}
                 >
                   Create
-                </Button>
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        <Popover
-          open={isRenameOpen}
-          onOpenChange={(open) => {
-            if (!open) {
-              setOpenRenamePath(null);
-              setNewFolderName("");
-            }
-          }}
-          modal={true}
-        >
-          <PopoverTrigger asChild>
-            <div className="hidden">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start text-xs"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOpenRenamePath(pathKey);
-                  setNewFolderName(folder.name);
-                }}
-              >
-                <Pencil size={12} className="mr-2" />
-                Rename
-              </Button>
-            </div>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-64 p-2"
-            align="start"
-            onClick={(e) => e.stopPropagation()}
-            onPointerDownOutside={(e) => e.preventDefault()}
-          >
-            <div className="space-y-2">
-              <Input
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleRenameFolder(folder.path, newFolderName);
-                  }
-                }}
-                placeholder="Enter new name"
-                autoFocus
-              />
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setNewFolderName("");
-                    setOpenRenamePath(null);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRenameFolder(folder.path, newFolderName);
-                  }}
-                >
-                  Rename
                 </Button>
               </div>
             </div>
@@ -537,6 +490,18 @@ const FileExplorer: React.FC<{
                           ))}
                         </DropdownMenuSubContent>
                       </DropdownMenuSub>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRenameInfo({
+                            renameFile: workspaceFileToLocalFile(file),
+                            newName: file.name,
+                          });
+                        }}
+                      >
+                        <Pencil size={12} className="mr-2" />
+                        Rename
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={(e) => handlePing(file, e)}>
                         <RotateCcw size={12} className="mr-2" />
                         Sync
@@ -615,7 +580,14 @@ const FileExplorer: React.FC<{
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0"
-                  onClick={() => setOpenNewFolderPath("")}
+                  onClick={() =>
+                    setRenameInfo({
+                      parentFolder: {
+                        absolutePath: workspace!.localDir,
+                        pathRelativeToWorkspace: [],
+                      },
+                    })
+                  }
                 >
                   <FolderPlus size={16} />
                 </Button>
@@ -759,6 +731,22 @@ function getFileFolderText(fileCount: number, folderCount: number) {
     return folderText;
   }
   return "No files or folders";
+}
+
+function getRenamePlaceholder(renameInfo: RenameInfo | null) {
+  if (!renameInfo) {
+    return "";
+  }
+  if (renameInfo.renameFile) {
+    return renameInfo.renameFile.name;
+  }
+  if (renameInfo.renameFolder) {
+    const path = renameInfo.renameFolder.pathRelativeToWorkspace;
+    return path[path.length - 1];
+  }
+  if (renameInfo.parentFolder) {
+    return "New folder name";
+  }
 }
 
 export default FileExplorer;

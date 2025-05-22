@@ -14,8 +14,9 @@ import {
   deleteItem,
   createFile,
   ensureFile,
-  downloadPdfFromUrl
+  downloadPdfFromUrl,
 } from "./local_file_system";
+import path from "path";
 
 export function setupIpcHandlers(electronAppState: ElectronAppState) {
   const { mainWindow, baseUrl, httpsAgent, httpsDispatcher, eventSources } =
@@ -189,8 +190,8 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
 
   ipcMain.handle(
     "move-item",
-    async (_, item: LocalFile | LocalFolder, newRelativePath: string[]) => {
-      return moveItem(item, newRelativePath);
+    async (_, oldAbsolutePath: string, newAbsolutePathParts: string[]) => {
+      return moveItem(oldAbsolutePath, newAbsolutePathParts);
     }
   );
 
@@ -203,7 +204,13 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
 
   ipcMain.handle(
     "create-file",
-    async (_, workspaceLocalDir: string, relativeDestPath: string, fileName: string, data: Buffer) => {
+    async (
+      _,
+      workspaceLocalDir: string,
+      relativeDestPath: string,
+      fileName: string,
+      data: Buffer
+    ) => {
       return createFile(workspaceLocalDir, relativeDestPath, fileName, data);
     }
   );
@@ -216,7 +223,19 @@ export function setupIpcHandlers(electronAppState: ElectronAppState) {
     return await ensureFile(dir, subpath, name);
   });
 
-  ipcMain.handle("download-pdf-from-url", async (_evt, downloadUrl, localFilePath, authHeader) => {
-    return await downloadPdfFromUrl(downloadUrl, localFilePath, httpsAgent, authHeader);
+  ipcMain.handle(
+    "download-pdf-from-url",
+    async (_evt, downloadUrl, localFilePath, authHeader) => {
+      return await downloadPdfFromUrl(
+        downloadUrl,
+        localFilePath,
+        httpsAgent,
+        authHeader
+      );
+    }
+  );
+
+  ipcMain.handle("split-path", async (_, pathString: string) => {
+    return pathString.split(path.sep);
   });
 }

@@ -34,6 +34,9 @@ class WorkspaceService {
   async getWorkspace(id: string): Promise<Workspace> {
     console.log("Getting workspace", id);
     const workspace = await client.get(`/workspace/get?workspaceId=${id}`);
+    workspace.localDirParts = await window.electron.splitPath(
+      workspace.localDir
+    );
     return workspace;
   }
 

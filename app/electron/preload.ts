@@ -40,16 +40,37 @@ contextBridge.exposeInMainWorld("electron", {
       console.log("PRELOAD onLocalFileSystemChange", event);
       callback(event);
     }),
-  moveItem: (item: LocalFile | LocalFolder, newRelativePath: string[]) =>
-    ipcRenderer.invoke("move-item", item, newRelativePath),
+  moveItem: (oldAbsolutePath: string, newAbsolutePathParts: string[]) =>
+    ipcRenderer.invoke("move-item", oldAbsolutePath, newAbsolutePathParts),
   createFolder: (parentFolder: LocalFolder, newFolderName: string) =>
     ipcRenderer.invoke("create-folder", parentFolder, newFolderName),
-  createFile: (workspaceLocalDir: string, relativeDestPath: string, fileName: string, data: Buffer) =>
-    ipcRenderer.invoke("create-file", workspaceLocalDir, relativeDestPath, fileName, data),
+  createFile: (
+    workspaceLocalDir: string,
+    relativeDestPath: string,
+    fileName: string,
+    data: Buffer
+  ) =>
+    ipcRenderer.invoke(
+      "create-file",
+      workspaceLocalDir,
+      relativeDestPath,
+      fileName,
+      data
+    ),
   deleteItem: (item: LocalFile | LocalFolder) =>
     ipcRenderer.invoke("delete-item", item),
   ensureFile: (dir: string, subpath: string, name: string) =>
     ipcRenderer.invoke("ensure-file", dir, subpath, name),
-  downloadPdfFromUrl: (downloadUrl: string, localFilePath: string, authHeader?: string) =>
-    ipcRenderer.invoke("download-pdf-from-url", downloadUrl, localFilePath, authHeader),
+  downloadPdfFromUrl: (
+    downloadUrl: string,
+    localFilePath: string,
+    authHeader?: string
+  ) =>
+    ipcRenderer.invoke(
+      "download-pdf-from-url",
+      downloadUrl,
+      localFilePath,
+      authHeader
+    ),
+  splitPath: (path: string) => ipcRenderer.invoke("split-path", path),
 });
