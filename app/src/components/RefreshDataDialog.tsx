@@ -177,7 +177,7 @@ export default function RefreshDataDialog({
         // TODO: handle smoothly if no new files to download
         await fileService.refreshOnlineData(
           workspace,
-          destination === "" ? null : destination,
+          destination,
           date
         );
         setWasSuccessful(true);
@@ -269,10 +269,6 @@ export default function RefreshDataDialog({
 
       <AlertDialog open={showDialog} onOpenChange={(open) => open ? setShowDialog(true) : onCancel()}>
         <AlertDialogContent ref={dialogRef} className="max-w-md p-6">
-          {/* <AlertDialogHeader>
-            <AlertDialogTitle>Select Download Options</AlertDialogTitle>
-          </AlertDialogHeader> */}
-
           <div className="py-4 relative">
             <label htmlFor="start-date" className="block mb-1">
               Destination folder
