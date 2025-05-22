@@ -17,12 +17,14 @@ interface SyncDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   workspace: Workspace | null;
+  folderPath?: string[];
 }
 
 const SyncDialog: React.FC<SyncDialogProps> = ({
   open,
   onOpenChange,
   workspace,
+  folderPath,
 }) => {
   const {
     getFiles,
@@ -37,10 +39,20 @@ const SyncDialog: React.FC<SyncDialogProps> = ({
   const [syncUntracked, setSyncUntracked] = React.useState(false);
   const [isSyncing, setIsSyncing] = React.useState(false);
 
-  const trackedFiles = files.filter(
+  // Filter files based on folderPath if provided
+  const filteredFiles = folderPath
+    ? files.filter((file) => {
+        return (
+          file.appDir.slice(0, folderPath.length).join("/") ===
+          folderPath.join("/")
+        );
+      })
+    : files;
+
+  const trackedFiles = filteredFiles.filter(
     (file) => getFileSyncStatus(file.id) !== "UNTRACKED"
   );
-  const untrackedFiles = files.filter(
+  const untrackedFiles = filteredFiles.filter(
     (file) => getFileSyncStatus(file.id) === "UNTRACKED"
   );
 
@@ -78,11 +90,18 @@ const SyncDialog: React.FC<SyncDialogProps> = ({
     }
   };
 
+  const getDialogTitle = () => {
+    if (folderPath && folderPath.length > 0) {
+      return `Sync Files in "${folderPath[folderPath.length - 1]}"`;
+    }
+    return "Sync Files in Workspace";
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Sync Files</DialogTitle>
+          <DialogTitle>{getDialogTitle()}</DialogTitle>
           <DialogDescription className="pt-2">
             By syncing files, they become available to Harlus AI
           </DialogDescription>

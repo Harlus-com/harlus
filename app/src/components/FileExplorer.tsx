@@ -103,6 +103,9 @@ const FileExplorer: React.FC<{
     null
   );
   const [syncDialogOpen, setSyncDialogOpen] = React.useState(false);
+  const [syncDialogFolderPath, setSyncDialogFolderPath] = React.useState<
+    string[] | undefined
+  >(undefined);
 
   const selectedFileIds: string[] = [];
   for (const fileGroup of Object.values(getOpenFiles())) {
@@ -305,6 +308,16 @@ const FileExplorer: React.FC<{
                   >
                     <FolderPlus size={12} className="mr-2" />
                     New Subfolder
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSyncDialogFolderPath(folder.path);
+                      setSyncDialogOpen(true);
+                    }}
+                  >
+                    <RefreshCw size={12} className="mr-2" />
+                    Sync
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="text-red-500 focus:text-red-500"
@@ -714,8 +727,14 @@ const FileExplorer: React.FC<{
       )}
       <SyncDialog
         open={syncDialogOpen}
-        onOpenChange={setSyncDialogOpen}
+        onOpenChange={(open) => {
+          setSyncDialogOpen(open);
+          if (!open) {
+            setSyncDialogFolderPath(undefined);
+          }
+        }}
         workspace={workspace}
+        folderPath={syncDialogFolderPath}
       />
     </>
   );
