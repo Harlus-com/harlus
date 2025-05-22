@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import threading
 from src.util import normalize_underscores
 from src.file_types import LocalFile, File
 from src.workspace_store import WorkspaceStore
@@ -9,6 +10,7 @@ from src.workspace_store import WorkspaceStore
 class FileStore:
     def __init__(self, workspace_store: WorkspaceStore):
         self.workspace_store = workspace_store
+        self.update_server_directories_lock = threading.Lock()
 
     def initialize(self):
         for workspace in self.workspace_store.get_workspaces().values():
@@ -124,44 +126,49 @@ class FileStore:
         return None
 
     def update_server_directories(self, workspace_id: str, files: list[LocalFile]):
-        workspace = self.workspace_store.get_workspaces()[workspace_id]
-        files_by_id = self.get_files(workspace_id)
-        file_path_updates: dict[str, str] = {}
-        for file in files:
-            if not file.content_hash in files_by_id:
-                continue
-            current_file = files_by_id[file.content_hash]
-            current_working_dir = current_file.working_dir()
-            incoming_file_dir_name = _get_file_dir_name(
-                file.content_hash, file.path_relative_to_workspace, file.name
-            )
-            incoming_working_dir = str(workspace.relative_path(incoming_file_dir_name))
+        # This is fine to have a big blocking lock because this update is not time sensitive
+        # Ultimately if the client requests multiple update server directory requests, it's fine to block / queue them.
+        with self.update_server_directories_lock:
+            workspace = self.workspace_store.get_workspaces()[workspace_id]
+            files_by_id = self.get_files(workspace_id)
+            file_path_updates: dict[str, str] = {}
+            for file in files:
+                if not file.content_hash in files_by_id:
+                    continue
+                current_file = files_by_id[file.content_hash]
+                current_working_dir = current_file.working_dir()
+                incoming_file_dir_name = _get_file_dir_name(
+                    file.content_hash, file.path_relative_to_workspace, file.name
+                )
+                incoming_working_dir = str(
+                    workspace.relative_path(incoming_file_dir_name)
+                )
 
-            if current_working_dir != incoming_working_dir:
-                print(f"Moving {current_working_dir} to {incoming_working_dir}")
-                shutil.move(
-                    current_working_dir,
-                    incoming_working_dir,
-                )
-                file_path_updates[file.content_hash] = os.path.join(
-                    incoming_working_dir, "content.pdf"
-                )
-        if len(file_path_updates) > 0:
-            new_files = []
-            for file_id, file in files_by_id.items():
-                if file_id in file_path_updates:
-                    new_files.append(
-                        File(
-                            id=file_id,
-                            name=file.name,
-                            absolute_path=file_path_updates[file_id],
-                            workspace_id=workspace_id,
-                        )
+                if current_working_dir != incoming_working_dir:
+                    print(f"Moving {current_working_dir} to {incoming_working_dir}")
+                    shutil.move(
+                        current_working_dir,
+                        incoming_working_dir,
                     )
-                else:
-                    new_files.append(file)
-            with open(workspace.relative_path("files.json"), "w") as f:
-                json.dump([file.model_dump() for file in new_files], f, indent=2)
+                    file_path_updates[file.content_hash] = os.path.join(
+                        incoming_working_dir, "content.pdf"
+                    )
+            if len(file_path_updates) > 0:
+                new_files = []
+                for file_id, file in files_by_id.items():
+                    if file_id in file_path_updates:
+                        new_files.append(
+                            File(
+                                id=file_id,
+                                name=file.name,
+                                absolute_path=file_path_updates[file_id],
+                                workspace_id=workspace_id,
+                            )
+                        )
+                    else:
+                        new_files.append(file)
+                with open(workspace.relative_path("files.json"), "w") as f:
+                    json.dump([file.model_dump() for file in new_files], f, indent=2)
 
 
 def _get_file_dir_name(content_hash: str, app_dir: list[str], file_name: str) -> str:

@@ -57,7 +57,6 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
   const {
     getFiles,
     getFolders,
-    notifyFileListChanged,
     notifyFileSyncStatusChanged,
     forceSyncFile,
     startSyncFile,
@@ -116,7 +115,6 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     await fileService.createFolder(parentFolder, newFolderName);
     setNewFolderName("");
     setOpenNewFolderPath(null);
-    notifyFileListChanged();
   };
 
   const handleDeleteFolder = async (path: string[], e: React.MouseEvent) => {
@@ -132,14 +130,12 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     await fileService.renameFolder(workspaceId, path, newName);
     setOpenRenamePath(null);
     setNewFolderName("");
-    notifyFileListChanged();
   };
 
   const handleMoveItem = async (targetPath: string[]) => {
     if (!draggedItem) return;
     await fileService.moveItem(draggedItem, targetPath);
     setDraggedItem(null);
-    notifyFileListChanged();
   };
 
   const handleOpenInGroup = (
@@ -181,14 +177,12 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
     if (!folderToDelete) return;
     await fileService.deleteFolder(getLocalFolder(folderToDelete.path)!);
     setFolderToDelete(null);
-    notifyFileListChanged();
   };
 
   const confirmDeleteFile = async () => {
     if (!fileToDelete) return;
     await fileService.deleteLocalFile(workspaceFileToLocalFile(fileToDelete));
     setFileToDelete(null);
-    notifyFileListChanged();
   };
 
   const handleDragOver = (e: React.DragEvent, path: string) => {

@@ -9,7 +9,11 @@ import {
 import { createContext, useContext, useEffect, useState } from "react";
 import { FileStatusManager } from "./file_status_manager";
 import { workspaceService } from "@/api/workspaceService";
-import { toWorkspaceFile } from "./file_util";
+import {
+  noLocalFileChanges,
+  noLocalFolderChanges,
+  toWorkspaceFile,
+} from "./file_util";
 
 interface FileContextType {
   getFiles: () => WorkspaceFile[];
@@ -19,7 +23,6 @@ interface FileContextType {
   getFileSyncStatus: (id: string) => SyncStatus;
   startSyncFile: (localFile: LocalFile) => void;
   forceSyncFile: (localFile: LocalFile) => void;
-  notifyFileListChanged: () => void;
   notifyFileSyncStatusChanged: () => void;
   workspaceFileToLocalFile: (workspaceFile: WorkspaceFile) => LocalFile | null;
 }
@@ -66,15 +69,21 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
     });
   });
 
-  const loadFiles = async (workspace: Workspace) => {
-    const files = await fileService.getLocalFiles(workspace);
-    const folders = await fileService.getLocalFolders(workspace);
-    fileService.updateServerDirectories(workspaceId, files);
-    setFiles(files);
-    setFolders(folders);
-    setWorkspaceFiles(files.map((file) => toWorkspaceFile(workspaceId, file)));
+  const loadFiles = async (
+    workspace: Workspace,
+    newFiles?: LocalFile[],
+    newFolders?: LocalFolder[]
+  ) => {
+    newFiles = newFiles || (await fileService.getLocalFiles(workspace));
+    newFolders = newFolders || (await fileService.getLocalFolders(workspace));
+    fileService.updateServerDirectories(workspaceId, newFiles);
+    setFiles(newFiles);
+    setFolders(newFolders);
+    setWorkspaceFiles(
+      newFiles.map((file) => toWorkspaceFile(workspaceId, file))
+    );
     setWorkspaceFolders(
-      folders.map((folder) => ({
+      newFolders.map((folder) => ({
         workspaceId: workspaceId,
         appDir: folder.pathRelativeToWorkspace,
       }))
@@ -103,13 +112,6 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
     statusManager.start();
     return () => statusManager.end();
   }, [files]);
-
-  const notifyFileListChanged = () => {
-    if (!workspace) {
-      return;
-    }
-    loadFiles(workspace);
-  };
 
   const getFile = (id: string) => {
     const localFile = files.find((file) => file.contentHash === id);
@@ -191,7 +193,6 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
         getFileSyncStatus,
         startSyncFile,
         forceSyncFile,
-        notifyFileListChanged,
         notifyFileSyncStatusChanged,
         workspaceFileToLocalFile,
       }}
