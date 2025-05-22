@@ -89,7 +89,7 @@ export default function RefreshDataDialog({
         size="sm"
         onClick={handleRefreshButtonClick}
         disabled={isRefreshingOnlineData}
-        className="group relative ml-2"
+        className="group relative"
       >
         {isRefreshingOnlineData ? (
           <RefreshCw size={16} className="animate-spin" />

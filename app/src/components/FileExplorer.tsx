@@ -628,13 +628,13 @@ const FileExplorer: React.FC<{
           </TooltipProvider>
         </div>
 
-        <div className="flex-1 overflow-auto p-2 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300">
-          <div className="h-full mb-2">
+        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300">
+          <div className="h-full p-2">
             <div
               className={cn(
-                "pl-1 mt-1 space-y-1 h-full min-h-full rounded-md transition-colors",
+                "h-full space-y-1 rounded-md transition-colors",
                 draggingOverPath === "" &&
-                  "border-2 border-dashed border-primary"
+                  "h-full border-2 border-dashed border-primary"
               )}
               onDragOver={(e) => handleDragOver(e, "")}
               onDragLeave={handleDragLeave}
