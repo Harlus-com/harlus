@@ -39,6 +39,15 @@ const SyncDialog: React.FC<SyncDialogProps> = ({
   const [syncUntracked, setSyncUntracked] = React.useState(false);
   const [isSyncing, setIsSyncing] = React.useState(false);
 
+  // Reset state when dialog closes
+  React.useEffect(() => {
+    if (!open) {
+      setSyncTracked(true);
+      setSyncUntracked(false);
+      setIsSyncing(false);
+    }
+  }, [open]);
+
   // Filter files based on folderPath if provided
   const filteredFiles = folderPath
     ? files.filter((file) => {
