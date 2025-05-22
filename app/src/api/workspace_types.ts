@@ -1,7 +1,8 @@
 export interface Workspace {
-  id: string;
-  name: string;
-  localDir: string;
+  readonly id: string;
+  readonly name: string;
+  readonly localDir: string;
+  readonly localDirParts: string[];
 }
 export type SyncStatus =
   | "SYNC_COMPLETE"

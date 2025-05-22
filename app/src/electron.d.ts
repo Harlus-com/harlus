@@ -47,8 +47,8 @@ interface ElectronAPI {
   onLocalFileSystemChange: (callback: (event: any) => void) => void;
   openDirectoryDialog: () => Promise<string | null>;
   moveItem: (
-    item: LocalFile | LocalFolder,
-    newRelativePath: string[]
+    oldAbsolutePath: string,
+    newAbsolutePathParts: string[]
   ) => Promise<boolean>;
   createFolder: (
     parentFolder: LocalFolder,
@@ -62,7 +62,12 @@ interface ElectronAPI {
   ) => Promise<boolean>;
   deleteItem: (item: LocalFile | LocalFolder) => Promise<boolean>;
   ensureFile: (dir: string, subpath: string, name: string) => Promise<string>;
-  downloadPdfFromUrl: (downloadUrl: string, localFilePath: string, authHeader?: string) => Promise<boolean>;
+  downloadPdfFromUrl: (
+    downloadUrl: string,
+    localFilePath: string,
+    authHeader?: string
+  ) => Promise<boolean>;
+  splitPath: (pathString: string) => Promise<string[]>;
 }
 
 declare interface Window {
