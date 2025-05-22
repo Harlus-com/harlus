@@ -54,19 +54,20 @@ class ChatStore:
         """
         Get a chat model, and set the active thread to the given thread_id.
         """
-        if workspace_id not in self.chat_models:
-            workspace = self.workspace_store.get_workspaces()[workspace_id]
-            chat_dir = os.path.join(workspace.absolute_path, "chat")
-            file_id_to_path = {
+        file_id_to_path = {
                 file.id: file.absolute_path
                 for file in self.file_store.get_files(workspace_id).values()
             }
+        if workspace_id not in self.chat_models:
+            workspace = self.workspace_store.get_workspaces()[workspace_id]
+            chat_dir = os.path.join(workspace.absolute_path, "chat")
             self.chat_models[workspace_id] = ChatAgentGraph(
                 file_id_to_path, persist_dir=chat_dir
             )
 
         # TODO: Get rid of caching
         chat_model = self.chat_models[workspace_id]
+        chat_model.file_id_to_path = file_id_to_path # TODO: add this as function to ChatAgentGraph or remove caching
         if not self.thread_exists(workspace_id, thread_id):
             raise ValueError(f"Thread {thread_id} not found")
         if chat_model.get_current_thread_id() != thread_id:

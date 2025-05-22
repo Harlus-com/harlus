@@ -23,6 +23,8 @@ LLM_LIBRARY = {
     ),
 }
 
+MAX_CONTEXT_LENGTH = 90_000
+
 LLM = LLM_LIBRARY["openai-gpt-4o-mini"]
 
 FASTLLM = LLM_LIBRARY["openai-gpt-3.5-turbo"]

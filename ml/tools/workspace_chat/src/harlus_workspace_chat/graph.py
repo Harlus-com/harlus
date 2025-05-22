@@ -22,11 +22,16 @@ from harlus_doc_search.loader import DocSearchToolWrapper
 import uuid
 from langchain_tavily import TavilySearch
 from .tool_executor import ToolExecutorNode
-from .chat_source_comments import get_chat_source_comments_from_retrieved_nodes
+from .chat_source_comments import (
+    get_chat_source_comments_from_retrieved_nodes,
+    get_chat_source_comments_from_citations
+)
 from langgraph.config import get_stream_writer
 from .utils import (
     sanitize_tool_name,
     parse_tool_class,
+    TargetSplitter,
+    parse_evidence
 )
 
 
@@ -198,16 +203,23 @@ class ChatAgentGraph:
             *state[self.state_message_key],
         ]
 
+        target_splitter = TargetSplitter("__sources__")
         writer = get_stream_writer()
         final = ""
+        evidence_text = ""
         async for chunk in self.LLM.astream(prompt):
             delta = chunk.content or ""
-            writer({"answer_message": delta})
-            final += delta
-
+            splitted_chunks = target_splitter.feed(delta)
+            for tag, text in splitted_chunks:
+                if tag == "before":
+                    writer({"answer_message": text})
+                    final += text
+                elif tag == "after":
+                    evidence_text += text
         yield {
             self.state_message_key: state[self.state_message_key] + [AIMessage(content=final)],
             self.state_retrieved_nodes_key: state[self.state_retrieved_nodes_key],
+            "evidence_text": evidence_text,
         }
 
     @staticmethod
@@ -273,6 +285,12 @@ class ChatAgentGraph:
                 pruned_retrieved_nodes.append(retrieved_node)
 
         return pruned_retrieved_nodes
+    
+    async def _get_citations(self, graph):
+        state = await graph.aget_state(self.config)
+        evidence_text = state.values.get("evidence_text", "")
+        citations = parse_evidence(evidence_text)
+        return citations
 
     async def _get_chat_source_comments(self, graph):
         
@@ -281,12 +299,24 @@ class ChatAgentGraph:
         # get the retrieved nodes from the graph
         retrieved_nodes = await self._get_retrieved_nodes(graph)
         retriever_tools = self.tools["all_docs"]["doc_search_semantic_retriever"]
-
-        chat_source_comments = get_chat_source_comments_from_retrieved_nodes(
-            retrieved_nodes, 
-            self.get_current_thread_id(), 
-            str(uuid.uuid4()) # not implementing message_id tracking yet
-        )
+        citations = await self._get_citations(graph)
+        if len(citations) > 0 and len(retrieved_nodes) > 0:
+            chat_source_comments = await get_chat_source_comments_from_citations(
+                citations, 
+                retrieved_nodes, 
+                self.file_id_to_path, 
+                self.get_current_thread_id(), 
+                str(uuid.uuid4()) # not implementing message_id tracking yet
+            )
+        # fall back to retrieved nodes if LLM did not find any citations
+        # for now this will hilight all 
+        elif len(retrieved_nodes) > 0: 
+            chat_source_comments = await get_chat_source_comments_from_retrieved_nodes(
+                retrieved_nodes, 
+                self.get_current_thread_id(), 
+                str(uuid.uuid4()) # not implementing message_id tracking yet
+            )
+        
         return chat_source_comments
 
     async def stream(self, user_message: str):
@@ -303,7 +333,7 @@ class ChatAgentGraph:
         input_state = {
             "messages": [("user", user_message)],
             "retrieved_nodes": [],
-            "full_answer": "",
+            "evidence_text": "",
         }
 
         # Use the database path from persist_dir
