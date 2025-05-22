@@ -7,10 +7,10 @@ from .pdf_utils import (
     _get_fuzzy_match_rects
 )
 from .type_utils import (
-    _get_bounding_box_from_rect, 
-    _get_bounding_boxes_from_node, 
-    _get_page_from_node, 
-    _get_file_path_from_node
+    get_bounding_box_from_rect, 
+    get_bounding_boxes_from_node, 
+    get_page_from_node, 
+    get_file_path_from_node
 )
 from .custom_types import HighlightArea
 from langchain_core.tools import Tool
@@ -89,8 +89,8 @@ class HighlightPipeline:
                     if self.verbose > 0:
                         verbose_text += f" - retriever step failed\n"
                 else:
-                    page_nb = _get_page_from_node(best_retrieved_nodes[0])
-                    file_path = _get_file_path_from_node(best_retrieved_nodes[0])
+                    page_nb = get_page_from_node(best_retrieved_nodes[0])
+                    file_path = get_file_path_from_node(best_retrieved_nodes[0])
                     if self.verbose > 1:
                         verbose_text += f" - best retrieved nodes:\n"
                         for node in best_retrieved_nodes:
@@ -122,8 +122,8 @@ class HighlightPipeline:
             if not skip_to_bag_of_words:
                 if self.verbose > 1:
                     verbose_text += f" <fuzzy match step>\n"
-                file_path = _get_file_path_from_node(matching_node)
-                page_nb = _get_page_from_node(matching_node)
+                file_path = get_file_path_from_node(matching_node)
+                page_nb = get_page_from_node(matching_node)
                 rects, pdf_matched_text = _get_fuzzy_match_rects(
                     matched_text,
                     file_path,
@@ -136,7 +136,7 @@ class HighlightPipeline:
                     skip_to_bag_of_words = True
                 else:
                     state = "retrieved rects with fuzzy match"
-                    bounding_boxes = [_get_bounding_box_from_rect(rect, file_path, page_nb) for rect in rects]
+                    bounding_boxes = [get_bounding_box_from_rect(rect, file_path, page_nb) for rect in rects]
                     if self.verbose > 1:
                         verbose_text += f" - fuzzy match succeeded\n"
                         verbose_text += f" - pdf matched text: {pdf_matched_text}\n"
@@ -156,7 +156,7 @@ class HighlightPipeline:
                         verbose_text += f" - bag of words step failed\n"
                 else:
                     state = "retrieved rects with bag of words"
-                    bounding_boxes = [_get_bounding_box_from_rect(rect, file_path, page_nb) for rect in rects]
+                    bounding_boxes = [get_bounding_box_from_rect(rect, file_path, page_nb) for rect in rects]
                     if self.verbose > 1:
                         verbose_text += f" - bag of words succeeded\n"
             
@@ -164,7 +164,7 @@ class HighlightPipeline:
             if can_use_node_bboxes and len(bounding_boxes) == 0:
                 if self.verbose > 1:
                     verbose_text += f" <node bounding boxes step>\n"
-                bounding_boxes = _get_bounding_boxes_from_node(
+                bounding_boxes = get_bounding_boxes_from_node(
                     matching_node,
                     page_nb,
                     file_path

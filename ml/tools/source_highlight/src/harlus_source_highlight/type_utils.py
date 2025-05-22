@@ -12,7 +12,7 @@ from llama_index.core.schema import NodeWithScore
 #         pass
 
 
-def _get_page_from_node(
+def get_page_from_node(
     node: NodeWithScore,
     ):
     doc_items = node.metadata.get("doc_items", [])
@@ -23,13 +23,13 @@ def _get_page_from_node(
     return page_nb-1
 
 
-def _get_file_path_from_node(
+def get_file_path_from_node(
     node: NodeWithScore,
     ) -> str:
     return node.metadata.get("file_path", "")
 
 
-def _get_bounding_box_from_rect(rect: fitz.Rect, 
+def get_bounding_box_from_rect(rect: fitz.Rect, 
                                 file_path: str, 
                                 page_nb: int
                                 ) -> BoundingBox:
@@ -45,7 +45,7 @@ def _get_bounding_box_from_rect(rect: fitz.Rect,
     )
     return bbox
 
-def _get_bounding_boxes_from_node(
+def get_bounding_boxes_from_node(
         node: NodeWithScore, 
         page_nb: int, 
         file_path: str

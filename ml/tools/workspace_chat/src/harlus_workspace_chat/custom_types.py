@@ -40,7 +40,6 @@ class TavilyToolRetrievedWebsite(BaseModel):
 class ChatGraphState(TypedDict):
     messages: Annotated[list, add_messages]
     sources: list[Union[DocSearchRetrievedNode, TavilyToolRetrievedWebsite]]
-    full_answer: str
 
 
 class BoundingBox(BaseModel):

@@ -1,23 +1,16 @@
 from langchain_core.messages import (
-    ToolMessage,
     SystemMessage,
     AIMessage,
     HumanMessage,
-    AIMessageChunk,
 )
 from langgraph.graph import StateGraph, END, START
 from langgraph.checkpoint.memory import MemorySaver
-from langchain_core.tools import BaseTool
-from langgraph.graph.message import add_messages
-from llama_index.core.tools import QueryEngineTool
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from typing import (
-    List,
     AsyncIterator,
 )
 from .config import LLM, TAVILY_TOOL
 import os
-import re
 import json
 from rapidfuzz.fuzz import partial_ratio
 from .custom_types import (
@@ -27,15 +20,14 @@ from .custom_types import (
     ChatSourceComment,
     DocSearchRetrievedNode,
     TavilyToolRetrievedWebsite,
-    DocSearchNodeMetadata
 )
 from harlus_doc_search.loader import DocSearchToolWrapper
 
 import uuid
-from llama_index.core.schema import NodeWithScore
 from langchain_tavily import TavilySearch
 import fitz
 from .tool_executor import ToolExecutorNode
+from .chat_source_comments import get_chat_source_comments_from_retrieved_nodes
 from langgraph.config import get_stream_writer
 from .utils import (
     sanitize_tool_name,
@@ -61,7 +53,7 @@ class ChatAgentGraph:
         self.persist_dir = persist_dir
         os.makedirs(self.persist_dir, exist_ok=True)
 
-        self.db_path = os.path.join(self.persist_dir, "langgraph.db")
+        self.db_path = os.path.join(self.persist_dir, "chat_agent_graph.db")
 
         self.memory = None
 
@@ -158,15 +150,12 @@ class ChatAgentGraph:
         self.config["configurable"]["thread_id"] = thread_id
 
     async def _communicate_plan(self, state: ChatGraphState) -> AsyncIterator[dict]:
-        prompt = [
-            SystemMessage(
-                content=f"""
-            Provide a plan to answer the last Human Message, make sure the plan involves using the tools described below. DO NOT USE THE TOOLS.
 
-            Each part of the plan should be a new line with a bullet point. NO ADDITIONAL INFORMATION IS NEEDED.                                          
-            {self.tools_descriptions["all_docs"]["doc_search_semantic_retriever"]}
-            """
-            ),
+        with open(os.path.join(os.path.dirname(__file__), "prompts", "communicate_plan.md"), "r") as f:
+            system_prompt_template = f.read()
+        system_prompt = system_prompt_template + self.tools_descriptions["all_docs"]["doc_search_semantic_retriever"]
+        prompt = [
+            SystemMessage(content=system_prompt),
             *state["messages"],
             HumanMessage(content="Provide a plan for your next step."),
         ]
@@ -178,39 +167,31 @@ class ChatAgentGraph:
             final += delta
         yield {
             "messages": state["messages"] + [AIMessage(content=final)],
-            "sources": [],  # reset sources
-            "full_answer": state.get("full_answer", ""),
+            "sources": state["sources"],  # reset sources
         }
 
     async def _call_tools(self, state: ChatGraphState) -> AsyncIterator[dict]:
+        
+        with open(os.path.join(os.path.dirname(__file__), "prompts", "call_tools_prompt.md"), "r") as f:
+            system_prompt_template = f.read()
+        system_prompt = system_prompt_template + self.tools_descriptions["all_docs"]["doc_search_semantic_retriever"]
         prompt = [
-            SystemMessage(
-                content=f"""
-            Only use the tools you have been provided with. 
-            Base yourself on the plan provided by the user.
-            If the plan does not require you to use any tools. Don't do anything.
-                          
-            ONLY USE THE TOOLS YOU HAVE BEEN PROVIDED WITH.
-            """
-            ),
+            SystemMessage(content=system_prompt),
             *state["messages"],
         ]
-
         assistant_msg = await self.tool_llm.ainvoke(prompt)
-
         yield {
             "messages": [assistant_msg],
             "sources": state["sources"],
-            "full_answer": state["full_answer"],
         }
 
     async def _communicate_result(self, state: ChatGraphState) -> AsyncIterator[dict]:
+
+        with open(os.path.join(os.path.dirname(__file__), "prompts", "communicate_result_prompt.md"), "r") as f:
+            system_prompt_template = f.read()
+        system_prompt = system_prompt_template # no tools descriptions here
         prompt = [
-            SystemMessage(
-                content=f"""
-            Answer the latest user-message based on the information given from the previous nodes. 
-            """
-            ),
+            SystemMessage(content=system_prompt),
             *state["messages"],
         ]
 
@@ -224,7 +205,6 @@ class ChatAgentGraph:
         yield {
             "messages": state["messages"] + [AIMessage(content=final)],
             "sources": state["sources"],
-            "full_answer": state["full_answer"],
         }
 
     @staticmethod
@@ -296,58 +276,14 @@ class ChatAgentGraph:
         chat_source_comments = []
 
         # get the retrieved nodes from the graph
-        # TODO: implement time travel to get the retrieved nodes from the previous steps
         retrieved_nodes = await self._get_retrieved_nodes(graph)
         retriever_tools = self.tools["all_docs"]["doc_search_semantic_retriever"]
 
-        # Get the graph state to access its values
-        state = await graph.aget_state(self.config)
-        nb_messages = len(state.values.get("messages", []))
-
-        # convert the retrieved nodes to source annotations
-        last_unique_id = ""
-        for retrieved_node in retrieved_nodes:
-
-            file_path = retrieved_node.metadata.file_path
-            page_nb = retrieved_node.metadata.page_nb
-            doc = fitz.open(file_path)
-            page = doc[page_nb]
-            page_width = page.rect.width
-            page_height = page.rect.height
-
-            bounding_boxes = retrieved_node.metadata.bounding_boxes
-
-            standardized_bounding_boxes = []
-            for bbox in bounding_boxes:
-                standardized_bounding_boxes.append(
-                    {
-                        "left": float(bbox.left / page_width) * 100,
-                        "top": float((page_height - bbox.top) / page_height) * 100,
-                        "width": float(bbox.width / page_width) * 100,
-                        "height": float((bbox.height / page_height) * 100),
-                        "page": page_nb - 1,
-                        "type": "relative",
-                    }
-                )
-
-            # convert to ChatSourceComment framework
-            unique_id = str(uuid.uuid4())
-            bboxes = [BoundingBox(**bbox) for bbox in standardized_bounding_boxes]
-            highlight_area = HighlightArea(
-                bounding_boxes=bboxes, jump_to_page_number=page_nb
-            )
-            chat_source_comment = ChatSourceComment(
-                highlight_area=highlight_area,
-                id=unique_id,
-                file_path=file_path,
-                thread_id=self.config["configurable"].get("thread_id"),
-                message_id=str(nb_messages),
-                text="Response source",
-                next_chat_comment_id=last_unique_id,
-            )
-            last_unique_id = unique_id
-            chat_source_comments.append(chat_source_comment)
-
+        chat_source_comments = get_chat_source_comments_from_retrieved_nodes(
+            retrieved_nodes, 
+            self.get_current_thread_id(), 
+            str(uuid.uuid4()) # not implementing message_id tracking yet
+        )
         return chat_source_comments
 
     async def stream(self, user_message: str):

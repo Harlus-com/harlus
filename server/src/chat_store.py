@@ -4,7 +4,7 @@ import asyncio
 from datetime import datetime
 from typing import Dict, Optional, Any
 
-from harlus_workspace_chat.build_graph import ChatAgentGraph
+from harlus_workspace_chat.graph import ChatAgentGraph
 from pydantic import BaseModel, ConfigDict, Field
 from src.tool_library import ToolLibrary
 from src.util import Timestamp, snake_to_camel, timestamp_now

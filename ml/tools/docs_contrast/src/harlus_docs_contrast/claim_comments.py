@@ -102,7 +102,7 @@ async def _get_claim_comments_from_contrast(
         return None
 
 
-async def _get_claim_comments_from_driver_tree(
+async def get_claim_comments_from_driver_tree(
         driver_tree: list[dict], 
         source_retrievers: list[Tool], 
         evidence_retrievers: list[Tool]
