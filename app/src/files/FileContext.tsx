@@ -71,20 +71,19 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
 
   const loadFiles = async (
     workspace: Workspace,
-    localFiles?: LocalFile[],
-    localFolders?: LocalFolder[]
+    newFiles?: LocalFile[],
+    newFolders?: LocalFolder[]
   ) => {
-    localFiles = localFiles || (await fileService.getLocalFiles(workspace));
-    localFolders =
-      localFolders || (await fileService.getLocalFolders(workspace));
-    fileService.updateServerDirectories(workspaceId, localFiles);
-    setFiles(localFiles);
-    setFolders(localFolders);
+    newFiles = newFiles || (await fileService.getLocalFiles(workspace));
+    newFolders = newFolders || (await fileService.getLocalFolders(workspace));
+    fileService.updateServerDirectories(workspaceId, newFiles);
+    setFiles(newFiles);
+    setFolders(newFolders);
     setWorkspaceFiles(
-      localFiles.map((file) => toWorkspaceFile(workspaceId, file))
+      newFiles.map((file) => toWorkspaceFile(workspaceId, file))
     );
     setWorkspaceFolders(
-      localFolders.map((folder) => ({
+      newFolders.map((folder) => ({
         workspaceId: workspaceId,
         appDir: folder.pathRelativeToWorkspace,
       }))
