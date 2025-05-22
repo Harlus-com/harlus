@@ -58,6 +58,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import SyncDialog from "./SyncDialog";
 
 const FileExplorer: React.FC<{
   workspaceId: string;
@@ -101,6 +102,7 @@ const FileExplorer: React.FC<{
   const [draggingOverPath, setDraggingOverPath] = React.useState<string | null>(
     null
   );
+  const [syncDialogOpen, setSyncDialogOpen] = React.useState(false);
 
   const selectedFileIds: string[] = [];
   for (const fileGroup of Object.values(getOpenFiles())) {
@@ -615,10 +617,7 @@ const FileExplorer: React.FC<{
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0"
-                  onClick={() => {
-                    // Placeholder for import functionality
-                    console.log("Import clicked");
-                  }}
+                  onClick={() => setSyncDialogOpen(true)}
                 >
                   <RefreshCw size={16} />
                 </Button>
@@ -713,6 +712,11 @@ const FileExplorer: React.FC<{
           onOpenChange={(open) => !open && setFileInfoOpen(null)}
         />
       )}
+      <SyncDialog
+        open={syncDialogOpen}
+        onOpenChange={setSyncDialogOpen}
+        workspace={workspace}
+      />
     </>
   );
 };

@@ -9,11 +9,7 @@ import {
 import { createContext, useContext, useEffect, useState } from "react";
 import { FileStatusManager } from "./file_status_manager";
 import { workspaceService } from "@/api/workspaceService";
-import {
-  noLocalFileChanges,
-  noLocalFolderChanges,
-  toWorkspaceFile,
-} from "./file_util";
+import { toWorkspaceFile } from "./file_util";
 
 interface FileContextType {
   getFiles: () => WorkspaceFile[];
