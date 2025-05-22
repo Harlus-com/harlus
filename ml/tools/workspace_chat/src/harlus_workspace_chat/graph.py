@@ -15,17 +15,12 @@ import json
 from rapidfuzz.fuzz import partial_ratio
 from .custom_types import (
     ChatGraphState,
-    BoundingBox,
-    HighlightArea,
-    ChatSourceComment,
     DocSearchRetrievedNode,
-    TavilyToolRetrievedWebsite,
 )
 from harlus_doc_search.loader import DocSearchToolWrapper
 
 import uuid
 from langchain_tavily import TavilySearch
-import fitz
 from .tool_executor import ToolExecutorNode
 from .chat_source_comments import get_chat_source_comments_from_retrieved_nodes
 from langgraph.config import get_stream_writer
@@ -65,7 +60,8 @@ class ChatAgentGraph:
             tools=[], 
             tool_name_to_metadata={},
             message_state_key=self.state_message_key,
-            retrieved_items_state_key=self.state_retrieved_nodes_key
+            retrieved_items_state_key=self.state_retrieved_nodes_key,
+            file_id_to_path=self.file_id_to_path
         )
         self.tools_descriptions = {}
 
@@ -141,7 +137,9 @@ class ChatAgentGraph:
             tools=self.tools["all_docs"]["doc_search_semantic_retriever"],
             tool_name_to_metadata=self.tool_name_to_metadata["all_docs"]["doc_search_semantic_retriever"], 
             message_state_key=self.state_message_key, 
-            retrieved_items_state_key=self.state_retrieved_nodes_key)
+            retrieved_items_state_key=self.state_retrieved_nodes_key,
+            file_id_to_path=self.file_id_to_path
+        )
         
         self.tool_llm = self.LLM.bind_tools(self.tools["all_docs"]["doc_search_semantic_retriever"])
 

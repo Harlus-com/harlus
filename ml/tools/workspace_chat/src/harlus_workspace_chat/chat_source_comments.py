@@ -6,7 +6,11 @@ from .custom_types import(
 import uuid
 from llama_index.core.schema import NodeWithScore
 
-def get_chat_source_comments_from_retrieved_nodes(retrieved_nodes: list[DocSearchRetrievedNode], thread_id: str, message_id: str) -> list[ChatSourceComment]:
+def get_chat_source_comments_from_retrieved_nodes(
+        retrieved_nodes: list[DocSearchRetrievedNode], 
+        thread_id: str, 
+        message_id: str,
+        ) -> list[ChatSourceComment]:
     chat_source_comments = []
     for retrieved_node in retrieved_nodes:
         highlight_area = HighlightArea(
@@ -16,7 +20,7 @@ def get_chat_source_comments_from_retrieved_nodes(retrieved_nodes: list[DocSearc
         chat_source_comment = ChatSourceComment(
             id=str(uuid.uuid4()),
             highlight_area=highlight_area,
-            file_path=retrieved_node.metadata.file_path,
+            file_id=retrieved_node.metadata.file_id,
             text="Source used in chat",
             next_chat_comment_id=str(uuid.uuid4()), # currently not used
             thread_id=thread_id,

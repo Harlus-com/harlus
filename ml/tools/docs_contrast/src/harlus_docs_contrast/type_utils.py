@@ -61,11 +61,11 @@ def get_page_from_node(
 
 
 
-def get_doc_search_retrieved_node_from_node_with_score(retrieved_node: NodeWithScore) -> DocSearchRetrievedNode:
+def get_doc_search_retrieved_node_from_node_with_score(retrieved_node: NodeWithScore, file_id_to_path: dict[str, str]) -> DocSearchRetrievedNode:
 
     page_nb = get_page_from_node(retrieved_node)
     file_id = get_file_id_from_node(retrieved_node)
-    bounding_boxes = get_bounding_boxes_from_node(retrieved_node, page_nb, file_id)
+    bounding_boxes = get_bounding_boxes_from_node(retrieved_node, page_nb, file_id_to_path[file_id])
 
     metadata = DocSearchNodeMetadata(
         raw_metadata=retrieved_node.metadata,

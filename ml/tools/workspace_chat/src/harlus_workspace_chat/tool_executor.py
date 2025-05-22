@@ -27,7 +27,8 @@ class ToolExecutorNode:
                  tools: list, 
                  tool_name_to_metadata: dict, 
                  message_state_key: str = "messages", 
-                 retrieved_items_state_key: str = "retrieved_items"
+                 retrieved_items_state_key: str = "retrieved_items",
+                 file_id_to_path: dict[str, str] = {}
                  ) -> None:    
         self.tools_by_name = {tool.name: tool for tool in tools}
         self.tool_name_to_metadata = tool_name_to_metadata
@@ -41,7 +42,7 @@ class ToolExecutorNode:
             "doc_search_summary_retriever",
             "doc_search_sub_question_semantic_query_engine"
         ]
-
+        self.file_id_to_path = file_id_to_path
     async def _process_doc_search_tool_call(self, tool_call) -> tuple[list[DocSearchRetrievedNode], ToolMessage]:
         retrieved_nodes = []
         tool = self.tools_by_name[tool_call["name"]]
@@ -54,7 +55,7 @@ class ToolExecutorNode:
         tool_result = await tool.ainvoke(tool_call["args"])
         nodes_with_scores = get_nodes_with_score_from_doc_search_tool_result(tool_result, tool_type)
         for node_with_score in nodes_with_scores:
-            retrieved_node = get_doc_search_retrieved_node_from_node_with_score(node_with_score)
+            retrieved_node = get_doc_search_retrieved_node_from_node_with_score(node_with_score, self.file_id_to_path)
             retrieved_nodes.append(retrieved_node)
         content = json.dumps(tool_result.content)
         tool_message = ToolMessage(

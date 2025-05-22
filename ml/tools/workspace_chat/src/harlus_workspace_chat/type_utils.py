@@ -44,10 +44,10 @@ def get_bounding_boxes_from_node(
     return bounding_boxes
 
 # TODO: Change after rebase - copy from source_highlight
-def get_file_path_from_node(
+def get_file_id_from_node(
     node: NodeWithScore,
     ) -> str:
-    return node.metadata.get("file_path", "")
+    return node.metadata.get("file_id", "")
 
 
 def get_page_from_node(
@@ -62,17 +62,16 @@ def get_page_from_node(
 
 
 
-def get_doc_search_retrieved_node_from_node_with_score(retrieved_node: NodeWithScore) -> DocSearchRetrievedNode:
+def get_doc_search_retrieved_node_from_node_with_score(retrieved_node: NodeWithScore, file_id_to_path: dict[str, str]) -> DocSearchRetrievedNode:
 
     page_nb = get_page_from_node(retrieved_node)
-    file_path = get_file_path_from_node(retrieved_node)
-    bounding_boxes = get_bounding_boxes_from_node(retrieved_node, page_nb, file_path)
-    print(bounding_boxes)
+    file_id = get_file_id_from_node(retrieved_node)
+    bounding_boxes = get_bounding_boxes_from_node(retrieved_node, page_nb, file_id_to_path[file_id])
 
     metadata = DocSearchNodeMetadata(
         raw_metadata=retrieved_node.metadata,
         page_nb=page_nb,
-        file_path=file_path,
+        file_id=file_id,
         bounding_boxes=[BoundingBox(**bbox.model_dump()) for bbox in bounding_boxes]
     )
     output = DocSearchRetrievedNode(
