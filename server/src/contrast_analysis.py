@@ -6,10 +6,9 @@ import uuid
 from src.workspace_store import Workspace
 from src.file_store import FileStore
 from src.tool_library import ToolLibrary
-import pickle
-import json
+from src.file_types import File
 
-cache_file_path_base = "contrast_analysis"
+
 
 
 async def analyze(
@@ -19,6 +18,34 @@ async def analyze(
     tool_library: ToolLibrary,
     workspace: Workspace,
 ):
+    
+    file_id_to_path, old_file_tool, new_file_tool = get_contrast_analysis_inputs(
+        old_file_id, 
+        new_file_id, 
+        file_store, 
+        tool_library
+    )
+    contrast_agent = ContrastAgentGraph(file_id_to_path)
+    contrast_agent.update_tools(
+        [old_file_tool],
+        [new_file_tool],
+    )
+    contrast_agent.set_thread(uuid.uuid4())
+    claim_comments, driver_tree = await contrast_agent.run()
+    response_comments = _get_response_comments_from_claim_comments(
+        claim_comments,                                                            
+        old_file_id, 
+        new_file_id, 
+        file_store
+    )
+    return response_comments
+
+def get_contrast_analysis_inputs(
+        old_file_id: str, 
+        new_file_id: str, 
+        file_store: FileStore, 
+        tool_library: ToolLibrary
+    ) -> ContrastAgentGraph:
     old_file = file_store.get_file(old_file_id)
     new_file = file_store.get_file(new_file_id)
 
@@ -29,43 +56,47 @@ async def analyze(
         new_file.absolute_path, "doc_search"
     )
 
-    thread_id = f"{old_file_id}_{new_file_id}_{uuid.uuid4()}"
-    contrast_agent = ContrastAgentGraph(
-        {old_file_id: old_file.absolute_path, new_file_id: new_file.absolute_path},
-    )
-    contrast_agent.update_tools(
-        [old_file_doc_search_tool_wrapper.get()],
-        [new_file_doc_search_tool_wrapper.get()],
-    )
-    contrast_agent.set_thread(thread_id)
+    file_id_to_path = {old_file_id: old_file.absolute_path, new_file_id: new_file.absolute_path}
 
-    cache_file_path = os.path.join(f"{old_file_id}_{new_file_id}")
+    return file_id_to_path, old_file_doc_search_tool_wrapper.get(), new_file_doc_search_tool_wrapper.get()
 
-    if os.path.exists(cache_file_path):
-        claim_comments = pickle.load(
-            open(os.path.join(cache_file_path, "claim_comments.pkl"), "rb")
-        )
-        driver_tree = json.load(
-            open(os.path.join(cache_file_path, "driver_tree.json"), "r")
-        )
-    else:
-        claim_comments, driver_tree = await contrast_agent.run(
-            f"What impact does {new_file.absolute_path} have on {old_file.absolute_path}?"
-        )
-        pickle.dump(claim_comments, open(f"{cache_file_path}_claim_comments.pkl", "wb"))
-        json.dump(driver_tree, open(f"{cache_file_path}_driver_tree.json", "w"))
-
+   
+def _get_response_comments_from_claim_comments(claim_comments: list[any], old_file_id: str, new_file_id: str, file_store: FileStore) -> list[any]:
+    old_file = file_store.get_file(old_file_id)
+    new_file = file_store.get_file(new_file_id)
     response_comments = []
-    time_now = datetime.now().isoformat()
     i = 1
     for comment in claim_comments:
         i = i + 1
-        response_comments.append(
+        response_comments.append(_get_response_comment_from_claim_comment(comment, old_file, new_file, i))
+    return response_comments
+
+
+def _get_response_comment_from_claim_comment(comment: any, old_file: File, new_file: File, i: int) -> str:
+    time_now = datetime.now().isoformat()
+    return {
+        "id": f"{time_now}_claim_comment_{i}",
+        "fileId": comment.file_id,
+        "commentGroupId": f"{time_now}_{old_file.name}_{new_file.name}",
+        "text": comment.text,
+        "highlightArea": {
+            "boundingBoxes": [
+                {
+                    "left": box.left,
+                    "top": box.top,
+                    "width": box.width,
+                    "height": box.height,
+                    "page": box.page,
+                }
+                for box in comment.highlight_area.bounding_boxes
+            ],
+        },
+        "links": [
             {
-                "id": f"{time_now}_claim_comment_{i}",
-                "fileId": comment.file_id,
+                "id": f"{time_now}_link_comment_{i}_{j}",
+                "fileId": link.file_id,
                 "commentGroupId": f"{time_now}_{old_file.name}_{new_file.name}",
-                "text": comment.text,
+                "text": "",
                 "highlightArea": {
                     "boundingBoxes": [
                         {
@@ -75,33 +106,13 @@ async def analyze(
                             "height": box.height,
                             "page": box.page,
                         }
-                        for box in comment.highlight_area.bounding_boxes
+                        for box in link.highlight_area.bounding_boxes
                     ],
                 },
-                "links": [
-                    {
-                        "id": f"{time_now}_link_comment_{i}_{j}",
-                        "fileId": link.file_id,
-                        "commentGroupId": f"{time_now}_{old_file.name}_{new_file.name}",
-                        "text": "",
-                        "highlightArea": {
-                            "boundingBoxes": [
-                                {
-                                    "left": box.left,
-                                    "top": box.top,
-                                    "width": box.width,
-                                    "height": box.height,
-                                    "page": box.page,
-                                }
-                                for box in link.highlight_area.bounding_boxes
-                            ],
-                        },
-                        "parentCommentId": f"{time_now}_claim_comment_{i}",
-                    }
-                    for j, link in enumerate(comment.links)
-                    if len(link.highlight_area.bounding_boxes) > 0
-                ],
-                "verdict": comment.verdict,
+                "parentCommentId": f"{time_now}_claim_comment_{i}",
             }
-        )
-    return response_comments
+            for j, link in enumerate(comment.links)
+            if len(link.highlight_area.bounding_boxes) > 0
+        ],
+        "verdict": comment.verdict,
+    }

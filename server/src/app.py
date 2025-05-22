@@ -27,14 +27,14 @@ from src.tool_library import ToolLibrary
 from src.file_store import FileStore
 from src.file_types import LocalFile
 from src.sync_queue import SyncQueue, SyncType
-from src.contrast_analysis import analyze
+from src.contrast_analysis import analyze, get_contrast_analysis_inputs
 from src.sec_loader import SecSourceLoader, WebFile
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt
 import httpx
-
+import uuid
 import base64
 
 TENANT_ID = "27dfce8d-8b21-4c81-8579-2baedebea216"
@@ -222,6 +222,37 @@ async def stream_chat(
     chat_model = chat_store.get_chat_model(workspace_id, thread_id)
     response = StreamingResponse(
         chat_model.stream(query),
+        media_type="text/event-stream",
+    )
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "false"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
+@app.get("/contrast/stream")
+async def stream_contrast(
+    # Original parameters commented out
+    old_file_id: str = Query(..., alias="oldFileId"),
+    new_file_id: str = Query(..., alias="newFileId"),
+    workspace_id: str = Query(..., alias="workspaceId"),
+    token: str = Query(..., alias="token"),    
+):
+    # Validate the token
+    if not validate_token(token):
+        raise HTTPException(status_code=403, detail="Invalid or expired token")
+    file_id_to_path, old_file_tool, new_file_tool = get_contrast_analysis_inputs(
+        old_file_id, 
+        new_file_id, 
+        file_store, 
+        tool_library, 
+    )
+    thread_id = str(uuid.uuid4()) # currently create new thread for each contrast analysis
+    chat_store.create_thread(workspace_id, thread_id, "Contrast Analysis")
+    chat_model = chat_store.get_chat_model(workspace_id, thread_id)
+    chat_model.prepare_harlus_docs_contrast([old_file_tool], [new_file_tool], file_id_to_path)
+    response = StreamingResponse(
+        chat_model.stream(user_message="", harlus_docs_contrast_request_run="true"), # forces graph to run subnode with contrast analysis
         media_type="text/event-stream",
     )
     response.headers["Access-Control-Allow-Origin"] = "*"
