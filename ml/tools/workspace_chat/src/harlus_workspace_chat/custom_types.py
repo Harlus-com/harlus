@@ -41,7 +41,7 @@ class TavilyToolRetrievedWebsite(BaseModel):
 class ChatGraphState(TypedDict):
     messages: Annotated[list, add_messages]
     retrieved_nodes: list[Union[DocSearchRetrievedNode, TavilyToolRetrievedWebsite]]
-
+    evidence_text: str
 
 class HighlightArea(BaseModel):
     bounding_boxes: list[BoundingBox]

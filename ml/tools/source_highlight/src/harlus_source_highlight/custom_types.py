@@ -37,3 +37,27 @@ class ClaimComment(BaseModel):
     highlight_area: HighlightArea
     links: List[LinkComment]
     verdict: Literal["true", "false", "unknown"]
+
+
+
+class DocSearchNodeMetadata(BaseModel):
+    raw_metadata: dict
+    page_nb: int
+    file_id: str
+    bounding_boxes: list[BoundingBox]
+
+
+class DocSearchToolMetadata(BaseModel):
+    date: str
+    ticker: str
+    keywords: str
+    source_name: str
+    title: str
+    company_name: str
+    summary: str
+    file_id: str
+
+
+class DocSearchRetrievedNode(BaseModel):
+    metadata: DocSearchNodeMetadata
+    text: str

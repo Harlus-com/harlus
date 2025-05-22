@@ -1,12 +1,16 @@
-from .llm_utils import _get_best_retrieved_nodes, _get_source_from_nodes_with_llm
+from .llm_utils import get_best_retrieved_nodes, get_source_from_nodes_with_llm
 from .pdf_utils import _get_bag_of_words_rects, _get_fuzzy_match_rects
 from .type_utils import (
     get_bounding_box_from_rect,
     get_bounding_boxes_from_node,
     get_file_id_from_node,
     get_page_from_node,
+    get_doc_search_retrieved_node_from_node_with_score,
 )
-from .custom_types import HighlightArea
+from .custom_types import (
+    HighlightArea,
+    DocSearchRetrievedNode,
+)
 from langchain_core.tools import Tool
 from llama_index.core.schema import NodeWithScore
 
@@ -15,17 +19,32 @@ class HighlightPipeline:
     def __init__(
         self,
         file_id_to_path: dict[str, str],
-        retrievers: list[Tool] = None,
-        nodes: list[NodeWithScore] = None,
-        verbose: int = 2,
+        retrievers: list[Tool] = [],
+        nodes: list[NodeWithScore] | list[DocSearchRetrievedNode] = [],
+        verbose_level: int = 2,
     ):
-        if retrievers is None and nodes is None:
+        if len(retrievers) == 0 and len(nodes) == 0:
             raise ValueError("Either retrievers or nodes must be provided")
 
         self.file_id_to_path = file_id_to_path
         self.retrievers = retrievers
         self.nodes = nodes
-        self.verbose = verbose
+        if len(self.nodes) > 0 and isinstance(self.nodes[0], NodeWithScore):
+            self.nodes = [
+                get_doc_search_retrieved_node_from_node_with_score(node, file_id_to_path)
+                for node in self.nodes
+            ]
+        
+        self.verbose_level = verbose_level
+        self.verbose_text = ""
+    
+    def _log_collect(self, text: str, level: int = 1):
+        if self.verbose_level >= level:
+            self.verbose_text += text
+    
+    def _log_flush(self):
+        print(self.verbose_text)
+        self.verbose_text = ""
 
     async def run(
         self,
@@ -34,9 +53,7 @@ class HighlightPipeline:
 
         # Due to async, we rather collect all print statements in a single string
         # and print it once at the end.
-        verbose_text = ""
-        if self.verbose > 1:
-            verbose_text += " ==== NodePipeline DEBUG set-up ==== \n"
+        self._log_collect(" ==== NodePipeline DEBUG set-up ==== \n", level=2)
 
         # Determine entry point in pipeline. If nodes are provided,
         # these are used. Otherwise we start with a retrieval step to get the
@@ -49,8 +66,7 @@ class HighlightPipeline:
                 len(self.retrievers) > 0
             ), "Either retrievers or nodes must be provided"
 
-        if self.verbose > 1:
-            verbose_text += f" - start with nodes: {start_with_nodes}\n"
+        self._log_collect(f" - start with nodes: {start_with_nodes}\n", level=2)
 
         # Split source text into sentences to increase robustness
         # for large source texts at the cost of potentially double-matching small
@@ -67,56 +83,53 @@ class HighlightPipeline:
             file_id = ""
             page_nb = 0
 
-            if self.verbose > 1:
-                verbose_text += f" \n\n==== NodePipeline DEBUG : source text split iteration ==== \n"
-                verbose_text += f" - source_text_split: {source_text_split}\n"
+            self._log_collect(f" \n\n==== NodePipeline DEBUG : source text split iteration ==== \n", level=2)
+            self._log_collect(f" - source_text_split: {source_text_split}\n", level=2)
 
             # Retrieve nodes
             if not start_with_nodes:
-                if self.verbose > 1:
-                    verbose_text += f" <retriever step>\n"
-                best_retrieved_nodes = await _get_best_retrieved_nodes(
+                self._log_collect(f" <retriever step>\n", level=2)
+                best_retrieved_nodes = await get_best_retrieved_nodes(
                     source_text,  # use full source text for better performance
                     self.retrievers,
                     min_score=8,
                 )
+                # convert to DocSearchRetrievedNode
+                best_retrieved_nodes = [
+                    get_doc_search_retrieved_node_from_node_with_score(node, self.file_id_to_path)
+                    for node in best_retrieved_nodes
+                ]
                 if best_retrieved_nodes is None:
                     state = "failed to retrieve nodes"
                     skip_to_bag_of_words = True
-                    if self.verbose > 0:
-                        verbose_text += f" - retriever step failed\n"
+                    self._log_collect(f" - retriever step failed\n", level=2)
                 else:
                     page_nb = get_page_from_node(best_retrieved_nodes[0])
                     file_id = get_file_id_from_node(best_retrieved_nodes[0])
-                    if self.verbose > 1:
-                        verbose_text += f" - best retrieved nodes:\n"
-                        for node in best_retrieved_nodes:
-                            verbose_text += f"     - {node.text}\n"
+                    self._log_collect(f" - best retrieved nodes:\n", level=2)
+                    for node in best_retrieved_nodes:
+                        self._log_collect(f"     - {node.text}\n", level=2)
             else:
                 best_retrieved_nodes = self.nodes
 
             # Extract source text from nodes with LLM
             if not skip_to_bag_of_words:
-                if self.verbose > 1:
-                    verbose_text += f" <source text extraction step>\n"
-                matched_text, matching_node = await _get_source_from_nodes_with_llm(
+                self._log_collect(f" <source text extraction step>\n", level=2)
+                matched_text, matching_node = await get_source_from_nodes_with_llm(
                     best_retrieved_nodes, source_text_split
                 )
                 if matched_text is None or matching_node is None:
                     state = "failed to retrieve source text"
-                    if self.verbose > 0:
-                        verbose_text += f" - source text extraction step failed\n"
+                    self._log_collect(f" - source text extraction step failed\n", level=2)
                     skip_to_bag_of_words = True
                 else:
                     can_use_node_bboxes = True
-                    if self.verbose > 1:
-                        verbose_text += f" - matched text: {matched_text}\n"
-                        verbose_text += f" - matching node: {matching_node.text}\n"
+                    self._log_collect(f" - matched text: {matched_text}\n", level=2)
+                    self._log_collect(f" - matching node: {matching_node.text}\n", level=2)
 
             # Search the pdf for the exact source text
             if not skip_to_bag_of_words:
-                if self.verbose > 1:
-                    verbose_text += f" <fuzzy match step>\n"
+                self._log_collect(f" <fuzzy match step>\n", level=2)
                 file_id = get_file_id_from_node(matching_node)
                 page_nb = get_page_from_node(matching_node)
                 rects, pdf_matched_text = _get_fuzzy_match_rects(
@@ -124,8 +137,7 @@ class HighlightPipeline:
                 )
                 if rects is None:
                     state = "failed to retrieve rects with fuzzy match"
-                    if self.verbose > 0:
-                        verbose_text += f" - fuzzy match step failed\n"
+                    self._log_collect(f" - fuzzy match step failed\n", level=2)
                     skip_to_bag_of_words = True
                 else:
                     state = "retrieved rects with fuzzy match"
@@ -135,21 +147,18 @@ class HighlightPipeline:
                         )
                         for rect in rects
                     ]
-                    if self.verbose > 1:
-                        verbose_text += f" - fuzzy match succeeded\n"
-                        verbose_text += f" - pdf matched text: {pdf_matched_text}\n"
+                    self._log_collect(f" - fuzzy match succeeded\n", level=2)
+                    self._log_collect(f" - pdf matched text: {pdf_matched_text}\n", level=2)
 
             # Fall back to bag of words
             if skip_to_bag_of_words:
-                if self.verbose > 1:
-                    verbose_text += f" <bag of words step>\n"
+                self._log_collect(f" <bag of words step>\n", level=2)
                 rects = _get_bag_of_words_rects(
                     source_text_split, self.file_id_to_path[file_id], page_nb
                 )
                 if rects is None:
                     state = "failed to retrieve rects with bag of words"
-                    if self.verbose > 0:
-                        verbose_text += f" - bag of words step failed\n"
+                    self._log_collect(f" - bag of words step failed\n", level=2)
                 else:
                     state = "retrieved rects with bag of words"
                     bounding_boxes = [
@@ -158,13 +167,11 @@ class HighlightPipeline:
                         )
                         for rect in rects
                     ]
-                    if self.verbose > 1:
-                        verbose_text += f" - bag of words succeeded\n"
+                    self._log_collect(f" - bag of words succeeded\n", level=2)
 
             # Fall back to node bounding boxes (if possible)
             if can_use_node_bboxes and len(bounding_boxes) == 0:
-                if self.verbose > 1:
-                    verbose_text += f" <node bounding boxes step>\n"
+                self._log_collect(f" <node bounding boxes step>\n", level=2)
                 bounding_boxes = get_bounding_boxes_from_node(
                     matching_node, page_nb, self.file_id_to_path[file_id]
                 )
@@ -194,12 +201,11 @@ class HighlightPipeline:
                     ):
                         all_wrapped_bounding_boxes.append(wrapped_bounding_boxes)
                     else:
-                        if self.verbose > 0:
-                            verbose_text += f"Warning: Mismatched file paths detected. Expected {all_wrapped_bounding_boxes[0]['file_id']}, got {wrapped_bounding_boxes['file_id']}\n"
+                        self._log_collect(f"Warning: Mismatched file paths detected. Expected {all_wrapped_bounding_boxes[0]['file_id']}, got {wrapped_bounding_boxes['file_id']}\n", level=2)
                 else:
                     all_wrapped_bounding_boxes.append(wrapped_bounding_boxes)
 
-        print(verbose_text)
+        self._log_flush()
 
         # Post-process the wrapped bounding boxes to highlight areas
         # In the future we could skip the wrapped_bounding_boxes intermediate type

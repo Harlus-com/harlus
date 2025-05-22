@@ -43,7 +43,6 @@ def get_bounding_boxes_from_node(
                 bounding_boxes.append(bbox_out)
     return bounding_boxes
 
-# TODO: Change after rebase - copy from source_highlight
 def get_file_id_from_node(
     node: NodeWithScore,
     ) -> str:
