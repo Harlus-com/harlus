@@ -104,9 +104,6 @@ class FileService {
     pathRelativeToWorkspace: string | "", 
     startDate: string
   ): Promise<void> {
-    console.log(
-      `[FileService] Streaming files into ${pathRelativeToWorkspace === "" ? 'workspace root' : pathRelativeToWorkspace}`
-    );
     if (!window.electron) {
       throw new Error("Electron is not available");
     }
@@ -119,23 +116,13 @@ class FileService {
 
     for (const { name, url: remoteFileUrlSuffix } of files) {
       try {
-        // Ensure the remoteFileUrlSuffix is just the query part or path + query
-        // The server's OpenBBLoader returns 'report_url' which should be a full URL.
-        // If it's a full URL, we don't need to prepend baseUrl.
-        // If it's a path, we might. Let's assume 'remoteFileUrlSuffix' is a full valid URL for now.
-        // The backend endpoint is /file/download_pdf_from_url?url=<ACTUAL_FILE_URL>
-        // So the `downloadUrl` for the IPC call should be `${baseUrl}/file/download_pdf_from_url?url=${encodeURIComponent(remoteFileUrlSuffix)}`
-        
         const serverApiDownloadUrl = `${baseUrl}/file/download_pdf_from_url?url=${encodeURIComponent(remoteFileUrlSuffix)}`;
 
         const destPath = await window.electron.ensureFile(
           workspace.localDir,
           pathRelativeToWorkspace,
-          `${name}.pdf` // The name from the listing should be the desired local filename
+          `${name}.pdf`
         );
-
-        console.log(`[FileService] Requesting download for ${name} from ${serverApiDownloadUrl} to ${destPath}`);
-        
         await window.electron.downloadPdfFromUrl(serverApiDownloadUrl, destPath, authHeader);
         
         console.log(`[FileService] Successfully downloaded ${name} to ${destPath}`);

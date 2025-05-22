@@ -52,10 +52,4 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("ensure-file", dir, subpath, name),
   downloadPdfFromUrl: (downloadUrl: string, localFilePath: string, authHeader?: string) =>
     ipcRenderer.invoke("download-pdf-from-url", downloadUrl, localFilePath, authHeader),
-  // createWriteStream: (filePath: string) =>
-  //   ipcRenderer.invoke("create-write-stream", filePath),
-  // writeChunk: (streamId: string, chunk: Uint8Array) =>
-  //   ipcRenderer.invoke("write-chunk", streamId, chunk),
-  // closeStream: (streamId: string) =>
-  //   ipcRenderer.invoke("close-stream", streamId),
 });

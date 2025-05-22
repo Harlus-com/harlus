@@ -21,10 +21,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 OBB_CONFIG = {}
 OBB_CONFIG["sec_relevant_filings"] = {"10-Q", "10-K"}
 
-# class FileInfo(BaseModel):
-#     name: str
-#     url: str
-
 class OpenBBLoader:
 
     def __init__(self) -> None:
@@ -94,10 +90,6 @@ SELENIUM_CONFIG["pdf_page_settings"] = {
     "marginRight": 0.4,
 }
 
-# class FilePDFContent(BaseModel):
-#     name: str
-#     pdf_content: bytes
-
 class SeleniumLoader():
 
     @staticmethod
@@ -131,89 +123,6 @@ class SeleniumLoader():
 
         driver.quit()
         return out
-
-# ---------------------------------------------------------------------------
-# SEC source loader
-# ---------------------------------------------------------------------------
-
-
-# class SecSourceLoader:
-#     """Download filings through OpenBloomberg."""
-
-#     def __init__(self) -> None:
-#         self.config = config
-
-#     def _fetch_pdf(self, url: str) -> tuple[str | bytes, bytes | None]:
-#         try:
-#             self.selenium_loader.load(url)
-#             pdf = self.selenium_loader.get_pdf()
-#         except Exception as e:
-#             print(f"Error fetching with Selenium from {url}: {e}")
-#             pdf = None
-
-#         return pdf
-
-#     @staticmethod
-#     def list_available_files(ticker: str, start_date: date | None = None) -> list[]:
-#         obb_loader = OpenBBFilingsLoader()
-
-#         available_files_df = obb_loader.get(ticker, start_date)
-#         print(f"SecSourceLoader: Found {len(available_files_df)} files to fetch.")
-
-#     def get_file(self, ):
-#         selenium_loader = SeleniumLoader()
-        
-#         if files_to_fetch_df.is_empty():
-#             return []
-
-#         files: list[WebFile] = []
-#         for row in files_to_fetch_df.to_dicts():
-#             file_name_no_ext = row["filename_stem"]
-#             report_url = row["report_url"]
-#             pdf = self._fetch_pdf(report_url)
-
-#             if pdf is not None:
-#                 files.append(WebFile(
-#                     file_name=f"{file_name_no_ext}.pdf",
-#                     report_url=report_url,
-#                     pdf_content=pdf,
-#                 ))
-#             else:
-#                 print(f"Warning: Could not fetch content for {file_name_no_ext} from {report_url}")
-
-#         return file
-
-    # def download_files(self, ticker: str, start_date: date | None = None) -> list[WebFile]:
-    #     files_to_fetch_df = self.obb_loader.get(ticker, start_date)
-    #     print(f"SecSourceLoader: Found {len(files_to_fetch_df)} files to fetch.")
-
-    #     if files_to_fetch_df.is_empty():
-    #         return []
-
-    #     files: list[WebFile] = []
-    #     for row in files_to_fetch_df.to_dicts():
-    #         file_name_no_ext = row["filename_stem"]
-    #         report_url = row["report_url"]
-    #         pdf = self._fetch_pdf(report_url)
-
-    #         if pdf is not None:
-    #             files.append(WebFile(
-    #                 file_name=f"{file_name_no_ext}.pdf",
-    #                 report_url=report_url,
-    #                 pdf_content=pdf,
-    #             ))
-    #         else:
-    #             print(f"Warning: Could not fetch content for {file_name_no_ext} from {report_url}")
-
-    #     return files
-
-    # def __del__(self) -> None:
-    #     print("SecSourceLoader: Cleaning up resources.")
-    #     if hasattr(self, "selenium_loader") and self.selenium_loader:
-    #         try:
-    #             del self.selenium_loader
-    #         except Exception as e:
-    #             print(f"Error cleaning up Selenium loader: {e}")
 
 
 __all__ = ["OpenBBLoader", "SeleniumLoader"]

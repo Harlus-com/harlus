@@ -422,25 +422,6 @@ async def upload_file(
     return await file_uploader.upload_file(workspace_id, app_dir, content_hash, upload)
 
 
-# @api_router.get("/workspace/get_online_data")
-# async def get_online_data(
-#     workspace_ticker: str = Query(..., alias="workspaceTicker"),
-#     start_date: str = Query(..., alias="startDate"),
-# ):
-#     web_files: list[WebFile] = SecSourceLoader().download_files(
-#         workspace_ticker,
-#         start_date=datetime.datetime.strptime(start_date, "%Y-%m-%d").date(),
-#     )
-#     files_to_download_json = []
-#     for web_file in web_files:
-#         files_to_download_json.append(
-#             {
-#                 "fileName": web_file.file_name,
-#                 "contentBase64": base64.b64encode(web_file.pdf_content).decode("utf-8"),
-#             }
-#         )
-#     return files_to_download_json
-
 
 @api_router.get("/workspace/{workspace_name}/online_files")
 async def list_online_files(

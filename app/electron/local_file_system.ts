@@ -1,13 +1,13 @@
 import { promises as fs } from "fs";
-import * as fsCallback from "fs"; // For fs.createWriteStream
+import * as fsCallback from "fs";
 import path from "path";
 import crypto from "crypto";
-import axios, { AxiosError } from "axios"; // Import axios
-import stream from "stream"; // Import stream for pipeline
-import { promisify } from "util"; // Import promisify
+import axios, { AxiosError } from "axios";
+import stream from "stream";
+import { promisify } from "util";
 import { LocalFile, LocalFolder } from "./electron_types";
 import chokidar, { FSWatcher } from "chokidar";
-import { Agent } from "https"; // Import Agent for httpsAgent type
+import { Agent } from "https";
 
 export async function walkFiles(dir: string): Promise<string[]> {
   let results: string[] = [];
@@ -277,34 +277,6 @@ export async function ensureFile(
   return path.join(dirPath, fileName);
 }
 
-// export async function createWriteStream(
-//   filePath: string
-// ): Promise<{
-//   write(chunk: Uint8Array): Promise<void>;
-//   close(): Promise<void>;
-// }> {
-//   const stream = fsCallback.createWriteStream(filePath);
-//   return {
-//     write(chunk: Uint8Array): Promise<void> {
-//       return new Promise<void>((resolve, reject) => {
-//         const ok = stream.write(chunk, (err) => {
-//           if (err) reject(err);
-//           else resolve();
-//         });
-//         if (!ok) {
-//           stream.once("drain", () => resolve());
-//         }
-//       });
-//     },
-//     close(): Promise<void> {
-//       return new Promise<void>((resolve, reject) => {
-//         stream.end(() => resolve());
-//         stream.once("error", (err) => reject(err));
-//       });
-//     },
-//   };
-// }
-
 const pipeline = promisify(stream.pipeline);
 
 export async function downloadPdfFromUrl(
@@ -326,34 +298,15 @@ export async function downloadPdfFromUrl(
       headers,
     });
 
-    const localFileWriteStream = fsCallback.createWriteStream(localFilePath); // Use fsCallback
+    const localFileWriteStream = fsCallback.createWriteStream(localFilePath);
     await pipeline(response.data, localFileWriteStream);
-    console.log(`[Local File System] Successfully downloaded and saved ${localFilePath}`); // Log updated
+    console.log(`[Local File System] Successfully downloaded and saved ${localFilePath}`);
     return true;
-  } catch (error: unknown) { // Catch as unknown
-    let errorMessage = `Error downloading from ${downloadUrl} to ${localFilePath}`;
-    if (error instanceof Error) {
-      errorMessage += `: ${error.message}`;
-    }
-    // For Axios specific errors, you might want to extract more info
-    if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError;
-        if (axiosError.response) {
-            errorMessage += ` - Status: ${axiosError.response.status}, Data: ${JSON.stringify(axiosError.response.data)}`;
-        } else if (axiosError.request) {
-            errorMessage += ` - No response received`;
-        }
-    }
-    console.error(`[Local File System] ${errorMessage}`, error); // Log the original error too for server-side debugging
-
+  } catch (error: unknown) {
+    console.error(`[Local File System] Error downloading from ${downloadUrl}`, error);
     try {
       await fs.unlink(localFilePath);
-    } catch (cleanupError) {
-      console.error(`[Local File System] Error cleaning up ${localFilePath}:`, cleanupError);
-    }
-    // Throw a new, simple error that is serializable
-    throw new Error(errorMessage);
+    } catch (cleanupError) { /* ignore or log simply */ }
+    throw new Error(`Error downloading from ${downloadUrl}`);
   }
 }
-
-
