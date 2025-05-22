@@ -46,6 +46,9 @@ def parse_tool_class(tool: Tool) -> str:
     
 
 class TargetSplitter:
+    """
+    Tags a stream to be before or after a target string.
+    """
     __slots__ = ("target", "before_tag", "after_tag", "buf", "tlen", "done")
 
     def __init__(self, target="__sources__", *, before_tag="before", after_tag="after"):
@@ -97,6 +100,9 @@ EVID_RE = re.compile(
 )
 
 def parse_evidence(text: str) -> List[Tuple[int, str]]:
+    """
+    Parses strings of the format `[1] ...` into a list of tuples of the format `(page_number, evidence)`.
+    """
     
     matches = list(EVID_RE.finditer(text))
     entries: List[Tuple[int, str]] = []
