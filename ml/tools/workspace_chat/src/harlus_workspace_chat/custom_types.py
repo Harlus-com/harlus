@@ -40,15 +40,9 @@ class TavilyToolRetrievedWebsite(BaseModel):
     url: str
     content: str
 
-<<<<<<< HEAD
-
-class GraphState(TypedDict):
-=======
 class ChatGraphState(TypedDict):
->>>>>>> 713a94f (refactor workspace_chat)
     messages: Annotated[list, add_messages]
     sources: list[Union[DocSearchRetrievedNode, TavilyToolRetrievedWebsite]]
-    full_answer: str
 
 
 class BoundingBox(BaseModel):

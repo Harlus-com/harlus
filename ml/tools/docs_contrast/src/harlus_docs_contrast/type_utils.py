@@ -14,10 +14,8 @@ from .custom_types import (
 #     def from_node(cls, node: NodeWithScore) -> Self:
 #         pass
 
+def get_doc_search_retrieved_node_from_node_with_score(retrieved_node: NodeWithScore) -> DocSearchRetrievedNode:
 
-def _get_doc_search_retrieved_node_from_node_with_score(
-    retrieved_node: NodeWithScore,
-) -> DocSearchRetrievedNode:
 
     assert isinstance(
         retrieved_node, NodeWithScore
@@ -54,24 +52,16 @@ def _get_doc_search_retrieved_node_from_node_with_score(
     return output
 
 
-<<<<<<< HEAD
-def _get_nodes_with_score_from_doc_search_tool_result(
-    tool_result: any, tool_type: str
-) -> list[NodeWithScore]:
-    if tool_type == "doc_search_retriever":
-=======
-def _get_nodes_with_score_from_doc_search_tool_result(tool_result: any, tool_type: str) -> list[NodeWithScore]:
+
+def get_nodes_with_score_from_doc_search_tool_result(tool_result: any, tool_type: str) -> list[NodeWithScore]:
     if "retriever" in tool_type:
->>>>>>> e7d087e (progress update)
         raw_source_nodes = tool_result.raw_output
     else:
         raw_source_nodes = tool_result.raw_output.source_nodes
     return raw_source_nodes
 
 
-def _get_tavily_tool_retrieved_website_from_tool_result(
-    tool_result: any,
-) -> TavilyToolRetrievedWebsite:
+def get_tavily_tool_retrieved_website_from_tool_result(tool_result: any) -> TavilyToolRetrievedWebsite:
     tavily_tool_retrieved_website = TavilyToolRetrievedWebsite(
         title=tool_result.get("title", ""),
         url=tool_result.get("url", ""),

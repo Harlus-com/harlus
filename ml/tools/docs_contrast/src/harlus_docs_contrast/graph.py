@@ -23,7 +23,7 @@ from .utils import (
     parse_tool_class,
 )
 from .claim_comments import (
-    _get_claim_comments_from_driver_tree
+    get_claim_comments_from_driver_tree
 )
 
 
@@ -254,7 +254,7 @@ class ContrastAgentGraph:
         print("[harlus_contrast_tool] getting claim comments")
         driver_tree = state["driver_tree"]
         parsed_driver_tree = clean_and_parse_json(driver_tree)
-        claim_comments = await _get_claim_comments_from_driver_tree(
+        claim_comments = await get_claim_comments_from_driver_tree(
             parsed_driver_tree,
             self.tools["internal"]["doc_search_semantic_retriever"],
             self.tools["external"]["doc_search_semantic_retriever"]

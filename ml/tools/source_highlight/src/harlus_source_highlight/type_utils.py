@@ -12,7 +12,7 @@ from llama_index.core.schema import NodeWithScore
 #         pass
 
 
-def _get_page_from_node(
+def get_page_from_node(
     node: NodeWithScore,
 ):
     doc_items = node.metadata.get("doc_items", [])

@@ -13,9 +13,9 @@ from .custom_types import (
 from langgraph.config import get_stream_writer
 import asyncio
 from .type_utils import (
-    _get_doc_search_retrieved_node_from_node_with_score,
-    _get_nodes_with_score_from_doc_search_tool_result,
-    _get_tavily_tool_retrieved_website_from_tool_result,
+    get_doc_search_retrieved_node_from_node_with_score,
+    get_nodes_with_score_from_doc_search_tool_result,
+    get_tavily_tool_retrieved_website_from_tool_result,
 )
 from .utils import (
     get_last_message,
@@ -52,9 +52,9 @@ class ToolExecutorNode:
         writer({"reading_message" : f"Reading {tool_friendly_name} ... "})
         print(f" - executing tool call {tool_call['name']}")
         tool_result = await tool.ainvoke(tool_call["args"])
-        nodes_with_scores = _get_nodes_with_score_from_doc_search_tool_result(tool_result, tool_type)
+        nodes_with_scores = get_nodes_with_score_from_doc_search_tool_result(tool_result, tool_type)
         for node_with_score in nodes_with_scores:
-            retrieved_node = _get_doc_search_retrieved_node_from_node_with_score(node_with_score)
+            retrieved_node = get_doc_search_retrieved_node_from_node_with_score(node_with_score)
             retrieved_nodes.append(retrieved_node)
         content = json.dumps(tool_result.content)
         tool_message = ToolMessage(
@@ -74,7 +74,7 @@ class ToolExecutorNode:
         content = json.dumps(tool_result)
         tavily_tool_retrieved_websites = []
         for result in tool_result.get("results", []):
-            tavily_tool_retrieved_website = _get_tavily_tool_retrieved_website_from_tool_result(result)
+            tavily_tool_retrieved_website = get_tavily_tool_retrieved_website_from_tool_result(result)
             tavily_tool_retrieved_websites.append(tavily_tool_retrieved_website)
         tool_message = ToolMessage(
             content=content,
