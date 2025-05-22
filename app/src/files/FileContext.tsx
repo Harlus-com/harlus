@@ -9,7 +9,11 @@ import {
 import { createContext, useContext, useEffect, useState } from "react";
 import { FileStatusManager } from "./file_status_manager";
 import { workspaceService } from "@/api/workspaceService";
-import { toWorkspaceFile } from "./file_util";
+import {
+  noLocalFileChanges,
+  noLocalFolderChanges,
+  toWorkspaceFile,
+} from "./file_util";
 
 interface FileContextType {
   getFiles: () => WorkspaceFile[];
@@ -65,16 +69,22 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
     });
   });
 
-  const loadFiles = async (workspace: Workspace) => {
-    console.log("loadFiles, callstack: ", new Error().stack);
-    const files = await fileService.getLocalFiles(workspace);
-    const folders = await fileService.getLocalFolders(workspace);
-    fileService.updateServerDirectories(workspaceId, files);
-    setFiles(files);
-    setFolders(folders);
-    setWorkspaceFiles(files.map((file) => toWorkspaceFile(workspaceId, file)));
+  const loadFiles = async (
+    workspace: Workspace,
+    localFiles?: LocalFile[],
+    localFolders?: LocalFolder[]
+  ) => {
+    localFiles = localFiles || (await fileService.getLocalFiles(workspace));
+    localFolders =
+      localFolders || (await fileService.getLocalFolders(workspace));
+    fileService.updateServerDirectories(workspaceId, localFiles);
+    setFiles(localFiles);
+    setFolders(localFolders);
+    setWorkspaceFiles(
+      localFiles.map((file) => toWorkspaceFile(workspaceId, file))
+    );
     setWorkspaceFolders(
-      folders.map((folder) => ({
+      localFolders.map((folder) => ({
         workspaceId: workspaceId,
         appDir: folder.pathRelativeToWorkspace,
       }))

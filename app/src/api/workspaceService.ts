@@ -1,7 +1,22 @@
 import { Workspace, WorkspaceFile } from "./workspace_types";
 import { client } from "./client";
+import { fileService } from "./fileService";
+import { noLocalFileChanges } from "@/files/file_util";
+import { noLocalFolderChanges } from "@/files/file_util";
+
+interface LocalFileSystemChange {
+  localFolders: LocalFolder[];
+  localFiles: LocalFile[];
+}
+
+interface LocalFileSystemChangeCallbacks {
+  onFileChange?: (file: WorkspaceFile) => void;
+  onStructureChange?: (change: LocalFileSystemChange) => void;
+}
 
 class WorkspaceService {
+  private lastLocalFolders: LocalFolder[] = [];
+  private lastLocalFiles: LocalFile[] = [];
   constructor() {}
 
   getWorkspaces(): Promise<Workspace[]> {
@@ -28,26 +43,43 @@ class WorkspaceService {
 
   watchWorkspace(
     workspace: Workspace,
-    callbacks: {
-      onFileChange?: (file: WorkspaceFile) => void;
-      onStructureChange?: () => void;
-    }
+    callbacks: LocalFileSystemChangeCallbacks
   ): void {
     if (!window.electron) {
       return;
     }
     window.electron.watchWorkspace(workspace.localDir);
-    window.electron.onLocalFileSystemChange((event) => {
-      console.log("WS-SERVICE onLocalFileSystemChange", event);
-      switch (event.type) {
-        case "workspace-file-change":
-          callbacks.onFileChange?.(event.file);
-          break;
-        case "workspace-structure-change":
-          callbacks.onStructureChange?.();
-          break;
-      }
-    });
+    window.electron.onLocalFileSystemChange((event) =>
+      this.handleOnLocalFileSystemChange(workspace, event, callbacks)
+    );
+  }
+
+  private async handleOnLocalFileSystemChange(
+    workspace: Workspace,
+    event: any,
+    callbacks: LocalFileSystemChangeCallbacks
+  ): Promise<void> {
+    switch (event.type) {
+      case "workspace-file-change":
+        callbacks.onFileChange?.(event.file);
+        break;
+      case "workspace-structure-change":
+        const localFolders = await fileService.getLocalFolders(workspace);
+        const localFiles = await fileService.getLocalFiles(workspace);
+        if (
+          noLocalFolderChanges(localFolders, this.lastLocalFolders) &&
+          noLocalFileChanges(localFiles, this.lastLocalFiles)
+        ) {
+          return;
+        }
+        this.lastLocalFolders = localFolders;
+        this.lastLocalFiles = localFiles;
+        callbacks.onStructureChange?.({
+          localFolders,
+          localFiles,
+        });
+        break;
+    }
   }
 
   unwatchWorkspace(workspace: Workspace): void {
