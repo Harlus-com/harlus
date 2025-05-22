@@ -102,26 +102,46 @@ class FileService {
 
   async refreshOnlineData(
     workspace: Workspace, 
-    relativeDestinationPath: string | "", 
+    pathRelativeToWorkspace: string | "", 
     startDate: string
   ): Promise<void> {
     console.log(
-      `[FileService] Refreshing online data for workspace: ${workspace.name} into ${relativeDestinationPath === "" ? 'workspace root' : relativeDestinationPath}`
+      `[FileService] Streaming files into ${pathRelativeToWorkspace === "" ? 'workspace root' : pathRelativeToWorkspace}`
     );
     if (!window.electron) {
       throw new Error("Electron is not available");
     }
   
-    const filesToDownload = await client.get(
-      `/workspace/get_online_data?workspaceTicker=${workspace.name}&startDate=${startDate}`
+    const files: { name: string; url: string }[] = await client.get(
+      `/workspace/${workspace.name}/online_files?startDate=${startDate}`
     );
-    
-    await Promise.all(filesToDownload.map(file => window.electron.createFile(
+
+    for (const { name, url } of files) {
+      const response = await client.getBuffer(
+        `/file/download_pdf_from_url?url=${encodeURIComponent(url)}`
+      );
+      if (!response) {
+        console.error(`Failed to download ${name}`);
+        continue;
+      }
+
+      const destPath = await window.electron.ensureFile(
         workspace.localDir,
-        relativeDestinationPath,
-        file.fileName,
-        Buffer.from(file.contentBase64, "base64")
-      )));
+        pathRelativeToWorkspace,
+        name
+      );
+      const streamId = await window.electron.createWriteStream(destPath);
+
+
+      const reader = response.body!.getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        await writer.write(value!);
+      }
+      await writer.close();
+      console.log(`Succesfully streamed ${name}`);
+    }
   }
 
   createFolder(

@@ -48,4 +48,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("create-file", workspaceLocalDir, relativeDestPath, fileName, data),
   deleteItem: (item: LocalFile | LocalFolder) =>
     ipcRenderer.invoke("delete-item", item),
+  ensureFile: (dir: string, subpath: string, name: string) =>
+    ipcRenderer.invoke("ensure-file", dir, subpath, name),
+  createWriteStream: (filePath: string) =>
+    ipcRenderer.invoke("create-write-stream", filePath),
+  writeChunk: (streamId: string, chunk: Uint8Array) =>
+    ipcRenderer.invoke("write-chunk", streamId, chunk),
+  closeStream: (streamId: string) =>
+    ipcRenderer.invoke("close-stream", streamId),
 });

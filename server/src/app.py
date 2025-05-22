@@ -28,7 +28,7 @@ from src.file_store import FileStore
 from src.file_types import LocalFile
 from src.sync_queue import SyncQueue, SyncType
 from src.contrast_analysis import analyze
-from src.sec_loader import SecSourceLoader, WebFile
+from src.web_loader import OpenBBLoader, SeleniumLoader
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -36,6 +36,7 @@ from jose import jwt
 import httpx
 
 import base64
+import io
 
 TENANT_ID = "27dfce8d-8b21-4c81-8579-2baedebea216"
 API_AUDIENCE_URI = "api://6acbb67d-3153-4ed6-8041-f2c52a5a68e4"
@@ -421,24 +422,52 @@ async def upload_file(
     return await file_uploader.upload_file(workspace_id, app_dir, content_hash, upload)
 
 
-@api_router.get("/workspace/get_online_data")
-async def get_online_data(
-    workspace_ticker: str = Query(..., alias="workspaceTicker"),
+# @api_router.get("/workspace/get_online_data")
+# async def get_online_data(
+#     workspace_ticker: str = Query(..., alias="workspaceTicker"),
+#     start_date: str = Query(..., alias="startDate"),
+# ):
+#     web_files: list[WebFile] = SecSourceLoader().download_files(
+#         workspace_ticker,
+#         start_date=datetime.datetime.strptime(start_date, "%Y-%m-%d").date(),
+#     )
+#     files_to_download_json = []
+#     for web_file in web_files:
+#         files_to_download_json.append(
+#             {
+#                 "fileName": web_file.file_name,
+#                 "contentBase64": base64.b64encode(web_file.pdf_content).decode("utf-8"),
+#             }
+#         )
+#     return files_to_download_json
+
+
+@api_router.get("/workspace/{workspace_name}/online_files")
+async def list_online_files(
+    workspace_name: str,
     start_date: str = Query(..., alias="startDate"),
 ):
-    web_files: list[WebFile] = SecSourceLoader().download_files(
-        workspace_ticker,
-        start_date=datetime.datetime.strptime(start_date, "%Y-%m-%d").date(),
+    return OpenBBLoader().get_available_files(
+        ticker=workspace_name, # assuming workspace name is ticker
+        start_date=datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
     )
-    files_to_download_json = []
-    for web_file in web_files:
-        files_to_download_json.append(
-            {
-                "fileName": web_file.file_name,
-                "contentBase64": base64.b64encode(web_file.pdf_content).decode("utf-8"),
-            }
-        )
-    return files_to_download_json
+
+
+@api_router.get("/file/download_pdf_from_url")
+async def download_pdf_from_url(
+    url: str = Query(..., alias="url"),
+):
+    try:
+        pdf_content = SeleniumLoader().get_pdf(url)
+    except Exception as e:
+        print(f"Error fetching with Selenium from {url}: {e}")
+        pdf_content = None
+
+    def iter_chunks(data: bytes, chunk_size: int = 1024 * 1024):
+        for i in range(0, len(data), chunk_size):
+            yield data[i : i + chunk_size]
+
+    return StreamingResponse(iter_chunks(pdf_content), media_type="application/pdf")
 
 
 class MoveFileRequest(BaseModel):

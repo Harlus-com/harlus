@@ -1,4 +1,5 @@
 import { promises as fs } from "fs";
+import * as fsCallback from "fs";
 import path from "path";
 import crypto from "crypto";
 import { LocalFile, LocalFolder } from "./electron_types";
@@ -260,4 +261,42 @@ export async function deleteItem(item: LocalFile | LocalFolder) {
   } else {
     await fs.rm(item.absolutePath);
   }
+}
+
+export async function ensureFile(
+  localDir: string,
+  pathRelativeToWorkspace: string,
+  fileName: string
+): Promise<string> {
+  const dirPath = path.resolve(localDir, pathRelativeToWorkspace);
+  await fs.mkdir(dirPath, { recursive: true });
+  return path.join(dirPath, fileName);
+}
+
+export async function createWriteStream(
+  filePath: string
+): Promise<{
+  write(chunk: Uint8Array): Promise<void>;
+  close(): Promise<void>;
+}> {
+  const stream = fsCallback.createWriteStream(filePath);
+  return {
+    write(chunk: Uint8Array): Promise<void> {
+      return new Promise<void>((resolve, reject) => {
+        const ok = stream.write(chunk, (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+        if (!ok) {
+          stream.once("drain", () => resolve());
+        }
+      });
+    },
+    close(): Promise<void> {
+      return new Promise<void>((resolve, reject) => {
+        stream.end(() => resolve());
+        stream.once("error", (err) => reject(err));
+      });
+    },
+  };
 }
