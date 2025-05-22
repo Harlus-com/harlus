@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  File,
   Trash2,
   MoreVertical,
   Columns2,
@@ -15,7 +14,7 @@ import {
   X,
   Info,
 } from "lucide-react";
-import { WorkspaceFile } from "@/api/workspace_types";
+import { WorkspaceFile, Workspace } from "@/api/workspace_types";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -52,8 +51,19 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import FileInfoDialog from "@/files/FileInfoDialog";
+import RefreshDataDialog from "./RefreshDataDialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import SyncDialog from "./SyncDialog";
 
-const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
+const FileExplorer: React.FC<{
+  workspaceId: string;
+  workspace: Workspace | null;
+}> = ({ workspaceId, workspace }) => {
   const {
     getFiles,
     getFolders,
@@ -92,6 +102,10 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
   const [draggingOverPath, setDraggingOverPath] = React.useState<string | null>(
     null
   );
+  const [syncDialogOpen, setSyncDialogOpen] = React.useState(false);
+  const [syncDialogFolderPath, setSyncDialogFolderPath] = React.useState<
+    string[] | undefined
+  >(undefined);
 
   const selectedFileIds: string[] = [];
   for (const fileGroup of Object.values(getOpenFiles())) {
@@ -296,6 +310,16 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
                     New Subfolder
                   </DropdownMenuItem>
                   <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSyncDialogFolderPath(folder.path);
+                      setSyncDialogOpen(true);
+                    }}
+                  >
+                    <RefreshCw size={12} className="mr-2" />
+                    Sync
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
                     className="text-red-500 focus:text-red-500"
                     onClick={(e) => handleDeleteFolder(folder.path, e)}
                   >
@@ -451,27 +475,6 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
 
         {isExpanded && (
           <>
-            {isRoot && (
-              <div
-                className={cn("pl-2")}
-                onDragOver={(e) => handleDragOver(e, "")}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDropInRoot}
-              >
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOpenNewFolderPath(pathKey);
-                  }}
-                >
-                  <FolderPlus size={12} className="mr-2" />
-                  New Folder
-                </Button>
-              </div>
-            )}
             {Array.from(folder.children.values()).map((child) =>
               renderFolder(child, level + 1)
             )}
@@ -604,13 +607,46 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
   return (
     <>
       <div className="h-full bg-sidebar border-r border-border flex flex-col">
-        <div className="flex-1 overflow-auto p-2 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300">
-          <div className="h-full mb-2">
+        <div className="flex items-center gap-2 p-2 border-b border-border">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => setOpenNewFolderPath("")}
+                >
+                  <FolderPlus size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>New Folder</TooltipContent>
+            </Tooltip>
+
+            <RefreshDataDialog workspace={workspace} />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => setSyncDialogOpen(true)}
+                >
+                  <RefreshCw size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Sync</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+
+        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300">
+          <div className="h-full p-2">
             <div
               className={cn(
-                "pl-1 mt-1 space-y-1 h-full min-h-full rounded-md transition-colors",
+                "h-full space-y-1 rounded-md transition-colors",
                 draggingOverPath === "" &&
-                  "border-2 border-dashed border-primary"
+                  "h-full border-2 border-dashed border-primary"
               )}
               onDragOver={(e) => handleDragOver(e, "")}
               onDragLeave={handleDragLeave}
@@ -689,6 +725,17 @@ const FileExplorer: React.FC<{ workspaceId: string }> = ({ workspaceId }) => {
           onOpenChange={(open) => !open && setFileInfoOpen(null)}
         />
       )}
+      <SyncDialog
+        open={syncDialogOpen}
+        onOpenChange={(open) => {
+          setSyncDialogOpen(open);
+          if (!open) {
+            setSyncDialogFolderPath(undefined);
+          }
+        }}
+        workspace={workspace}
+        folderPath={syncDialogFolderPath}
+      />
     </>
   );
 };
