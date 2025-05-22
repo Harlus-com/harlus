@@ -419,7 +419,7 @@ const FileExplorer: React.FC<{
                     handleRename();
                   }}
                 >
-                  Create
+                  {renameInfo?.parentFolder ? "Create" : "Rename"}
                 </Button>
               </div>
             </div>
