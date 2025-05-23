@@ -13,6 +13,7 @@ interface ServerClient {
   delete: (path: string) => Promise<any>;
   upload: (localFile: LocalFile, workspaceId: string) => Promise<void>;
   createEventSource: (urlPath: string) => Promise<EventSourceClient>;
+  getAuthHeader: () => Promise<string>;
 }
 
 abstract class BaseWebClient implements ServerClient {
@@ -51,6 +52,15 @@ abstract class BaseWebClient implements ServerClient {
 
   async upload(localFile: LocalFile, workspaceId: string) {
     throw new Error("Not implemented");
+  }
+
+  async getAuthHeader(): Promise<string> {
+    const client = authClientWrapper.getClient();
+    const authHeader = client.defaults.headers.Authorization;
+    if (typeof authHeader !== "string") {
+      throw new Error("Auth header is not a string");
+    }
+    return authHeader;
   }
 
   abstract getBaseUrl(): Promise<string>;
@@ -100,15 +110,6 @@ class ElectronClient extends BaseWebClient {
     return data;
   }
 
-  private async getAuthHeader(): Promise<string> {
-    const client = authClientWrapper.getClient();
-    const authHeader = client.defaults.headers.Authorization;
-    if (typeof authHeader !== "string") {
-      throw new Error("Auth header is not a string");
-    }
-    return authHeader;
-  }
-
   async createEventSource(urlPath: string): Promise<EventSourceClient> {
     const baseUrl = await this.getBaseUrl();
     const eventSourceId = await this.electron.createEventSource(
@@ -124,7 +125,7 @@ class ElectronClient extends BaseWebClient {
 class ElectronProxyClient implements ServerClient {
   constructor(private readonly electron: ElectronAPI) {}
 
-  private async getAuthHeader(): Promise<string> {
+  async getAuthHeader(): Promise<string> {
     const client = authClientWrapper.getClient();
     const authHeader = client.defaults.headers.Authorization;
     if (typeof authHeader !== "string") {

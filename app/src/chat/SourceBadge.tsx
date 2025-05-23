@@ -15,7 +15,12 @@ export const SourceBadge: React.FC<SourceBadgeProps> = ({
   onClick,
 }) => {
   const { getFile } = useFileContext();
-  const fileName = getFile(source.fileId).name;
+  const file = getFile(source.fileId);
+  if (!file) {
+    console.error(`File with id ${source.fileId} not found`);
+    return null;
+  }
+  const fileName = file.name;
 
   // Extract page numbers if available
   const pageNumbers = useMemo(() => {

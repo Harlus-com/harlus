@@ -172,7 +172,7 @@ class FileStore:
 
 
 def _get_file_dir_name(content_hash: str, app_dir: list[str], file_name: str) -> str:
-    path_prefix = normalize_underscores("_".join(app_dir))
+    path_prefix = normalize_underscores("_".join(clean_name(part) for part in app_dir))
     normalized_file_name = normalize_underscores(clean_name(file_name))
     if not path_prefix:
         return f"{normalized_file_name}__{content_hash[:5]}"

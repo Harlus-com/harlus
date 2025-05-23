@@ -30,7 +30,6 @@ const SyncDialog: React.FC<SyncDialogProps> = ({
     getFiles,
     getFileSyncStatus,
     startSyncFile,
-    forceSyncFile,
     workspaceFileToLocalFile,
   } = useFileContext();
   const files = getFiles();
@@ -79,7 +78,7 @@ const SyncDialog: React.FC<SyncDialogProps> = ({
         for (const file of trackedFiles) {
           const localFile = workspaceFileToLocalFile(file);
           if (localFile) {
-            await forceSyncFile(localFile);
+            await startSyncFile(localFile);
           }
         }
       }
