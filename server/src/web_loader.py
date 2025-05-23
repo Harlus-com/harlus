@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import base64
 import os
+import shutil
+import sys
 from time import sleep
 from datetime import date, timedelta
 
@@ -13,6 +15,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.chrome.service import Service
 
 # ---------------------------------------------------------------------------
 # OpenBB filings loader
@@ -20,6 +23,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 OBB_CONFIG = {}
 OBB_CONFIG["sec_relevant_filings"] = {"10-Q", "10-K"}
+
 
 class OpenBBLoader:
 
@@ -41,7 +45,7 @@ class OpenBBLoader:
         try:
             out = obb.equity.fundamental.filings(
                 ticker,
-                provider="sec", # start_date only works with "sec" provider
+                provider="sec",  # start_date only works with "sec" provider
                 start_date=start_date,
             ).to_polars()
             out = out.with_columns(
@@ -60,17 +64,18 @@ class OpenBBLoader:
                     "|".join(OBB_CONFIG["sec_relevant_filings"])
                 )
             )
-            return [ # as json
+            return [  # as json
                 {
                     "name": row["filename_stem"],
                     "url": row["report_url"],
                 }
                 for row in out.to_dicts()
             ]
-        
+
         except Exception as e:
             print(f"[OpenBBLoader] Could not fetch data for {ticker}: {e}.")
             return []
+
 
 # ---------------------------------------------------------------------------
 # Web loading helpers
@@ -90,11 +95,15 @@ SELENIUM_CONFIG["pdf_page_settings"] = {
     "marginRight": 0.4,
 }
 
-class SeleniumLoader():
+
+class SeleniumLoader:
 
     @staticmethod
     def load_driver():
         chrome_options = Options()
+        if os.environ.get("CHROME_BIN"):
+            print(f"Using CHROME_BIN from env {os.environ.get('CHROME_BIN')}")
+            chrome_options.binary_location = os.environ.get("CHROME_BIN")
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
@@ -102,6 +111,9 @@ class SeleniumLoader():
             '--user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
             'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"'
         )
+        if os.environ.get("CHROMEDRIVER_PATH"):
+            service = Service(executable_path=os.environ.get("CHROMEDRIVER_PATH"))
+            return webdriver.Chrome(options=chrome_options, service=service)
         return webdriver.Chrome(options=chrome_options)
 
     @staticmethod

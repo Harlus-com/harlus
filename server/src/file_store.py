@@ -2,7 +2,7 @@ import json
 import os
 import shutil
 import threading
-from src.util import normalize_underscores
+from src.util import clean_name, normalize_underscores
 from src.file_types import LocalFile, File
 from src.workspace_store import WorkspaceStore
 
@@ -173,7 +173,8 @@ class FileStore:
 
 def _get_file_dir_name(content_hash: str, app_dir: list[str], file_name: str) -> str:
     path_prefix = normalize_underscores("_".join(app_dir))
+    normalized_file_name = normalize_underscores(clean_name(file_name))
     if not path_prefix:
-        return f"{file_name}__{content_hash[:5]}"
+        return f"{normalized_file_name}__{content_hash[:5]}"
     else:
-        return f"{path_prefix}__{file_name}__{content_hash[:5]}"
+        return f"{path_prefix}__{normalized_file_name}__{content_hash[:5]}"

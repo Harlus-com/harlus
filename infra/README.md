@@ -159,3 +159,16 @@ Note: This maps harlus-api-dev.eastus.azurecontainer.io back to localhost. This 
 (from infra dir)
 
 docker compose up
+
+# Monitoring CPU / Memory usage
+
+CONTAINER_ID=$(az container show \
+ --resource-group harlus-dev \
+ --name harlus-api-dev \
+ --query id -o tsv)
+
+// This is in millicores e.g 1000 millicores = 1 CPU
+az monitor metrics list --resource $CONTAINER_ID --metric CPUUsage --interval PT1M --dimension containerName --output table
+
+// Bytes
+az monitor metrics list --resource $CONTAINER_ID --metric MemoryUsage --interval PT1M --dimension containerName --output table

@@ -124,6 +124,10 @@ export class DevElectronApp extends ElectronApp {
       console.log(
         "Using remote server, make sure /etc/hosts does not override harlus-api-dev.eastus.azurecontainer.io"
       );
+      const hosts = fs.readFileSync("/etc/hosts", "utf8");
+      console.log("\n#####  Start hosts file  #####");
+      console.log(hosts);
+      console.log("#####  End of hosts file  #####\n");
       return "https://harlus-api-dev.eastus.azurecontainer.io";
     }
     return "http://127.0.0.1:8000";

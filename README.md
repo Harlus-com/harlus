@@ -11,8 +11,32 @@ az acr login -n harlusregistry
 
 ## 2. Build and push
 
+#### This doesn't seem to cache the layers
+
+Well, it does, if you have a big enough local cache.
+
 docker build --platform linux/amd64 -t harlusregistry.azurecr.io/harlus-server:latest .
 docker push harlusregistry.azurecr.io/harlus-server:latest
+
+#### This does appear to cache layers (and push in one step)
+
+This relies on a remote docker cache to cache layers, so thick layers don't get evicted (as often?)
+
+docker buildx build --platform linux/amd64 --cache-to type=inline --cache-from type=registry,ref=harlusregistry.azurecr.io/harlus-server:latest -t harlusregistry.azurecr.io/harlus-server:latest --push .
+
+More context: https://chatgpt.com/share/682fafc8-8af4-8013-9c4c-553b5aa5f9a4
+
+## Commands for managing docker local mememory:
+
+```
+docker system df
+```
+
+Remove all layers from cache:
+
+```
+docker builder prune --all --force
+```
 
 Note: We can provide different tags if we want, but right now there is really no reason to keep a history or images, so we just use "latest"
 

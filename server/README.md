@@ -54,12 +54,12 @@ Note: since tools makes use of the on-disk cache, when making changes to a tool 
 
 ### Building and running docker:
 
-1. docker build -t harlus-server . (must be run from harlus root dir)
-2. docker run -p 8000:8000 harlus-server
+1. docker build -t harlus-local . (must be run from harlus root dir)
+2. docker run -p 8000:8000 harlus-local
 
 Note: You will have to install docker first
 
-Note: `-t` stands for tag, and tags the respository of the image as harlus-server. The "tag" then defualts to `latest`. If we wanted to provide a specific tag, we could use `-t harlus:server:v1`. To see the images, run `docker images`.
+Note: `-t` stands for tag, and tags the respository of the image as harlus-local. The "tag" then defualts to `latest`. If we wanted to provide a specific tag, we could use `-t harlus:server:v1`. To see the images, run `docker images`.
 
 Note: `-p` maps from the host port to conatiner port.
 
