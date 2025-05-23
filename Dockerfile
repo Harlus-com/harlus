@@ -8,6 +8,17 @@ RUN apt-get update && \
     apt-get install -y build-essential && \
     rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      chromium \
+      chromium-driver \
+      # font and sandbox helpers for headless Chrome
+      fonts-liberation libappindicator3-1 libatk-bridge2.0-0 \
+      libatk1.0-0 libcups2 libnspr4 libnss3 libxcomposite1 \
+      libxdamage1 libxrandr2 xdg-utils \
+    && rm -rf /var/lib/apt/lists/*
+ENV CHROME_BIN=/usr/bin/chromium
+ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
 
 # Note, here and below: use --no-cache-dir because we'll never be calling pip install again
@@ -29,18 +40,6 @@ COPY ml ./ml
 WORKDIR /app/python/env
 RUN python package.py --link
 WORKDIR /app
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-      chromium \
-      chromium-driver \
-      # font and sandbox helpers for headless Chrome
-      fonts-liberation libappindicator3-1 libatk-bridge2.0-0 \
-      libatk1.0-0 libcups2 libnspr4 libnss3 libxcomposite1 \
-      libxdamage1 libxrandr2 xdg-utils \
-    && rm -rf /var/lib/apt/lists/*
-ENV CHROME_BIN=/usr/bin/chromium
-ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
 COPY server/src ./src
 COPY server/main.py .
