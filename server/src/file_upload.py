@@ -5,13 +5,11 @@ import shutil
 import tempfile
 import threading
 import time
+import aiofiles
 
 
 """
-Uploads a file to the file store.
-
-Note: This is probably over-engineered because we just get the entire file on the post message.
-It will be more necessary if we start streaming large files.
+Handles streaming file uploads to the file store.
 """
 
 
@@ -53,11 +51,12 @@ class FileUploader:
 
         tmp_dir = tempfile.mkdtemp()
         tmp_path = os.path.join(tmp_dir, upload.filename)
-        with open(tmp_path, "wb") as out:
-            shutil.copyfileobj(upload.file, out)
 
-        # if not is_pdf:
-        #    tmp_path = await convert_to_pdf(Path(tmp_path))
+        # Stream the file in chunks
+        async with aiofiles.open(tmp_path, "wb") as out:
+            while chunk := await upload.read(8192):  # 8KB chunks
+                print("Read chunk", len(chunk))
+                await out.write(chunk)
 
         self.file_store.copy_file_content(file, tmp_path)
         with self.lock:
