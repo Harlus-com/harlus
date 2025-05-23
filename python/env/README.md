@@ -40,8 +40,13 @@ Activating the environment ensures that the python dependency manager installs a
 ### Install requirements.txt
 
 ```
-pip install -r requirements.txt
+pip install -r openbb-requirements.txt
+pip install -r core-requirements.txt
+pip install -r docling-requirements.txt
 ```
+
+Why do we have so many requirements files?
+In short, so that _very_ thick layers in the docker file can go early in the Dockerfile and not have to be recomputed every time we update python deps.
 
 ### Install Local Packages
 
@@ -59,7 +64,10 @@ pip install <package-name>
 
 ```
 pip freeze > requirements.txt
+
 ```
+
+Note: This command is a bit outdated, you'll have to divide some deps out into `openbb-requirements.txt` and `docling-requirments.txt` (see above on installation)
 
 TODO: We need a way to prune unused dependenices from requirements.txt
 TODO: We need a way to drop dependenices not specifified (but that were previously specified or otherwise eneded up in site-packages) from site packages.
@@ -79,7 +87,7 @@ This will create a python wheel which get's copied into python/env/wheels. Then 
 If you do this you can also switch between the packaged version and the direct link using
 
 ```
-python scripts/package.py --tool-name <tool_dir> --link 
+python scripts/package.py --tool-name <tool_dir> --link
 ```
 
 or directly using
@@ -87,7 +95,6 @@ or directly using
 ```
 pip install -e <tool_dir>
 ```
-
 
 And
 
