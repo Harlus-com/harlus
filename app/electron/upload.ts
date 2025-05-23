@@ -22,7 +22,7 @@ export class Uploader {
     const stats = await fs.promises.stat(filePath);
     let uploadedBytes = 0;
 
-    const throttledLog = new ThrottledLogger(500);
+    const throttledLog = new ThrottledLogger(100);
     fileStream.on("data", (chunk) => {
       uploadedBytes += chunk.length;
       const progress = (uploadedBytes / stats.size) * 100;

@@ -1,7 +1,6 @@
 from src.file_store import FileStore
 from fastapi import UploadFile
 import os
-import shutil
 import tempfile
 import threading
 import time
@@ -52,10 +51,8 @@ class FileUploader:
         tmp_dir = tempfile.mkdtemp()
         tmp_path = os.path.join(tmp_dir, upload.filename)
 
-        # Stream the file in chunks
         async with aiofiles.open(tmp_path, "wb") as out:
-            while chunk := await upload.read(8192):  # 8KB chunks
-                print("Read chunk", len(chunk))
+            while chunk := await upload.read(8192):
                 await out.write(chunk)
 
         self.file_store.copy_file_content(file, tmp_path)

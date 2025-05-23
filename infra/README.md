@@ -141,15 +141,17 @@ docker build -t harlus-server .
 
 Add this line to /etc/hosts (requires sudo to edit)
 
+```
+127.0.0.1   harlus-api-dev.eastus.azurecontainer.io
+```
+
+sudo echo "127.0.0.1 harlus-api-dev.eastus.azurecontainer.io" | sudo tee -a /etc/hosts
+
 Note: you might need to also run these commands afterwards, but I don't think so:
 
 ```
 sudo dscacheutil -flushcache
 sudo killall -HUP mDNSResponder
-```
-
-```
-127.0.0.1   harlus-api-dev.eastus.azurecontainer.io
 ```
 
 Note: This maps harlus-api-dev.eastus.azurecontainer.io back to localhost. This is necessary becasue the server cert is generated to match harlus-api-dev.eastus.azurecontainer.io. We could create a dedicated dev cert, but this is less work for now...
