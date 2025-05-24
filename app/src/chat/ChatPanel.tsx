@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useParams } from "react-router-dom";
 import { chatService } from "@/chat/chatService";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ChatMessage,
   ChatSourceCommentGroup,
@@ -449,8 +448,11 @@ const ChatPanel: React.FC = () => {
         </div>
       )}
 
-      <ScrollArea className="flex-1 px-3.5 pt-3.5 pb-2">
-        <div ref={chatContainerRef} className="space-y-6">
+      <div
+        ref={chatContainerRef}
+        className="flex-1 px-3.5 pt-3.5 pb-2 overflow-y-auto"
+      >
+        <div className="space-y-6">
           {messagePairs.length === 0 ? (
             <div className="text-center py-10 bg-white rounded-lg shadow-sm border border-gray-100 p-6">
               <div className="inline-flex rounded-full bg-blue-50 p-2 mb-3">
@@ -487,7 +489,7 @@ const ChatPanel: React.FC = () => {
             </>
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       <div className="p-3 border-t border-gray-100 bg-white">
         <div className="flex flex-col space-y-1.5">

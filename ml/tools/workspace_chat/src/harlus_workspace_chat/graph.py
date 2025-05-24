@@ -24,17 +24,10 @@ from langchain_tavily import TavilySearch
 from .tool_executor import ToolExecutorNode
 from .chat_source_comments import (
     get_chat_source_comments_from_retrieved_nodes,
-    get_chat_source_comments_from_citations
+    get_chat_source_comments_from_citations,
 )
 from langgraph.config import get_stream_writer
-from .utils import (
-    sanitize_tool_name,
-    parse_tool_class,
-    TargetSplitter,
-    parse_evidence
-)
-
-
+from .utils import sanitize_tool_name, parse_tool_class, TargetSplitter, parse_evidence
 
 
 class ChatAgentGraph:
@@ -60,18 +53,17 @@ class ChatAgentGraph:
         self.state_message_key = "messages"
         self.state_retrieved_nodes_key = "retrieved_nodes"
 
-        
         self.tool_node = ToolExecutorNode(
-            tools=[], 
+            tools=[],
             tool_name_to_metadata={},
             message_state_key=self.state_message_key,
             retrieved_items_state_key=self.state_retrieved_nodes_key,
-            file_id_to_path=self.file_id_to_path
+            file_id_to_path=self.file_id_to_path,
         )
         self.tools_descriptions = {}
 
         self.graph = None
-        
+
         self.build()
 
     def _add_tool(self, tool, metadata_dict, doc_type: str, tool_type: str):
@@ -90,28 +82,29 @@ class ChatAgentGraph:
             self.tool_name_to_metadata[doc_type][tool_type] = {}
         sanitized_name = sanitize_tool_name(tool.name)
         self.tool_name_to_metadata[doc_type][tool_type][sanitized_name] = metadata_dict
-    
+
     def _add_tools(self, tools: list[any], doc_type: str):
 
         # parse tool to right class for adding it to the graph
         for tool in tools:
             tool_class = parse_tool_class(tool)
             if tool_class == "tavily_search":
-                metadata_dict = {
-                    "type": "tavily_search",
-                    "friendly_name": "the web"
-                }
+                metadata_dict = {"type": "tavily_search", "friendly_name": "the web"}
                 self._add_tool(tool, metadata_dict, doc_type, tool_class)
-            
+
             # only add the doc_search_semantic_retriever for now.
             elif tool_class == "doc_search":
-                semantic_retriever_tool = tool.semantic_retriever_tool.to_langchain_tool()
+                semantic_retriever_tool = (
+                    tool.semantic_retriever_tool.to_langchain_tool()
+                )
                 tool_type = "doc_search_semantic_retriever"
                 metadata_dict = {
                     "type": tool_type,
-                    "friendly_name": tool.metadata.friendly_name
+                    "friendly_name": tool.metadata.friendly_name,
                 }
-                self._add_tool(semantic_retriever_tool, metadata_dict, doc_type, tool_type)
+                self._add_tool(
+                    semantic_retriever_tool, metadata_dict, doc_type, tool_type
+                )
 
     def _sanitize_tool_names(self, doc_type: str):
         for tool_type in self.tools[doc_type]:
@@ -125,9 +118,18 @@ class ChatAgentGraph:
             self.tools_descriptions[doc_type] = {}
         if tool_type not in self.tools_descriptions[doc_type]:
             self.tools_descriptions[doc_type][tool_type] = ""
-        self.tools_descriptions[doc_type][tool_type] = nl + nl.join([f"{sp} {t.name} {sp} \n\n {t.description}" for t in self.tools[doc_type][tool_type]]) + nl
-        
-    # TODO: have one single ToolExecutorNode 
+        self.tools_descriptions[doc_type][tool_type] = (
+            nl
+            + nl.join(
+                [
+                    f"{sp} {t.name} {sp} \n\n {t.description}"
+                    for t in self.tools[doc_type][tool_type]
+                ]
+            )
+            + nl
+        )
+
+    # TODO: have one single ToolExecutorNode
     def update_tools(self, doc_search_tools: list[DocSearchToolWrapper]):
 
         self.tools = {}
@@ -140,17 +142,20 @@ class ChatAgentGraph:
 
         self.tool_node = ToolExecutorNode(
             tools=self.tools["all_docs"]["doc_search_semantic_retriever"],
-            tool_name_to_metadata=self.tool_name_to_metadata["all_docs"]["doc_search_semantic_retriever"], 
-            message_state_key=self.state_message_key, 
+            tool_name_to_metadata=self.tool_name_to_metadata["all_docs"][
+                "doc_search_semantic_retriever"
+            ],
+            message_state_key=self.state_message_key,
             retrieved_items_state_key=self.state_retrieved_nodes_key,
-            file_id_to_path=self.file_id_to_path
+            file_id_to_path=self.file_id_to_path,
         )
-        
-        self.tool_llm = self.LLM.bind_tools(self.tools["all_docs"]["doc_search_semantic_retriever"])
+
+        self.tool_llm = self.LLM.bind_tools(
+            self.tools["all_docs"]["doc_search_semantic_retriever"]
+        )
 
         self.build()
 
-    
     def get_current_thread_id(self):
         return self.config["configurable"].get("thread_id")
 
@@ -159,9 +164,15 @@ class ChatAgentGraph:
 
     async def _communicate_plan(self, state: ChatGraphState) -> AsyncIterator[dict]:
 
-        with open(os.path.join(os.path.dirname(__file__), "prompts", "communicate_plan.md"), "r") as f:
+        with open(
+            os.path.join(os.path.dirname(__file__), "prompts", "communicate_plan.md"),
+            "r",
+        ) as f:
             system_prompt_template = f.read()
-        system_prompt = system_prompt_template + self.tools_descriptions["all_docs"]["doc_search_semantic_retriever"]
+        system_prompt = (
+            system_prompt_template
+            + self.tools_descriptions["all_docs"]["doc_search_semantic_retriever"]
+        )
         prompt = [
             SystemMessage(content=system_prompt),
             *state[self.state_message_key],
@@ -174,15 +185,24 @@ class ChatAgentGraph:
             writer({"planning_message": delta})
             final += delta
         yield {
-            self.state_message_key: state[self.state_message_key] + [AIMessage(content=final)],
-            self.state_retrieved_nodes_key: state[self.state_retrieved_nodes_key],  # reset sources
+            self.state_message_key: state[self.state_message_key]
+            + [AIMessage(content=final)],
+            self.state_retrieved_nodes_key: state[
+                self.state_retrieved_nodes_key
+            ],  # reset sources
         }
 
     async def _call_tools(self, state: ChatGraphState) -> AsyncIterator[dict]:
-        
-        with open(os.path.join(os.path.dirname(__file__), "prompts", "call_tools_prompt.md"), "r") as f:
+
+        with open(
+            os.path.join(os.path.dirname(__file__), "prompts", "call_tools_prompt.md"),
+            "r",
+        ) as f:
             system_prompt_template = f.read()
-        system_prompt = system_prompt_template + self.tools_descriptions["all_docs"]["doc_search_semantic_retriever"]
+        system_prompt = (
+            system_prompt_template
+            + self.tools_descriptions["all_docs"]["doc_search_semantic_retriever"]
+        )
         prompt = [
             SystemMessage(content=system_prompt),
             *state[self.state_message_key],
@@ -195,9 +215,14 @@ class ChatAgentGraph:
 
     async def _communicate_result(self, state: ChatGraphState) -> AsyncIterator[dict]:
 
-        with open(os.path.join(os.path.dirname(__file__), "prompts", "communicate_result_prompt.md"), "r") as f:
+        with open(
+            os.path.join(
+                os.path.dirname(__file__), "prompts", "communicate_result_prompt.md"
+            ),
+            "r",
+        ) as f:
             system_prompt_template = f.read()
-        system_prompt = system_prompt_template # no tools descriptions here
+        system_prompt = system_prompt_template  # no tools descriptions here
         prompt = [
             SystemMessage(content=system_prompt),
             *state[self.state_message_key],
@@ -217,7 +242,8 @@ class ChatAgentGraph:
                 elif tag == "after":
                     evidence_text += text
         yield {
-            self.state_message_key: state[self.state_message_key] + [AIMessage(content=final)],
+            self.state_message_key: state[self.state_message_key]
+            + [AIMessage(content=final)],
             self.state_retrieved_nodes_key: state[self.state_retrieved_nodes_key],
             "evidence_text": evidence_text,
         }
@@ -225,7 +251,9 @@ class ChatAgentGraph:
     @staticmethod
     def _custom_tools_condition(state: ChatGraphState) -> str:
         print("[harlus_chat] checking if tools are needed")
-        last_msg = state["messages"][-1] # TODO: make this cleaner by passing self.state_message_key
+        last_msg = state["messages"][
+            -1
+        ]  # TODO: make this cleaner by passing self.state_message_key
         if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
             return "tools"
         else:
@@ -270,7 +298,9 @@ class ChatAgentGraph:
         state = await graph.aget_state(self.config)
         retrieved_nodes = state.values.get(self.state_retrieved_nodes_key, [])
         retrieved_nodes = [
-            source for source in retrieved_nodes if isinstance(source, DocSearchRetrievedNode)
+            source
+            for source in retrieved_nodes
+            if isinstance(source, DocSearchRetrievedNode)
         ]
 
         # prune nodes which have similar text
@@ -285,7 +315,7 @@ class ChatAgentGraph:
                 pruned_retrieved_nodes.append(retrieved_node)
 
         return pruned_retrieved_nodes
-    
+
     async def _get_citations(self, graph):
         state = await graph.aget_state(self.config)
         evidence_text = state.values.get("evidence_text", "")
@@ -293,7 +323,7 @@ class ChatAgentGraph:
         return citations
 
     async def _get_chat_source_comments(self, graph):
-        
+
         chat_source_comments = []
 
         # get the retrieved nodes from the graph
@@ -302,21 +332,21 @@ class ChatAgentGraph:
         citations = await self._get_citations(graph)
         if len(citations) > 0 and len(retrieved_nodes) > 0:
             chat_source_comments = await get_chat_source_comments_from_citations(
-                citations, 
-                retrieved_nodes, 
-                self.file_id_to_path, 
-                self.get_current_thread_id(), 
-                str(uuid.uuid4()) # not implementing message_id tracking yet
+                citations,
+                retrieved_nodes,
+                self.file_id_to_path,
+                self.get_current_thread_id(),
+                str(uuid.uuid4()),  # not implementing message_id tracking yet
             )
         # fall back to retrieved nodes if LLM did not find any citations
-        # for now this will hilight all 
-        elif len(retrieved_nodes) > 0: 
-            chat_source_comments = await get_chat_source_comments_from_retrieved_nodes(
-                retrieved_nodes, 
-                self.get_current_thread_id(), 
-                str(uuid.uuid4()) # not implementing message_id tracking yet
+        # for now this will hilight all
+        elif len(retrieved_nodes) > 0:
+            chat_source_comments = get_chat_source_comments_from_retrieved_nodes(
+                retrieved_nodes,
+                self.get_current_thread_id(),
+                str(uuid.uuid4()),  # not implementing message_id tracking yet
             )
-        
+
         return chat_source_comments
 
     async def stream(self, user_message: str):

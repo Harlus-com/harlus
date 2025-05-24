@@ -65,20 +65,22 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
   const updateComments = (
     updates: { [key: string]: CommentComponentData },
     options: {
+      replacePrevious?: boolean;
       expectAllNew?: boolean;
       expectReplace?: boolean;
       save?: boolean;
     } = {}
   ) => {
     setComments((prevComments) => {
-      if (options.expectAllNew) {
+      if (options.replacePrevious) {
+        prevComments = {};
+      } else if (options.expectAllNew) {
         Object.keys(updates).forEach((key) => {
           if (prevComments[key]) {
             throw new Error(`Comment with id ${key} already exists`);
           }
         });
-      }
-      if (options.expectReplace) {
+      } else if (options.expectReplace) {
         Object.keys(updates).forEach((key) => {
           if (!prevComments[key]) {
             throw new Error(`Comment with id ${key} does not exist`);
@@ -154,17 +156,14 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
         },
       })
     );
-
     const updates: { [key: string]: CommentComponentData } = {};
     for (const comment of commentComponentData) {
-      console.log("Adding chat source comment", comment);
-      console.log("Comments", comments);
-      if (options.ignoreIfExists && comments[comment.apiData.id]) {
-        continue;
-      }
       updates[comment.apiData.id] = comment;
     }
-    updateComments(updates, { expectAllNew: true, save: true });
+    updateComments(updates, {
+      save: true,
+      replacePrevious: true,
+    });
   };
 
   const addCommentGroup = async (
