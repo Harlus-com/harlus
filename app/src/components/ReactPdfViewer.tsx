@@ -35,6 +35,9 @@ const PdfViewer = ({ file }: PdfViewerProps) => {
   const highlightAreas: Highlight[] = useMemo(() => {
     const areas: Highlight[] = [];
     for (const comment of activeComments) {
+      if (!comment.highlightColor) {
+        continue;
+      }
       for (const annotation of comment.annotations) {
         areas.push({
           ...annotation,
