@@ -51,7 +51,7 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
           apiData: comment.apiData,
           uiState: {
             isHidden: false,
-            highlightColor: "yellow",
+            highlightColor: "",
             color: comment.uiState.color,
           },
         };
@@ -203,12 +203,12 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
     const updates: { [key: string]: CommentComponentData } = {};
     if (oldSelectedComment) {
       updates[selectedCommentId] = updateUiState(oldSelectedComment, {
-        highlightColor: "yellow",
+        highlightColor: "",
       });
     }
     if (newSelectedComment) {
       updates[commentId] = updateUiState(newSelectedComment, {
-        highlightColor: "green",
+        highlightColor: "yellow",
       });
     }
     updateComments(updates, { expectReplace: true });
