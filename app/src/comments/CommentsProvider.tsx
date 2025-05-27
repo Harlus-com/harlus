@@ -116,7 +116,7 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
         apiData: comment,
         uiState: {
           isHidden: false,
-          highlightColor: "yellow",
+          highlightColor: "",
           color: claimsById[comment.id]
             ? getCommentColor(claimsById[comment.id])
             : CommentColor.NONE,
@@ -151,7 +151,7 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
         apiData: comment,
         uiState: {
           isHidden: false,
-          highlightColor: "blue", // Use blue for source highlights
+          highlightColor: "rgba(255, 226, 143, 0.5)",
           color: CommentColor.NONE,
         },
       })
@@ -208,7 +208,7 @@ export const CommentsProvider: React.FC<CommentsProviderProps> = ({
     }
     if (newSelectedComment) {
       updates[commentId] = updateUiState(newSelectedComment, {
-        highlightColor: "yellow",
+        highlightColor: "rgba(255, 226, 143, 0.5)",
       });
     }
     updateComments(updates, { expectReplace: true });
